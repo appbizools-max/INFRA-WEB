@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "547233108897",
+    "project_id": "infraops360-2c3d9",
+    "storage_bucket": "infraops360-2c3d9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:547233108897:android:06cf4d816ab59daf72f1e0",
+        "android_client_info": {
+          "package_name": "infraops360.com"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-DKggCJrqf_pN9hSN91GtVY6sIVmhS_8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

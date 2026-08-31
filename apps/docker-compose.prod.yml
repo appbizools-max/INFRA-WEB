@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # Database Service
+  db:
+    image: postgres:15-alpine
+    container_name: infraops360_db_prod
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-infraops_prod_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-infraops360}
+    ports:
+      - "${DATABASE_PORT:-5432}:5432"
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-infraops360}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  # API Service (Production Build)
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: infraops360_api_prod
+    ports:
+      - "${API_PORT:-3000}:3000"
+    environment:
+      PORT: 3000
+      DATABASE_URL: ${API_DATABASE_URL:-postgresql://postgres:infraops_prod_pass@db:5432/infraops360?schema=public}
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+
+  # Backend Service (Production Build)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: infraops360_backend_prod
+    ports:
+      - "${BACKEND_PORT:-5000}:5000"
+    environment:
+      PORT: 5000
+      DATABASE_URL: ${BACKEND_DATABASE_URL:-postgresql://postgres:infraops_prod_pass@db:5432/infraops360}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS}
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+
+  # Web Frontend Service (Production Build, served via Nginx)
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY}
+        VITE_FIREBASE_AUTH_DOMAIN: ${VITE_FIREBASE_AUTH_DOMAIN}
+        VITE_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID}
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
+    container_name: infraops360_web_prod
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: always
+
+volumes:
+  postgres_prod_data:

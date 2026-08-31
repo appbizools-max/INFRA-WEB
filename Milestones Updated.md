@@ -1,0 +1,28 @@
+﻿InfraOps360 Platform
+
+Phase 1
+
+Saas Admin
+
+Tenant Registration & Admin & Subscription
+??? Accounts
+??? HR
+
+Phase 2
+
+??? Fleet Management
+??? Equipment Management
+
+??? Documents
+
+Phase 3
+??? Operations
+??? Workflow Engine
+
+Phase 4
+
+??? Marketplace
+??? AI
+??? Dashboards
+
+Testing & handover

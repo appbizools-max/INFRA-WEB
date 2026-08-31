@@ -1,0 +1,17 @@
+{
+  "name": "infraops-360-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:mobile": "npm run start --workspace=apps/mobile"
+  },
+  "dependencies": {
+    "expo-font": "^57.0.0",
+    "expo-splash-screen": "^57.0.2"
+  }
+}

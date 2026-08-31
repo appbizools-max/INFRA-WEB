@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "InfraOps 360",
+    "slug": "infraops-360",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/App Icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "infraops360"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/App Icon.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "infraops360.com",
+      "googleServicesFile": "./google-services.json"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth"
+    ]
+  }
+}

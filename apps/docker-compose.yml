@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # Database Service
+  db:
+    image: postgres:15-alpine
+    container_name: infraops360_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-infraops_dev_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-infraops360}
+    ports:
+      - "${DATABASE_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-infraops360}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: infraops360_api
+    command: npm run dev
+    ports:
+      - "${API_PORT:-3000}:3000"
+    volumes:
+      - ./api:/app
+      - /app/node_modules
+    environment:
+      PORT: 3000
+      DATABASE_URL: ${API_DATABASE_URL:-postgresql://postgres:infraops_dev_pass@db:5432/infraops360?schema=public}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Backend Service (Express, pg, nodemon)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: infraops360_backend
+    command: npm run dev
+    ports:
+      - "${BACKEND_PORT:-5000}:5000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    environment:
+      PORT: 5000
+      DATABASE_URL: ${BACKEND_DATABASE_URL:-postgresql://postgres:infraops_dev_pass@db:5432/infraops360}
+      RESEND_API_KEY: ${RESEND_API_KEY:-""}
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-./serviceAccountKey.json}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Web Frontend Service (React, Vite, Hot-reload)
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY}
+        VITE_FIREBASE_AUTH_DOMAIN: ${VITE_FIREBASE_AUTH_DOMAIN}
+        VITE_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID}
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
+    container_name: infraops360_web
+    command: npm run dev -- --host
+    ports:
+      - "${WEB_PORT:-5173}:5173"
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+    environment:
+      VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY}
+      VITE_FIREBASE_AUTH_DOMAIN: ${VITE_FIREBASE_AUTH_DOMAIN}
+      VITE_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID}
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
