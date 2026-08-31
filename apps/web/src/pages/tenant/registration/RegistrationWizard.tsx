@@ -77,9 +77,10 @@ export default function RegistrationWizard() {
     const cfg = formConfig.find(f => f.fieldKey === key);
     return cfg ? cfg.isRequired : false;
   };
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://infra-web-q8tb.onrender.com';
   React.useEffect(() => {
     // Fetch dynamic field configurations for registration
-    fetch('http://localhost:5000/api/admin/form-config/registration')
+    fetch(`${API_BASE_URL}/api/admin/form-config/registration`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setFormConfig(data);
@@ -87,7 +88,7 @@ export default function RegistrationWizard() {
       .catch(err => console.error('Failed to fetch registration form config', err));
 
     // Fetch subscription plans
-    fetch('http://localhost:5000/api/plans')
+    fetch(`${API_BASE_URL}/api/plans`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setPlans(data);
@@ -99,7 +100,7 @@ export default function RegistrationWizard() {
         setEmail(currentUser.email);
         setIsEmailVerified(true);
       }
-      fetch(`http://localhost:5000/api/tenant/status/${currentUser.uid}`)
+      fetch(`${API_BASE_URL}/api/tenant/status/${currentUser.uid}`)
         .then(res => res.json())
         .then(data => {
           if (data.status === 'draft' && data.data) {
@@ -141,7 +142,7 @@ export default function RegistrationWizard() {
   const saveDraft = async (currentStep: number) => {
     if (!currentUser) return;
     try {
-      await fetch(`http://localhost:5000/api/tenant/draft`, {
+      await fetch(`${API_BASE_URL}/api/tenant/draft`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -218,7 +219,7 @@ export default function RegistrationWizard() {
     if (!email) { setErrorMsg('Invalid email'); return; }
     setErrorMsg('');
     try {
-      const res = await fetch(`http://localhost:5000/api/auth/send-email-otp`, {
+      const res = await fetch(`${API_BASE_URL}/api/auth/send-email-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -236,7 +237,7 @@ export default function RegistrationWizard() {
       return;
     }
     try {
-      const res = await fetch(`http://localhost:5000/api/auth/verify-email-otp`, {
+      const res = await fetch(`${API_BASE_URL}/api/auth/verify-email-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp: emailOtp })
@@ -380,7 +381,7 @@ export default function RegistrationWizard() {
     try {
       if (startFreeTrial) {
         // 1. FREE TRIAL FLOW - No Razorpay checkouts, directly hit backend register with startFreeTrial: true
-        const res = await fetch('http://localhost:5000/api/tenant/register', {
+        const res = await fetch(`${API_BASE_URL}/api/tenant/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -413,7 +414,7 @@ export default function RegistrationWizard() {
         navigate('/tenant/dashboard');
       } else {
         // 2. PAID CHECKOUT FLOW - Create Razorpay order first
-        const orderRes = await fetch('http://localhost:5000/api/payment/create-order', {
+        const orderRes = await fetch(`${API_BASE_URL}/api/payment/create-order`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ amount: activePlan.price_monthly })
@@ -437,7 +438,7 @@ export default function RegistrationWizard() {
           handler: async (response: any) => {
             try {
               setIsSubmitting(true);
-              const registerRes = await fetch('http://localhost:5000/api/tenant/register', {
+              const registerRes = await fetch(`${API_BASE_URL}/api/tenant/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

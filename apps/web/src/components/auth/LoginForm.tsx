@@ -92,7 +92,7 @@ export function LoginForm() {
   };
 
   const checkUserExists = async (field: { email?: string, mobile?: string }) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://infra-web-q8tb.onrender.com';
     const host = baseUrl.startsWith('http://localhost:3001') ? 'http://localhost:5000' : baseUrl;
     const res = await fetch(`${host}/api/auth/check-user`, {
       method: 'POST',
@@ -105,7 +105,7 @@ export function LoginForm() {
   };
 
   const handleSendEmailOtp = async (mail: string) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://infra-web-q8tb.onrender.com';
     const host = baseUrl.startsWith('http://localhost:3001') ? 'http://localhost:5000' : baseUrl;
     const res = await fetch(`${host}/api/auth/send-email-otp`, {
       method: 'POST',
@@ -119,7 +119,7 @@ export function LoginForm() {
   };
 
   const handleVerifyEmailOtp = async (mail: string, otpCode: string) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://infra-web-q8tb.onrender.com';
     const host = baseUrl.startsWith('http://localhost:3001') ? 'http://localhost:5000' : baseUrl;
     const res = await fetch(`${host}/api/auth/verify-email-otp`, {
       method: 'POST',
