@@ -4257,58 +4257,67 @@ app.listen(Number(port), '0.0.0.0', async () => {
           );
         }
       }
+    // Create tenant_projects & tenant_worksites tables if not exist
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS tenant_projects (
+          id SERIAL PRIMARY KEY,
+          project_id VARCHAR(50) NOT NULL UNIQUE,
+          tenant_id INTEGER REFERENCES tenants(id) ON DELETE CASCADE,
+          name VARCHAR(255) NOT NULL,
+          location VARCHAR(255) NOT NULL,
+          location_block VARCHAR(255),
+          customer VARCHAR(255),
+          commodity VARCHAR(255),
+          contract_quantity VARCHAR(100),
+          contract_quantity_unit VARCHAR(100),
+          contract_start_date VARCHAR(50),
+          contract_end_date VARCHAR(50),
+          other_data TEXT,
+          status VARCHAR(50) DEFAULT 'Active',
+          is_pinned BOOLEAN DEFAULT false,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      await pool.query('ALTER TABLE tenant_projects ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT false;').catch(() => {});
+    } catch (tpErr: any) {
+      console.warn('tenant_projects init notice:', tpErr.message);
+    }
+
+    // Safely seed default ledgers if a tenant already exists
+    try {
+      const tenantCheck = await pool.query('SELECT id FROM tenants LIMIT 1');
+      if (tenantCheck.rows.length > 0) {
+        const tId = tenantCheck.rows[0].id;
+        const payrollCount = await pool.query('SELECT COUNT(*) as count FROM tenant_payroll_ledgers');
+        if (parseInt(payrollCount.rows[0]?.count || '0', 10) === 0) {
+          await pool.query(`
+            INSERT INTO tenant_payroll_ledgers (tenant_id, date, employee, amount, status)
+            VALUES ($1, '2026-08-01', 'Ramesh', 35000, 'Paid'),
+                   ($1, '2026-08-01', 'Suresh', 28000, 'Paid')
+          `, [tId]);
+        }
+
+        const compPcCount = await pool.query('SELECT COUNT(*) as count FROM tenant_company_petty_cash');
+        if (parseInt(compPcCount.rows[0]?.count || '0', 10) === 0) {
+          await pool.query(`
+            INSERT INTO tenant_company_petty_cash (tenant_id, date, category, type, amount, balance)
+            VALUES ($1, '2026-08-01', 'Float Top-up', 'topup', 10000, 10000),
+                   ($1, '2026-08-05', 'Office Supplies', 'expense', 1200, 8800)
+          `, [tId]);
+        }
+
+        const loansCount = await pool.query('SELECT COUNT(*) as count FROM tenant_loans_ledger');
+        if (parseInt(loansCount.rows[0]?.count || '0', 10) === 0) {
+          await pool.query(`
+            INSERT INTO tenant_loans_ledger (tenant_id, lender, principal, outstanding, emi_amount, start_date)
+            VALUES ($1, 'ABC Finance Co.', 500000, 320000, 25000, '2026-04-01')
+          `, [tId]);
+        }
+      }
     } catch (seedErr: any) {
-      console.log('Seeding notice:', seedErr.message);
+      console.log('Ledger seeding notice:', seedErr.message);
     }
-
-    const payrollCount = await pool.query('SELECT COUNT(*) as count FROM tenant_payroll_ledgers');
-    if (parseInt(payrollCount.rows[0].count, 10) === 0) {
-      await pool.query(`
-        INSERT INTO tenant_payroll_ledgers (tenant_id, date, employee, amount, status)
-        VALUES (1, '2026-08-01', 'Ramesh', 35000, 'Paid'),
-               (1, '2026-08-01', 'Suresh', 28000, 'Paid')
-      `);
-    }
-
-    const compPcCount = await pool.query('SELECT COUNT(*) as count FROM tenant_company_petty_cash');
-    if (parseInt(compPcCount.rows[0].count, 10) === 0) {
-      await pool.query(`
-        INSERT INTO tenant_company_petty_cash (tenant_id, date, category, type, amount, balance)
-        VALUES (1, '2026-08-01', 'Float Top-up', 'topup', 10000, 10000),
-               (1, '2026-08-05', 'Office Supplies', 'expense', 1200, 8800)
-      `);
-    }
-
-    const loansCount = await pool.query('SELECT COUNT(*) as count FROM tenant_loans_ledger');
-    if (parseInt(loansCount.rows[0].count, 10) === 0) {
-      await pool.query(`
-        INSERT INTO tenant_loans_ledger (tenant_id, lender, principal, outstanding, emi_amount, start_date)
-        VALUES (1, 'ABC Finance Co.', 500000, 320000, 25000, '2026-04-01')
-      `);
-    }
-
-    // // Initialize tenant_projects table automatically
-  try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS tenant_projects (
-        id SERIAL PRIMARY KEY,
-        project_id VARCHAR(50) NOT NULL UNIQUE,
-        tenant_id INTEGER REFERENCES tenants(id) ON DELETE CASCADE,
-        name VARCHAR(255) NOT NULL,
-        location VARCHAR(255) NOT NULL,
-        location_block VARCHAR(255),
-        customer VARCHAR(255),
-        commodity VARCHAR(255),
-        contract_quantity VARCHAR(100),
-        contract_quantity_unit VARCHAR(100),
-        contract_start_date VARCHAR(50),
-        contract_end_date VARCHAR(50),
-        other_data TEXT,
-        status VARCHAR(50) DEFAULT 'Active',
-        is_pinned BOOLEAN DEFAULT false,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
 
     // Add is_pinned to existing tables if missing
     await pool.query('ALTER TABLE tenant_projects ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT false;');
