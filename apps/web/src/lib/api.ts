@@ -1,7 +1,7 @@
 import { auth } from './firebase';
 
 const getBaseUrl = (): string => {
-  const envUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const envUrl = import.meta.env.VITE_API_URL || 'https://infra-web-q8tb.onrender.com';
   return envUrl.startsWith('http://localhost:3001') ? 'http://localhost:5000' : envUrl;
 };
 
