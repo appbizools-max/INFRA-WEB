@@ -47,7 +47,15 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}): Pro
   };
 
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-  return fetch(url, { ...options, headers });
+  try {
+    return await fetch(url, { ...options, headers });
+  } catch (err) {
+    console.warn(`[API] Connection refused or offline at ${url}:`, err);
+    return new Response(JSON.stringify({ error: 'Backend server unavailable. Please set VITE_API_URL or start backend.' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 }
 
 /**
@@ -64,7 +72,15 @@ export async function adminApiFetch(endpoint: string, options: RequestInit = {})
   };
 
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-  return fetch(url, { ...options, headers });
+  try {
+    return await fetch(url, { ...options, headers });
+  } catch (err) {
+    console.warn(`[Admin API] Connection refused or offline at ${url}:`, err);
+    return new Response(JSON.stringify({ error: 'Backend server unavailable. Please set VITE_API_URL or start backend.' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 }
 
 /**
