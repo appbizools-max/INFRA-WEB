@@ -85,34 +85,50 @@ app.post('/api/auth/check-user', async (req, res) => {
   const { email, mobile } = req.body;
 
   try {
+    let exists = false;
+
     if (email) {
       const cleanEmail = email.trim().toLowerCase();
-      const adminCheck = await pool.query('SELECT id FROM tenant_admins WHERE LOWER(email) = $1', [cleanEmail]);
-      const userCheck = await pool.query("SELECT id, status FROM tenant_users WHERE LOWER(email) = $1 AND COALESCE(status, 'Active') != 'Deactivated'", [cleanEmail]);
-      return res.json({ exists: adminCheck.rows.length > 0 || userCheck.rows.length > 0 });
+      try {
+        const tenantCheck = await pool.query('SELECT id FROM tenants WHERE LOWER(email) = $1', [cleanEmail]);
+        if (tenantCheck.rows.length > 0) exists = true;
+      } catch (e) {}
+
+      try {
+        const userCheck = await pool.query("SELECT id, status FROM tenant_users WHERE LOWER(email) = $1 AND COALESCE(status, 'Active') != 'Deactivated'", [cleanEmail]);
+        if (userCheck.rows.length > 0) exists = true;
+      } catch (e) {}
+
+      return res.json({ exists });
     }
 
     if (mobile) {
       const rawMobile = mobile.replace('+91', '').trim();
       const formattedMobile = `+91${rawMobile}`;
 
-      const adminCheck = await pool.query(
-        'SELECT id FROM tenant_admins WHERE mobile = $1 OR mobile = $2 OR mobile = $3',
-        [mobile, rawMobile, formattedMobile]
-      );
+      try {
+        const tenantCheck = await pool.query(
+          'SELECT id FROM tenants WHERE phone = $1 OR phone = $2 OR phone = $3',
+          [mobile, rawMobile, formattedMobile]
+        );
+        if (tenantCheck.rows.length > 0) exists = true;
+      } catch (e) {}
 
-      const userCheck = await pool.query(
-        "SELECT id, status FROM tenant_users WHERE (mobile = $1 OR mobile = $2 OR mobile = $3) AND COALESCE(status, 'Active') != 'Deactivated'",
-        [mobile, rawMobile, formattedMobile]
-      );
+      try {
+        const userCheck = await pool.query(
+          "SELECT id, status FROM tenant_users WHERE (mobile = $1 OR mobile = $2 OR mobile = $3) AND COALESCE(status, 'Active') != 'Deactivated'",
+          [mobile, rawMobile, formattedMobile]
+        );
+        if (userCheck.rows.length > 0) exists = true;
+      } catch (e) {}
 
-      return res.json({ exists: adminCheck.rows.length > 0 || userCheck.rows.length > 0 });
+      return res.json({ exists });
     }
 
-    return res.status(400).json({ error: 'Provide email or mobile' });
-  } catch (err) {
+    return res.json({ exists: false });
+  } catch (err: any) {
     console.error('Check user error:', err);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.json({ exists: false });
   }
 });
 
