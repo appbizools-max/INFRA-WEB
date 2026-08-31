@@ -307,86 +307,36 @@ app.post('/api/tenant/draft', async (req, res) => {
   }
 });
 
-// Auto-fix missing UNIQUE constraint on tenant_drafts
-pool.query('ALTER TABLE tenant_drafts ADD CONSTRAINT unique_firebase_uid UNIQUE (firebase_uid);')
-  .then(() => console.log('Successfully added UNIQUE constraint to firebase_uid'))
-  .catch((e: any) => {
-    require('fs').writeFileSync('d:/Infraops360/Code3/apps/backend/alter_table_error.txt', e.message);
-  });
-
-// Add subdomain column to tenants table if not exists
-pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS subdomain VARCHAR(255) UNIQUE;')
-  .then(() => console.log('Checked/Added subdomain column to tenants'))
-  .catch((e: any) => console.error('Error adding subdomain:', e.message));
-
-// Add trial_ends_at, payment_status, razorpay_payment_id, razorpay_order_id columns if not exist
-pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMP;')
-  .then(() => console.log('Checked/Added trial_ends_at column to tenants'))
-  .catch((e: any) => console.error('Error adding trial_ends_at:', e.message));
-
-pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT \'active\';')
-  .then(() => console.log('Checked/Added payment_status column to tenants'))
-  .catch((e: any) => console.error('Error adding payment_status:', e.message));
-
-pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS razorpay_payment_id VARCHAR(255);')
-  .then(() => console.log('Checked/Added razorpay_payment_id column to tenants'))
-  .catch((e: any) => console.error('Error adding razorpay_payment_id:', e.message));
-
-pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS razorpay_order_id VARCHAR(255);')
-  .then(() => console.log('Checked/Added razorpay_order_id column to tenants'))
-  .catch((e: any) => console.error('Error adding razorpay_order_id:', e.message));
-
+// Ensure core tables exist before ALTER TABLE migrations run
 pool.query(`
-  ALTER TABLE tenants ADD COLUMN IF NOT EXISTS company_address TEXT;
-`).then(() => console.log('Checked/Added company_address column to tenants'))
-  .catch((e: any) => console.error('Error adding company_address:', e.message));
-
-pool.query(`
-  ALTER TABLE tenants ADD COLUMN IF NOT EXISTS pan_number VARCHAR(100);
-`).then(() => console.log('Checked/Added pan_number column to tenants'))
-  .catch((e: any) => console.error('Error adding pan_number:', e.message));
-
-pool.query(`
-  ALTER TABLE tenants ADD COLUMN IF NOT EXISTS msme_number VARCHAR(100);
-`).then(() => console.log('Checked/Added msme_number column to tenants'))
-  .catch((e: any) => console.error('Error adding msme_number:', e.message));
-
-pool.query(`
-  ALTER TABLE tenants ADD COLUMN IF NOT EXISTS company_code VARCHAR(50);
-`).then(async () => {
-  console.log('Checked/Added company_code column to tenants');
-  // Always recalculate company_code from company_name (6 uppercase letters)
-  try {
-    const allTenants = await pool.query('SELECT id, company_name FROM tenants');
-    for (const row of allTenants.rows) {
-      const raw = (row.company_name || 'TNT').replace(/[^a-zA-Z]/g, '').toUpperCase();
-      const code = raw.substring(0, 6) || 'TNT';
-      await pool.query('UPDATE tenants SET company_code = $1 WHERE id = $2', [code, row.id]);
-    }
-    console.log('✅ Recalculated company_code for all tenants (6-char)');
-
-    // Rebuild all member_ids using the updated company_code
-    const tenants = await pool.query('SELECT id, company_code FROM tenants');
-    for (const t of tenants.rows) {
-      const prefix = t.company_code || 'TNT';
-      const members = await pool.query('SELECT id FROM tenant_users WHERE tenant_id = $1 ORDER BY created_at ASC', [t.id]);
-      let seq = 1;
-      for (const m of members.rows) {
-        seq++;
-        const newId = `#${prefix}${String(seq).padStart(4, '0')}`;
-        await pool.query('UPDATE tenant_users SET member_id = $1 WHERE id = $2', [newId, m.id]);
-      }
-    }
-    console.log('✅ Rebuilt all member_ids with updated company_code prefix');
-  } catch (err: any) {
-    console.error('Error migrating company_code:', err.message);
-  }
-}).catch((e: any) => console.error('Error adding company_code:', e.message));
-
-// Make pincode nullable in tenants table
-pool.query('ALTER TABLE tenants ALTER COLUMN pincode DROP NOT NULL;')
-  .then(() => console.log('Made pincode column nullable'))
-  .catch((e: any) => console.log('Pincode nullability note:', e.message));
+  CREATE TABLE IF NOT EXISTS tenants (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    subdomain VARCHAR(255) UNIQUE,
+    phone VARCHAR(50),
+    status VARCHAR(50) DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS tenant_drafts (
+    id SERIAL PRIMARY KEY,
+    firebase_uid VARCHAR(255) UNIQUE NOT NULL,
+    draft_data TEXT NOT NULL,
+    step INTEGER DEFAULT 1,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+`).then(() => {
+  pool.query('ALTER TABLE tenant_drafts ADD CONSTRAINT unique_firebase_uid UNIQUE (firebase_uid);').catch(() => {});
+  pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS subdomain VARCHAR(255) UNIQUE;').catch(() => {});
+  pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMP;').catch(() => {});
+  pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT \'active\';').catch(() => {});
+  pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS razorpay_payment_id VARCHAR(255);').catch(() => {});
+  pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS razorpay_order_id VARCHAR(255);').catch(() => {});
+  pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS company_address TEXT;').catch(() => {});
+  pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS pan_number VARCHAR(100);').catch(() => {});
+  pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS msme_number VARCHAR(100);').catch(() => {});
+  pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS company_code VARCHAR(50);').catch(() => {});
+}).catch(err => console.error('Database startup notice:', err.message));
 
 // Check/Create tenant_users table
 pool.query(`
