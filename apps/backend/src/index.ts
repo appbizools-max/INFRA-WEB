@@ -4219,42 +4219,35 @@ app.listen(Number(port), '0.0.0.0', async () => {
       console.warn('⚠️ Table column alter warning:', alterErr.message);
     }
 
-    // Seeding default project ledger profiles, petty cash and company expenses
-    const profilesCount = await pool.query('SELECT COUNT(*) as count FROM tenant_project_ledger_profiles');
-    if (parseInt(profilesCount.rows[0].count, 10) === 0) {
-      const proj = await pool.query('SELECT project_id FROM tenant_projects LIMIT 1');
-      if (proj.rows.length > 0) {
-        const pId = proj.rows[0].project_id;
-        
-        await pool.query(
-          `INSERT INTO tenant_project_ledger_profiles (tenant_id, project_id, total_cost, notes)
-           VALUES (1, $1, 5000000, 'Main project budget and costing overview') ON CONFLICT DO NOTHING`,
-          [pId]
-        );
+    // Seeding default project ledger profiles, petty cash and company expenses safely
+    try {
+      const profilesCount = await pool.query('SELECT COUNT(*) as count FROM tenant_project_ledger_profiles');
+      if (parseInt(profilesCount.rows[0]?.count || '0', 10) === 0) {
+        const proj = await pool.query('SELECT project_id FROM tenant_projects LIMIT 1');
+        if (proj.rows.length > 0) {
+          const pId = proj.rows[0].project_id;
+          
+          await pool.query(
+            `INSERT INTO tenant_project_ledger_profiles (tenant_id, project_id, total_cost, notes)
+             VALUES (1, $1, 5000000, 'Main project budget and costing overview') ON CONFLICT DO NOTHING`,
+            [pId]
+          );
 
-        await pool.query(
-          `INSERT INTO tenant_project_petty_cash (tenant_id, project_id, person_name, given, used, left_amount)
-           VALUES (1, $1, 'Ramesh (Supervisor)', 20000, 14500, 5500) ON CONFLICT DO NOTHING`,
-          [pId]
-        );
-        await pool.query(
-          `INSERT INTO tenant_project_petty_cash_expenses (tenant_id, project_id, person_name, date, category, amount, bill)
-           VALUES (1, $1, 'Ramesh (Supervisor)', '2026-08-05', 'Material Expense', 10000, 'cement_delivery.pdf'),
-                  (1, $1, 'Ramesh (Supervisor)', '2026-08-06', 'General Utilities', 4500, 'tea_snacks.pdf')`,
-          [pId]
-        );
-
-        await pool.query(
-          `INSERT INTO tenant_project_petty_cash (tenant_id, project_id, person_name, given, used, left_amount)
-           VALUES (1, $1, 'Suresh (Site Incharge)', 15000, 15000, 0) ON CONFLICT DO NOTHING`,
-          [pId]
-        );
-        await pool.query(
-          `INSERT INTO tenant_project_petty_cash_expenses (tenant_id, project_id, person_name, date, category, amount, bill)
-           VALUES (1, $1, 'Suresh (Site Incharge)', '2026-08-04', 'Transport & Fuel', 15000, 'fuel_mixer.pdf')`,
-          [pId]
-        );
+          await pool.query(
+            `INSERT INTO tenant_project_petty_cash (tenant_id, project_id, person_name, given, used, left_amount)
+             VALUES (1, $1, 'Ramesh (Supervisor)', 20000, 14500, 5500) ON CONFLICT DO NOTHING`,
+            [pId]
+          );
+          await pool.query(
+            `INSERT INTO tenant_project_petty_cash_expenses (tenant_id, project_id, person_name, date, category, amount, bill)
+             VALUES (1, $1, 'Ramesh (Supervisor)', '2026-08-05', 'Material Expense', 10000, 'cement_delivery.pdf'),
+                    (1, $1, 'Ramesh (Supervisor)', '2026-08-06', 'General Utilities', 4500, 'tea_snacks.pdf')`,
+            [pId]
+          );
+        }
       }
+    } catch (seedErr: any) {
+      console.log('Seeding notice:', seedErr.message);
     }
 
     const payrollCount = await pool.query('SELECT COUNT(*) as count FROM tenant_payroll_ledgers');
