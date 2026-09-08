@@ -95,6 +95,11 @@ app.post('/api/auth/check-user', async (req, res) => {
       } catch (e) {}
 
       try {
+        const adminCheck = await pool.query('SELECT id FROM tenant_admins WHERE LOWER(email) = $1', [cleanEmail]);
+        if (adminCheck.rows.length > 0) exists = true;
+      } catch (e) {}
+
+      try {
         const userCheck = await pool.query("SELECT id, status FROM tenant_users WHERE LOWER(email) = $1 AND COALESCE(status, 'Active') != 'Deactivated'", [cleanEmail]);
         if (userCheck.rows.length > 0) exists = true;
       } catch (e) {}
@@ -112,6 +117,14 @@ app.post('/api/auth/check-user', async (req, res) => {
           [mobile, rawMobile, formattedMobile]
         );
         if (tenantCheck.rows.length > 0) exists = true;
+      } catch (e) {}
+
+      try {
+        const adminCheck = await pool.query(
+          'SELECT id FROM tenant_admins WHERE mobile = $1 OR mobile = $2 OR mobile = $3',
+          [mobile, rawMobile, formattedMobile]
+        );
+        if (adminCheck.rows.length > 0) exists = true;
       } catch (e) {}
 
       try {
