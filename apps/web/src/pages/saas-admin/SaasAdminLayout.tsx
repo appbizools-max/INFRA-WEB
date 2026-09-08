@@ -63,7 +63,7 @@ export default function SaasAdminLayout() {
       <aside className={`
         absolute lg:static inset-y-0 left-0 z-50 flex flex-col h-full lg:h-screen
         bg-[#0F172A] transform transition-all duration-300 ease-in-out relative
-        ${isCollapsed ? 'w-[80px]' : 'w-[240px]'}
+        ${isCollapsed ? 'w-[80px]' : 'w-[200px]'}
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
 

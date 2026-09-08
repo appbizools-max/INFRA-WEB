@@ -1,10 +1,12 @@
 generator client {
   provider = "prisma-client-js"
 }
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
 model platform_config {
   id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   trial_days             Int?      @default(14)

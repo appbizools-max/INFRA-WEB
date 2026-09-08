@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Users, Search, Plus, Mail, Phone, X, Briefcase, Award, Clock, Trash2, AlertCircle, MapPin, Shield, Heart, Home, Camera, FileText, DollarSign, CheckCircle, Upload, User, CreditCard } from 'lucide-react';
+import { Users, Search, Plus, Mail, Phone, X, Briefcase, Award, Clock, Trash2, AlertCircle, MapPin, Shield, Heart, Home, Camera, FileText, DollarSign, CheckCircle, Upload, User, CreditCard, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 interface TeamMember {
   id: string;
@@ -477,9 +477,10 @@ export default function TeamPage() {
             </div>
             <button
               onClick={() => setModalOpen(false)}
-              className="px-4.5 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-600 transition-colors flex items-center justify-center gap-2"
+              className="px-3.5 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900 rounded-xl transition-all flex items-center gap-1.5 font-black text-xs uppercase tracking-wider border border-slate-200 shadow-2xs"
             >
-              ← Back to Directory
+              <ArrowLeft size={16} className="text-slate-600" />
+              <span>Back to Directory</span>
             </button>
           </div>
 

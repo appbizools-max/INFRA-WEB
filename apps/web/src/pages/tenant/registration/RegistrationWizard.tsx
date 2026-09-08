@@ -503,18 +503,23 @@ export default function RegistrationWizard() {
     <div className="w-full min-h-full bg-white pb-16">
       {/* PAGE CONTAINER */}
       <div className={`mx-auto px-4 pt-6 transition-all duration-300 ${step === 3 ? 'max-w-[1400px]' : 'max-w-6xl'}`}>
-        {/* BACK TO DASHBOARD LINK */}
-        <button
-          onClick={() => navigate('/tenant/dashboard')}
-          className="inline-flex items-center text-slate-500 hover:text-slate-900 font-medium text-xs mb-3 transition-colors gap-1.5"
-        >
-          <ArrowLeft size={14} />
-          Back to Dashboard
-        </button>
-
-        {/* TITLE & SUBTITLE */}
-        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Company Registration</h1>
-        <p className="text-sm text-slate-500 mt-1 font-medium">Create your organization workspace and invite your first administrator.</p>
+        {/* HEADER WITH BACK BUTTON */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-3.5">
+            <button
+              onClick={() => navigate('/tenant/dashboard')}
+              className="px-3.5 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900 rounded-xl transition-all flex items-center gap-1.5 font-black text-xs uppercase tracking-wider border border-slate-200 shadow-2xs"
+            >
+              <ArrowLeft size={16} className="text-slate-600" />
+              <span>Back to Dashboard</span>
+            </button>
+            <div className="h-8 w-px bg-slate-200 hidden sm:block" />
+            <div>
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight">Company Registration</h1>
+              <p className="text-xs text-slate-500 font-medium">Create your organization workspace and invite your first administrator.</p>
+            </div>
+          </div>
+        </div>
 
         {/* STEPPER PROGRESS BAR */}
         <div className="my-8 flex items-center justify-center">

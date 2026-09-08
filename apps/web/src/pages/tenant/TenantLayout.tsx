@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Users, Building2, Box, Wrench, UserCheck, Briefcase, Network, Wallet, User, Settings, Search, Bell, Menu, X, LogOut, ChevronRight, ChevronLeft, MapPin, Shield, UserCog, Layers, DollarSign, ShoppingCart, Clipboard, TrendingUp, Clock, Plus } from 'lucide-react';
+import { Home, Users, Building2, Box, Wrench, UserCheck, Briefcase, Network, Wallet, User, Settings, Search, Bell, Menu, X, LogOut, ChevronRight, ChevronLeft, MapPin, Shield, UserCog, Layers, DollarSign, ShoppingCart, Clipboard, TrendingUp, Clock, Plus, FolderPlus } from 'lucide-react';
 import sideIconImg from '../../assets/Side Icon.png';
 import { useAuth } from '../../context/AuthContext';
 import { signOut } from 'firebase/auth';
@@ -106,11 +106,11 @@ export default function TenantLayout() {
     }
   }, [location.pathname, isRegistered]);
   const isAdmin = userType === 'admin' || userType === null;
-  const isHR = 
+  const isHR =
     userType === 'team_member' && (
-      String(userDepartment).toUpperCase().includes('HR') || 
-      String(userDepartment).toUpperCase().includes('HUMAN RES') || 
-      String(userDesignation).toUpperCase().includes('HR') || 
+      String(userDepartment).toUpperCase().includes('HR') ||
+      String(userDepartment).toUpperCase().includes('HUMAN RES') ||
+      String(userDesignation).toUpperCase().includes('HR') ||
       String(userDesignation).toUpperCase().includes('HUMAN RES')
     );
   const isAccountant =
@@ -123,8 +123,8 @@ export default function TenantLayout() {
 
   const mainNavItems = [
     { name: 'Dashboard', path: '/tenant/dashboard', icon: Home },
-    { 
-      name: 'Projects & Work sites', 
+    {
+      name: 'Projects & Work sites',
       icon: Briefcase,
       isCollapsible: true,
       subItems: [
@@ -142,8 +142,8 @@ export default function TenantLayout() {
       { name: 'Divisions', path: '/tenant/divisions', icon: Network }
     ] : []),
     ...(isAdmin || isAccountant ? [
-      { 
-        name: 'Accounts & Ledgers', 
+      {
+        name: 'Accounts & Ledgers',
         icon: Wallet,
         isCollapsible: true,
         subItems: [
@@ -169,9 +169,8 @@ export default function TenantLayout() {
         <button
           type="button"
           onClick={() => toggleMenu(item.name)}
-          className={`w-full group flex items-center justify-between py-2.5 rounded-lg transition-all duration-150 relative ${
-            isSubActive ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
-          } ${isCollapsed ? 'justify-center px-0' : 'px-3'}`}
+          className={`w-full group flex items-center justify-between py-2.5 rounded-lg transition-all duration-150 relative ${isSubActive ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+            } ${isCollapsed ? 'justify-center px-0' : 'px-3'}`}
           title={isCollapsed ? item.name : undefined}
         >
           {isSubActive && <span className="absolute left-0 inset-y-2 w-0.5 bg-[#46B351] rounded-r-full" />}
@@ -184,13 +183,13 @@ export default function TenantLayout() {
             )}
           </div>
           {!isCollapsed && (
-            <ChevronRight 
-              size={12} 
-              className={`text-slate-500 transition-transform duration-150 ${isOpen ? 'rotate-90 text-[#46B351]' : ''}`} 
+            <ChevronRight
+              size={12}
+              className={`text-slate-500 transition-transform duration-150 ${isOpen ? 'rotate-90 text-[#46B351]' : ''}`}
             />
           )}
         </button>
-        
+
         {isOpen && !isCollapsed && (
           <div className="pl-6 space-y-0.5 transition-all duration-150">
             {item.subItems.map((sub: any) => {
@@ -201,9 +200,8 @@ export default function TenantLayout() {
                   key={sub.name}
                   to={sub.path}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`group flex items-center py-2 px-3 rounded-md transition-all duration-150 ${
-                    isSubItemActive ? 'text-white bg-white/5 font-semibold' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-                  }`}
+                  className={`group flex items-center py-2 px-3 rounded-md transition-all duration-150 ${isSubItemActive ? 'text-white bg-white/5 font-semibold' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                    }`}
                 >
                   <SubIcon size={12} className={`mr-2.5 ${isSubItemActive ? 'text-[#46B351]' : 'text-slate-600 group-hover:text-slate-400'}`} />
                   <span className="text-xs">{sub.name}</span>
@@ -226,9 +224,8 @@ export default function TenantLayout() {
       <Link
         to={item.path}
         onClick={() => setIsMobileMenuOpen(false)}
-        className={`group flex items-center justify-between py-2.5 rounded-lg transition-all duration-150 relative ${
-          isActive ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
-        } ${isCollapsed ? 'justify-center px-0' : 'px-3'}`}
+        className={`group flex items-center justify-between py-2.5 rounded-lg transition-all duration-150 relative ${isActive ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+          } ${isCollapsed ? 'justify-center px-0' : 'px-3'}`}
         title={isCollapsed ? item.name : undefined}
       >
         {isActive && <span className="absolute left-0 inset-y-2 w-0.5 bg-[#46B351] rounded-r-full" />}
@@ -256,12 +253,12 @@ export default function TenantLayout() {
       <aside className={`
         absolute md:static inset-y-0 left-0 z-50 flex flex-col h-full md:h-screen
         bg-[#0F172A] transform transition-all duration-300 ease-in-out relative
-        ${isCollapsed ? 'w-[80px]' : 'w-[240px]'}
+        ${isCollapsed ? 'w-[80px]' : 'w-[200px]'}
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
 
         {/* Toggle Button */}
-        <button 
+        <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="absolute -right-3 top-7 bg-[#1E293B] border border-slate-700 text-slate-400 rounded-full p-1 hover:text-white hidden md:flex items-center justify-center z-50 shadow-md transition-colors"
         >
@@ -343,33 +340,13 @@ export default function TenantLayout() {
 
       {/* ── Right Side ───────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-
-        {/* White Top Header — NO brand text here */}
-        <header className="bg-white border-b border-slate-100 h-14 flex items-center px-4 md:px-6 justify-between shadow-[0_1px_3px_rgba(0,0,0,0.04)] z-30 shrink-0">
-          {/* Left: hamburger on mobile */}
-          <button className="md:hidden text-slate-500 hover:text-slate-900" onClick={() => setIsMobileMenuOpen(true)}>
+        {/* Mobile menu trigger */}
+        <div className="md:hidden p-3 bg-slate-900 text-white flex items-center justify-between shrink-0">
+          <button onClick={() => setIsMobileMenuOpen(true)}>
             <Menu size={22} />
           </button>
-          {/* Empty left on desktop — brand is in sidebar */}
-          <div className="hidden md:block" />
-
-          {/* Right: actions */}
-          <div className="flex items-center space-x-4">
-            <button className="text-slate-400 hover:text-slate-700 transition-colors">
-              <Search size={18} />
-            </button>
-            <button className="text-slate-400 hover:text-slate-700 transition-colors relative">
-              <Bell size={18} />
-              <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[8px] font-bold h-3.5 w-3.5 rounded-full flex items-center justify-center">3</span>
-            </button>
-            <div
-              onClick={() => navigate('/tenant/profile')}
-              className="h-8 w-8 rounded-lg bg-[#0F172A] text-white flex items-center justify-center font-bold text-xs cursor-pointer"
-            >
-              {initials}
-            </div>
-          </div>
-        </header>
+          <span className="text-xs font-bold tracking-tight">InfraOps 360</span>
+        </div>
 
         {/* Scrollable Page Content */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-white p-4 md:p-8">

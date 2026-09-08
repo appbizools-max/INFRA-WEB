@@ -20,23 +20,6 @@ services:
       retries: 5
     restart: always
 
-  # API Service (Production Build)
-  api:
-    build:
-      context: ./api
-      dockerfile: Dockerfile
-    container_name: infraops360_api_prod
-    ports:
-      - "${API_PORT:-3000}:3000"
-    environment:
-      PORT: 3000
-      DATABASE_URL: ${API_DATABASE_URL:-postgresql://postgres:infraops_prod_pass@db:5432/infraops360?schema=public}
-      NODE_ENV: production
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: always
-
   # Backend Service (Production Build)
   backend:
     build:

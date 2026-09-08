@@ -3,10 +3,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
 import { apiFetch } from '../../../../../lib/api';
 import {
-  TrendingUp, AlertCircle, Wallet, DollarSign, ChevronRight, FileText, Clock, Plus,
-  ArrowRightLeft, ArrowDown, ArrowUp, RefreshCw, Layers, Clipboard,
+  TrendingUp, AlertCircle, Wallet, DollarSign, ChevronRight, FileText, Clock, Plus, FolderPlus, Folder,
+  ArrowRightLeft, ArrowDown, ArrowUp, RefreshCw, Layers, Clipboard, CreditCard, ArrowLeft,
   Settings, CheckCircle, Trash2, Calendar, User, ShoppingCart, Info, Users, Menu, X, Filter, Search,
-  Check, Briefcase, Network, ChevronDown, ChevronUp, Printer, ListOrdered, List, Bold, Italic, Eraser, Tag, Paperclip, Scale
+  Check, Briefcase, Network, ChevronDown, ChevronUp, Printer, ListOrdered, List, Bold, Italic, Eraser, Tag, Paperclip, Scale, Landmark, Coins
 } from 'lucide-react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { InvoicePdfDocument } from '../../../../../components/InvoicePdfDocument';
@@ -47,8 +47,10 @@ const SIDEBAR_SECTIONS = [
   {
     group: 'Ledgers & Accounts', items: [
       { id: 'ledger', label: 'Accounts & Ledgers', icon: Wallet },
+      { id: 'assets-liabilities', label: 'Assets & Liabilities', icon: Landmark },
       { id: 'record-ledger', label: 'Record Ledger Entry', icon: Clipboard },
       { id: 'project-costing', label: 'Project Costing & Details', icon: Briefcase },
+      { id: 'create-ledger', label: 'Create Ledger', icon: Plus },
     ]
   },
   {
@@ -56,14 +58,9 @@ const SIDEBAR_SECTIONS = [
       { id: 'company-expenses', label: 'Company Expenses', icon: DollarSign },
     ]
   },
-  {
-    group: 'Balance Sheet', items: [
-      { id: 'assets-liabilities', label: 'Assets & Liabilities', icon: Layers },
-    ]
-  },
 ] as const;
 
-type TabType = typeof SIDEBAR_SECTIONS[number]['items'][number]['id'] | 'create-ledger' | 'record-ledger';
+type TabType = typeof SIDEBAR_SECTIONS[number]['items'][number]['id'] | 'assets-liabilities' | 'create-ledger' | 'create-group' | 'record-ledger';
 
 // Common Color & Icon System Helpers
 const getTransactionVisuals = (type?: string, status?: string) => {
@@ -159,9 +156,13 @@ export default function AccountsLedgersPage() {
   const [activeAssetsSubTab, setActiveAssetsSubTab] = useState<'assets' | 'receivables' | 'payables'>('assets');
 
   useEffect(() => {
-    const validTabs: TabType[] = ['ledger', 'record-ledger', 'project-costing', 'company-expenses', 'assets-liabilities', 'create-ledger'];
-    if (tabParam && validTabs.includes(tabParam as TabType)) {
+    const validTabs: TabType[] = ['ledger', 'assets-liabilities', 'record-ledger', 'project-costing', 'company-expenses', 'create-ledger'];
+    if (tabParam === 'create-group') {
+      setActiveTab('create-ledger');
+      setCreateSection('group');
+    } else if (tabParam && validTabs.includes(tabParam as TabType)) {
       setActiveTab(tabParam as TabType);
+      if (tabParam === 'create-ledger') setCreateSection('ledger');
     } else if (!tabParam) {
       setActiveTab('ledger');
     }
@@ -320,12 +321,38 @@ export default function AccountsLedgersPage() {
     ledgerCategory: 'Project', // 'Project' or 'Company'
     overallCost: '',
     advancePaid: '',
-    companyCategory: 'Staff Salary & Payroll'
+    companyCategory: '',
+    groupName: '',
+    bankName: '',
+    accountNumber: '',
+    ifscCode: '',
+    branchName: '',
+    custodianName: '',
+    gstin: '',
+    address: '',
+    contactInfo: '',
+    paymentTerms: ''
   });
+
+  // --- Sub-section toggle inside Create Ledger ---
+  const [createSection, setCreateSection] = useState<'ledger' | 'group'>('ledger');
+  const [successModal, setSuccessModal] = useState<{ open: boolean; title: string; message: string } | null>(null);
+
+  // --- Create Group State ---
+  const [createGroupForm, setCreateGroupForm] = useState({
+    groupName: '',
+    groupCode: '',
+    description: ''
+  });
+  const [ledgerGroups, setLedgerGroups] = useState<any[]>([]);
   const [filterLedgerType, setFilterLedgerType] = useState('All Types');
   const [filterLedgerStatus, setFilterLedgerStatus] = useState('All Status');
+  const [filterLedgerGroup, setFilterLedgerGroup] = useState('All Groups');
+  const [selectedExpenseGroup, setSelectedExpenseGroup] = useState<string | null>(null);
+  const [recordTxSelectedGroup, setRecordTxSelectedGroup] = useState<string>('');
+  const [searchGroupQuery, setSearchGroupQuery] = useState('');
   const [searchLedgerQuery, setSearchLedgerQuery] = useState('');
-
+  const [showEmptyGroups, setShowEmptyGroups] = useState(false);
   // --- Overhauled Unified Ledgers State ---
   const [allLedgerAccounts, setAllLedgerAccounts] = useState<any[]>([]);
   const [loadingAllLedgers, setLoadingAllLedgers] = useState(false);
@@ -334,6 +361,37 @@ export default function AccountsLedgersPage() {
   const [companyLedgerEntries, setCompanyLedgerEntries] = useState<any[]>([]);
   const [loadingCompanyLedgers, setLoadingCompanyLedgers] = useState(false);
   const [loadingCompanyEntries, setLoadingCompanyEntries] = useState(false);
+  const [showWalletBreakdownModal, setShowWalletBreakdownModal] = useState(false);
+  const [viewWalletBreakdownView, setViewWalletBreakdownView] = useState(false);
+  const [expandedWalletCardId, setExpandedWalletCardId] = useState<string | null>(null);
+  const [cardEntriesMap, setCardEntriesMap] = useState<Record<string, any[]>>({});
+  const [loadingCardEntries, setLoadingCardEntries] = useState<Record<string, boolean>>({});
+
+  const toggleWalletCardAccordion = async (cardId: string, ledgerCode?: string) => {
+    if (expandedWalletCardId === cardId) {
+      setExpandedWalletCardId(null);
+      return;
+    }
+    setExpandedWalletCardId(cardId);
+    if (!cardEntriesMap[cardId]) {
+      setLoadingCardEntries(prev => ({ ...prev, [cardId]: true }));
+      try {
+        if (ledgerCode) {
+          const res = await apiFetch(`/api/tenant/ledger/entries/${encodeURIComponent(ledgerCode)}`);
+          const entries = Array.isArray(res) ? res : (res?.entries || res?.data || []);
+          setCardEntriesMap(prev => ({ ...prev, [cardId]: entries }));
+        } else {
+          setCardEntriesMap(prev => ({ ...prev, [cardId]: [] }));
+        }
+      } catch (err) {
+        console.error('Failed to fetch entries for wallet card:', err);
+        setCardEntriesMap(prev => ({ ...prev, [cardId]: [] }));
+      } finally {
+        setLoadingCardEntries(prev => ({ ...prev, [cardId]: false }));
+      }
+    }
+  };
+
   const [quickTxModalOpen, setQuickTxModalOpen] = useState(false);
   const [quickTxForm, setQuickTxForm] = useState({
     ledgerCode: '',
@@ -385,6 +443,7 @@ export default function AccountsLedgersPage() {
   const [paidFormTx, setPaidFormTx] = useState<any | null>(null);
   const [paidDateInput, setPaidDateInput] = useState(new Date().toISOString().split('T')[0]);
   const [paymentModeInput, setPaymentModeInput] = useState('Bank Transfer');
+  const [paidOffsetLedgerCodeInput, setPaidOffsetLedgerCodeInput] = useState('');
 
   // Direct Reversal Trigger Row state
   const [reversalModalOpen, setReversalModalOpen] = useState(false);
@@ -762,44 +821,154 @@ export default function AccountsLedgersPage() {
   const fetchAllLedgerAccounts = async () => {
     try {
       setLoadingAllLedgers(true);
+      let combined: any[] = [];
+
+      // 1. Company Overhead Ledgers
       const companyRes = await apiFetch('/api/tenant/ledger/company-ledgers');
-      let combined = [];
       if (companyRes.ok) {
-        combined = combined.concat(await companyRes.json());
+        const comp = await companyRes.json();
+        combined = combined.concat(comp);
       }
 
-      const promises = projects.map(async (p) => {
-        const res = await apiFetch(`/api/tenant/ledger/project-ledgers/${p.id}`);
-        if (res.ok) return await res.json();
-        return [];
-      });
-      const projsLedgers = await Promise.all(promises);
-      projsLedgers.forEach(list => {
-        combined = combined.concat(list);
-      });
+      // 2. Project Ledgers
+      if (projects && projects.length > 0) {
+        const promises = projects.map(async (p) => {
+          const res = await apiFetch(`/api/tenant/ledger/project-ledgers/${p.id}`);
+          if (res.ok) return await res.json();
+          return [];
+        });
+        const projsLedgers = await Promise.all(promises);
+        projsLedgers.forEach(list => {
+          combined = combined.concat(list);
+        });
+      }
 
-      // Deduplicate by ledgerCode
-      const unique = [];
+      // 3. Bank Accounts
+      const bankRes = await apiFetch('/api/tenant/ledger/bank-cash/accounts');
+      if (bankRes.ok) {
+        const banks = await bankRes.json();
+        banks.forEach((b: any) => {
+          combined.push({
+            id: b.id || b.ledgerCode,
+            ledgerCode: b.ledgerCode || `BNK-${b.id}`,
+            name: b.name || b.bankName || 'Bank Account',
+            type: 'Bank',
+            groupName: 'Bank Accounts',
+            currentBalance: Number(b.currentBalance || b.openingBalance || 0),
+            status: 'Active',
+            department: b.branchName || 'Treasury'
+          });
+        });
+      }
+
+      // 4. Petty Cash Floats
+      const floatRes = await apiFetch('/api/tenant/ledger/petty-cash/floats/all');
+      if (floatRes.ok) {
+        const floats = await floatRes.json();
+        floats.forEach((p: any) => {
+          combined.push({
+            id: p.id || p.ledgerCode,
+            ledgerCode: p.ledgerCode || `CSH-${p.id}`,
+            name: p.name || p.custodianName || 'Petty Cash Float',
+            type: 'Cash',
+            groupName: 'Cash Floats',
+            currentBalance: Number(p.currentBalance || p.current_balance || p.openingAmount || p.balance || 0),
+            status: 'Active',
+            department: p.siteName || 'Site Cash'
+          });
+        });
+      }
+
+      // 5. Clients / Receivables
+      if (currentUser?.uid) {
+        const clientRes = await apiFetch(`/api/tenant/accounts/clients/${currentUser.uid}`);
+        if (clientRes.ok) {
+          const cls = await clientRes.json();
+          cls.forEach((c: any) => {
+            combined.push({
+              id: c.id || c.ledgerCode,
+              ledgerCode: c.ledgerCode || `REC-${c.id}`,
+              name: c.name || c.clientName || 'Client Account',
+              type: 'Receivable',
+              groupName: 'Accounts Receivable',
+              currentBalance: Number(c.outstanding || c.outstandingBalance || c.outstandingAmount || c.outstanding_amount || c.balance || c.currentBalance || c.current_balance || c.openingBalance || 0),
+              status: 'Active',
+              department: 'Sales & AR'
+            });
+          });
+        }
+
+        // 6. Vendors / Payables
+        const vendorRes = await apiFetch(`/api/tenant/accounts/vendors/${currentUser.uid}`);
+        if (vendorRes.ok) {
+          const vds = await vendorRes.json();
+          vds.forEach((v: any) => {
+            combined.push({
+              id: v.id || v.ledgerCode,
+              ledgerCode: v.ledgerCode || `PAY-${v.id}`,
+              name: v.name || v.vendorName || 'Vendor Account',
+              type: 'Payable',
+              groupName: 'Accounts Payable',
+              currentBalance: Number(v.outstanding || v.outstandingBalance || v.outstandingAmount || v.outstanding_amount || v.balance || v.currentBalance || v.current_balance || v.openingBalance || 0),
+              status: 'Active',
+              department: 'Procurement & AP'
+            });
+          });
+        }
+      }
+
+      // 7. Assets
+      const assetRes = await apiFetch('/api/tenant/assets');
+      if (assetRes.ok) {
+        const asts = await assetRes.json();
+        asts.forEach((a: any) => {
+          combined.push({
+            id: a.id || a.ledgerCode,
+            ledgerCode: a.ledgerCode || `AST-${a.id}`,
+            name: a.description || a.name || 'Fixed Asset',
+            type: 'Asset',
+            groupName: 'Fixed Assets',
+            currentBalance: Number(a.purchaseCost || a.purchase_cost || a.currentValue || a.balance || 0),
+            status: 'Active',
+            department: 'Capital Assets'
+          });
+        });
+      }
+
+      // Deduplicate by ledgerCode or id
+      const unique: any[] = [];
       const seen = new Set();
       for (const item of combined) {
-        if (!seen.has(item.ledgerCode)) {
-          seen.add(item.ledgerCode);
+        const key = item.ledgerCode || item.id;
+        if (key && !seen.has(key)) {
+          seen.add(key);
           unique.push(item);
         }
       }
 
       setAllLedgerAccounts(unique);
     } catch (e) {
-      console.error(e);
+      console.error('Error fetching all ledger accounts:', e);
     } finally {
       setLoadingAllLedgers(false);
     }
   };
 
-  useEffect(() => {
-    if (activeTab === 'ledger') {
-      fetchAllLedgerAccounts();
+  const fetchLedgerGroups = async () => {
+    try {
+      const res = await apiFetch('/api/tenant/ledger/groups');
+      if (res.ok) {
+        const data = await res.json();
+        setLedgerGroups(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch ledger groups:', err);
     }
+  };
+
+  useEffect(() => {
+    fetchAllLedgerAccounts();
+    fetchLedgerGroups();
   }, [activeTab, projects]);
 
   // Load Project Ledgers List (Image 2 table data)
@@ -1445,18 +1614,6 @@ export default function AccountsLedgersPage() {
           {activeTab === 'ledger' && (
             inspectingLedgerCode ? (
               <div className="space-y-6">
-                {/* Breadcrumbs / Back navigation */}
-                <div className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider flex items-center gap-1.5">
-                  <button
-                    onClick={() => setInspectingLedgerCode(null)}
-                    className="text-blue-600 hover:underline flex items-center gap-1"
-                  >
-                    ← Back to Ledgers
-                  </button>
-                  <ChevronRight size={10} className="text-slate-350" />
-                  <span className="text-slate-600">Ledger Profile Inspector</span>
-                </div>
-
                 {(() => {
                   const currentLedger = allLedgerAccounts.find(l => l.ledgerCode === inspectingLedgerCode);
                   if (!currentLedger) return null;
@@ -1471,9 +1628,33 @@ export default function AccountsLedgersPage() {
                     <div className="space-y-6">
                       {/* Clean slate/white inspect header matching the premium dashboard styling */}
                       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
-                        <div>
-                          <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">{currentLedger.name || ledgerTitle}</h2>
-                          <p className="text-xs text-slate-400 font-semibold mt-0.5">Voucher entry registry for account code <span className="font-mono font-bold text-blue-600">{currentLedger.ledgerCode}</span></p>
+                        <div className="flex items-center gap-3.5">
+                          <button
+                            onClick={() => setInspectingLedgerCode(null)}
+                            className="px-3 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900 rounded-xl transition-all flex items-center gap-1.5 font-black text-xs uppercase tracking-wider border border-slate-200 shadow-2xs"
+                            title="Back to Ledgers"
+                          >
+                            <ArrowLeft size={16} className="text-slate-600" />
+                            <span>Back to Ledgers</span>
+                          </button>
+                          <div className="h-7 w-px bg-slate-200 hidden sm:block" />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">{currentLedger.name || ledgerTitle}</h2>
+                              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-800">
+                                {currentLedger.type || 'Expense'} Ledger
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 font-semibold mt-1">
+                              <span>Code: <span className="font-mono font-bold text-blue-600">{currentLedger.ledgerCode}</span></span>
+                              {currentLedger.bankName && <span>Bank: <strong className="text-slate-800">{currentLedger.bankName}</strong></span>}
+                              {currentLedger.accountNumber && <span>A/C #: <span className="font-mono font-bold text-slate-800">{currentLedger.accountNumber}</span></span>}
+                              {currentLedger.ifscCode && <span>IFSC: <span className="font-mono font-bold text-slate-800">{currentLedger.ifscCode}</span></span>}
+                              {currentLedger.custodianName && <span>Custodian: <strong className="text-slate-800">{currentLedger.custodianName}</strong></span>}
+                              {currentLedger.gstin && <span>GSTIN: <span className="font-mono font-bold text-slate-800">{currentLedger.gstin}</span></span>}
+                              {currentLedger.paymentTerms && <span>Terms: <strong className="text-slate-800">{currentLedger.paymentTerms}</strong></span>}
+                            </div>
+                          </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2.5">
                           <button
@@ -1496,7 +1677,7 @@ export default function AccountsLedgersPage() {
                             }}
                             className="px-4 py-2 bg-emerald-600 text-white font-black text-xs uppercase tracking-wider rounded-xl hover:bg-emerald-700 shadow-sm flex items-center gap-1.5 transition-all"
                           >
-                            <Plus size={12} /> + Add Income
+                            <Plus size={12} /> + Add Credit
                           </button>
                           <button
                             onClick={() => {
@@ -1518,7 +1699,7 @@ export default function AccountsLedgersPage() {
                             }}
                             className="px-4 py-2 bg-rose-600 text-white font-black text-xs uppercase tracking-wider rounded-xl hover:bg-rose-700 shadow-sm flex items-center gap-1.5 transition-all"
                           >
-                            <Plus size={12} /> + Add Expenditure
+                            <Plus size={12} /> + Add Debit
                           </button>
                         </div>
                       </div>
@@ -1529,8 +1710,8 @@ export default function AccountsLedgersPage() {
                         <div className="flex gap-2">
                           {[
                             { id: 'overview', label: 'Overview' },
-                            { id: 'income', label: 'Income' },
-                            { id: 'expense', label: 'Expenditure' }
+                            { id: 'income', label: 'Credit Entries' },
+                            { id: 'expense', label: 'Debit Entries' }
                           ].map(sub => (
                             <button
                               key={sub.id}
@@ -1544,7 +1725,6 @@ export default function AccountsLedgersPage() {
                             </button>
                           ))}
                         </div>
-
                         {/* Calendar & Date Preset Controls */}
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
@@ -1562,7 +1742,6 @@ export default function AccountsLedgersPage() {
                             <option value="all">All Time</option>
                             <option value="custom">Custom Range</option>
                           </select>
-
                           {inspectorDatePreset === 'custom' && (
                             <div className="flex items-center gap-1.5">
                               <input
@@ -1582,7 +1761,6 @@ export default function AccountsLedgersPage() {
                           )}
                         </div>
                       </div>
-
                       {/* 1. OVERVIEW SUB-TAB */}
                       {inspectorSubTab === 'overview' && (
                         <div className="space-y-6">
@@ -1644,14 +1822,14 @@ export default function AccountsLedgersPage() {
                                 </div>
 
                                 <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-                                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Total Income</span>
+                                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Total Credit</span>
                                   <span className="text-sm font-black text-emerald-600 mt-1 block">
                                     ₹{totalIncome.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                   </span>
                                 </div>
 
                                 <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-                                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Total Expenditure</span>
+                                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Total Debit</span>
                                   <span className="text-sm font-black text-rose-600 mt-1 block">
                                     ₹{totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                   </span>
@@ -1666,8 +1844,8 @@ export default function AccountsLedgersPage() {
                           <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
                               <div>
-                                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">Project-Wise Allocation &amp; Expenditure Breakdown</h3>
-                                <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Summary of total income received, expenditure spent, and remaining balance grouped by project.</p>
+                                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">Project-Wise Allocation Breakdown</h3>
+                                <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Summary of total credit received, debit spent, and remaining balance grouped by project.</p>
                               </div>
                             </div>
 
@@ -1679,8 +1857,8 @@ export default function AccountsLedgersPage() {
                                     <th className="p-3.5">Project Name</th>
                                     <th className="p-3.5">Project Scope</th>
                                     <th className="p-3.5">Worksite / Location</th>
-                                    <th className="p-3.5 text-right">Total Income (₹)</th>
-                                    <th className="p-3.5 text-right">Total Expenditure (₹)</th>
+                                    <th className="p-3.5 text-right">Total Credit (₹)</th>
+                                    <th className="p-3.5 text-right">Total Debit (₹)</th>
                                     <th className="p-3.5 text-center">Total Vouchers</th>
                                   </tr>
                                 </thead>
@@ -2244,90 +2422,280 @@ export default function AccountsLedgersPage() {
                   );
                 })()}
               </div>
-            ) : (
+            ) : !selectedExpenseGroup ? (
+              /* LEVEL 1: LEDGER GROUPS DIRECTORY */
               <div className="space-y-6">
-
-                {/* Header Section */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                {/* Directory Header Bar */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 pb-4">
                   <div>
-                    <h1 className="text-2xl font-black text-slate-900 tracking-tight">Expense Directory Ledger</h1>
-                    <p className="text-xs text-slate-400 font-semibold mt-0.5">Debit &amp; Credit note register for all expense ledger accounts.</p>
+                    <div className="flex items-center gap-2">
+                      <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">LEDGER GROUPS DIRECTORY</h1>
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-700">
+                        Primary Accounting Groups
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 font-semibold mt-1">
+                      Browse all primary and secondary accounting categories. Click any group card to inspect its underlying ledger accounts.
+                    </p>
                   </div>
-                  <div className="flex gap-2">
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="relative max-w-xs w-full">
+                      <Search size={14} className="absolute left-3.5 top-3 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Search ledger groups..."
+                        value={searchGroupQuery}
+                        onChange={e => setSearchGroupQuery(e.target.value)}
+                        className="w-full border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs font-bold focus:outline-none focus:border-slate-800 bg-slate-50"
+                      />
+                    </div>
                     <button
-                      onClick={async () => {
-                        if (confirm('Are you sure you want to delete all mock ledger data? This will clear all ledger profiles and entries so you can start 100% fresh.')) {
-                          try {
-                            const res = await apiFetch('/api/tenant/ledger/purge-all', { method: 'POST' });
-                            if (res.ok) {
-                              alert('All mock ledger profiles deleted successfully. Starting fresh!');
-                              setAllLedgerAccounts([]);
-                              setCompanyLedgers([]);
-                              setProjectLedgers([]);
-                              loadMasterData();
-                            }
-                          } catch (e: any) {
-                            alert('Error: ' + e.message);
-                          }
-                        }
-                      }}
-                      className="px-4 py-2.5 bg-rose-50 border border-rose-200 text-rose-600 font-black text-xs uppercase tracking-wider rounded-xl hover:bg-rose-100 shadow-sm flex items-center gap-1.5 transition-all"
+                      onClick={() => setShowEmptyGroups(!showEmptyGroups)}
+                      className={`px-3 py-2 text-xs font-bold rounded-xl transition-all border ${
+                        showEmptyGroups
+                          ? 'bg-slate-200 text-slate-800 border-slate-300'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                      }`}
                     >
-                      <Trash2 size={14} /> Purge All Mock Data
+                      {showEmptyGroups ? 'Hide Empty Groups' : 'Show All Categories'}
                     </button>
                     <button
                       onClick={() => {
-                        setCreateLedgerForm(prev => ({
-                          ...prev,
-                          ledgerCode: 'LDG-' + String(allLedgerAccounts.length + 1).padStart(3, '0')
-                        }));
                         setActiveTab('create-ledger');
+                        setCreateSection('group');
                       }}
-                      className="px-5 py-2.5 bg-slate-900 text-white font-black text-xs uppercase tracking-wider rounded-xl hover:opacity-90 shadow-md flex items-center gap-1.5 transition-all"
+                      className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-sm flex items-center gap-1.5 transition-all"
                     >
-                      <Plus size={14} /> Create Ledger Profile
+                      <Plus size={14} /> + New Group
                     </button>
                   </div>
                 </div>
 
-                {/* Filters Row */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-                  <div className="flex flex-wrap items-center gap-3 flex-1">
-                    <div className="relative flex-1 max-w-xs">
+                {/* Grid of Groups */}
+                {(() => {
+                  const matchLedgerGroup = (l: any, targetGroup: string): boolean => {
+                    const grp = l.groupName || l.group_name || l.companyCategory || l.company_category;
+                    if (grp && String(grp).trim()) {
+                      return String(grp).trim().toLowerCase() === targetGroup.trim().toLowerCase();
+                    }
+                    const type = String(l.type || l.ledger_type || '').toLowerCase();
+                    const tgt = targetGroup.trim().toLowerCase();
+                    if (tgt.includes('bank') && (type.includes('bank') || type.includes('wallet'))) return true;
+                    if (tgt.includes('cash') && (type.includes('cash') || type.includes('petty'))) return true;
+                    if (tgt.includes('receivable') && (type.includes('receivable') || type.includes('client'))) return true;
+                    if (tgt.includes('payable') && (type.includes('payable') || type.includes('vendor'))) return true;
+                    if (tgt.includes('fixed asset') && (type.includes('asset') || type.includes('fixed'))) return true;
+                    if (tgt.includes('direct expense') && type.includes('direct')) return true;
+                    if ((tgt.includes('sales') || tgt.includes('income')) && (type.includes('sales') || type.includes('income') || type.includes('revenue'))) return true;
+                    if (tgt.includes('liability') && type.includes('liability')) return true;
+                    if (tgt.includes('capital') && (type.includes('capital') || type.includes('reserve'))) return true;
+                    if (tgt.includes('indirect expense') || tgt.includes('overhead')) return (type.includes('expense') || type.includes('overhead') || !type);
+                    return false;
+                  };
+
+                  const stdGroups = [
+                    'Indirect Expenses / Overheads',
+                    'Direct Expenses',
+                    'Bank Accounts',
+                    'Cash Floats',
+                    'Accounts Receivable',
+                    'Accounts Payable',
+                    'Fixed Assets',
+                    'Current Assets',
+                    'Current Liabilities',
+                    'Capital & Reserves',
+                    'Sales & Income'
+                  ];
+
+                  const customGroupNames = (ledgerGroups || []).map((g: any) => g.name || g.groupName).filter(Boolean);
+                  const combinedGroupNames = Array.from(new Set([...stdGroups, ...customGroupNames]));
+
+                  const filteredGroups = combinedGroupNames.filter(gName => {
+                    const matchesSearch = gName.toLowerCase().includes(searchGroupQuery.toLowerCase());
+                    if (!matchesSearch) return false;
+                    const groupLedgers = allLedgerAccounts.filter(l => matchLedgerGroup(l, gName));
+                    const isCustom = (ledgerGroups || []).some((cg: any) => (cg.name || cg.groupName || '').toLowerCase() === gName.toLowerCase());
+                    if (!showEmptyGroups) {
+                      return groupLedgers.length > 0 || isCustom;
+                    }
+                    return true;
+                  });
+
+                  if (filteredGroups.length === 0) {
+                    return (
+                      <div className="text-center py-16 bg-white border border-slate-200 rounded-2xl p-8 space-y-4 shadow-2xs">
+                        <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto">
+                          <Folder size={24} />
+                        </div>
+                        <div className="space-y-1">
+                          <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">No Active Ledger Groups</h3>
+                          <p className="text-xs text-slate-500 font-semibold max-w-sm mx-auto">
+                            Groups with 0 ledger profiles are hidden by default. Click below to view all accounting categories or create a new ledger.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                          <button
+                            onClick={() => setShowEmptyGroups(true)}
+                            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs uppercase tracking-wider rounded-xl transition-all"
+                          >
+                            Show All 11 Accounting Categories
+                          </button>
+                          <button
+                            onClick={() => {
+                              setActiveTab('create-ledger');
+                              setCreateSection('ledger');
+                            }}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-sm transition-all"
+                          >
+                            + Create First Ledger
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {filteredGroups.map(gName => {
+                        const customGrpObj = (ledgerGroups || []).find((cg: any) => (cg.name || cg.groupName || '').toLowerCase() === gName.toLowerCase());
+                        const groupLedgers = allLedgerAccounts.filter(l => matchLedgerGroup(l, gName));
+
+                        const totalGrpBalance = groupLedgers.reduce(
+                          (sum, acc) => sum + Number(acc.currentBalance || acc.current_balance || acc.outstanding || acc.outstandingBalance || acc.outstandingAmount || acc.balance || acc.openingBalance || acc.opening_balance || acc.purchaseCost || 0),
+                          0
+                        );
+
+                        return (
+                          <div
+                            key={gName}
+                            onClick={() => setSelectedExpenseGroup(gName)}
+                            className="group cursor-pointer bg-white border border-slate-200/80 hover:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-4"
+                          >
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                  <Folder size={20} />
+                                </div>
+                                <span className="text-xs font-black font-mono text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg">
+                                  ₹{totalGrpBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                </span>
+                              </div>
+
+                              <div className="space-y-1">
+                                <h3 className="text-sm font-black text-slate-900 group-hover:text-blue-600 transition-colors leading-snug">
+                                  {gName}
+                                </h3>
+                                <p className="text-[11px] text-slate-400 font-semibold line-clamp-2 leading-relaxed">
+                                  {customGrpObj?.description || `Accounting category group for organizing ${gName.toLowerCase()} ledgers and vouchers.`}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="border-t border-slate-100 pt-3 flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-500">
+                                {groupLedgers.length} {groupLedgers.length === 1 ? 'Ledger profile' : 'Ledger profiles'}
+                              </span>
+
+                              <div className="flex items-center gap-1 text-xs font-black text-blue-600 group-hover:translate-x-1 transition-transform">
+                                <span>View Ledgers</span>
+                                <ChevronRight size={14} />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              /* LEVEL 2: LEDGERS INSIDE SELECTED GROUP */
+              <div className="space-y-6">
+                {/* Clean Top Navigation & Header */}
+                <div className="space-y-3">
+                  <div>
+                    <button
+                      onClick={() => setSelectedExpenseGroup(null)}
+                      className="px-3.5 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900 rounded-xl transition-all inline-flex items-center gap-1.5 font-black text-xs uppercase tracking-wider border border-slate-200 shadow-2xs"
+                    >
+                      <ArrowLeft size={16} className="text-slate-600" />
+                      <span>Back to Group Directory</span>
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                    {/* Left: Group Title */}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="p-3 bg-blue-600 text-white rounded-xl shadow-sm">
+                        <Folder size={22} />
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block">SELECTED GROUP</span>
+                        <h1 className="text-xl font-black text-slate-900 tracking-tight">{selectedExpenseGroup}</h1>
+                      </div>
+                    </div>
+
+                    {/* Center: Search Bar */}
+                    <div className="relative flex-1 max-w-sm w-full md:w-auto">
                       <Search size={14} className="absolute left-3.5 top-3 text-slate-400" />
                       <input
                         type="text"
-                        placeholder="Search accounts..."
+                        placeholder={`Search ledgers in ${selectedExpenseGroup}...`}
                         value={searchLedgerQuery}
                         onChange={e => setSearchLedgerQuery(e.target.value)}
                         className="w-full border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs font-bold focus:outline-none focus:border-slate-800 bg-slate-50"
                       />
                     </div>
 
-                    <select
-                      value={filterLedgerStatus}
-                      onChange={e => setFilterLedgerStatus(e.target.value)}
-                      className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold bg-white focus:outline-none focus:border-slate-800"
-                    >
-                      <option value="All Status">Status: All</option>
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
-                    </select>
+                    {/* Right: Add Ledger Button */}
+                    <div className="shrink-0">
+                      <button
+                        onClick={() => {
+                          setCreateLedgerForm(prev => ({
+                            ...prev,
+                            groupName: selectedExpenseGroup,
+                            companyCategory: selectedExpenseGroup,
+                            ledgerCode: 'LDG-' + String(allLedgerAccounts.length + 1).padStart(3, '0')
+                          }));
+                          setActiveTab('create-ledger');
+                          setCreateSection('ledger');
+                        }}
+                        className="px-4 py-2.5 bg-blue-600 text-white font-black text-xs uppercase tracking-wider rounded-xl hover:bg-blue-700 shadow-md flex items-center gap-1.5 transition-all"
+                      >
+                        <Plus size={14} /> Add Ledger in {selectedExpenseGroup}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                {/* Expense Ledger Cards */}
-                {loadingAllLedgers ? (
-                  <div className="py-12 text-center text-xs font-semibold text-slate-455">
-                    Loading expense ledger directory...
-                  </div>
-                ) : (() => {
-                  // Only show Expense-type ledgers
-                  const expenseLedgers = allLedgerAccounts.filter(l => {
-                    const matchesSearch = l.name.toLowerCase().includes(searchLedgerQuery.toLowerCase()) ||
-                      l.ledgerCode.toLowerCase().includes(searchLedgerQuery.toLowerCase());
-                    const matchesStatus = filterLedgerStatus === 'All Status' || l.status === filterLedgerStatus;
-                    return matchesSearch && matchesStatus && (l.type === 'Expense' || l.company_category || l.companyCategory);
+                {/* Ledgers inside selected group */}
+                {(() => {
+                  const matchLedgerGroup = (l: any, targetGroup: string): boolean => {
+                    const grp = l.groupName || l.group_name || l.companyCategory || l.company_category;
+                    if (grp && String(grp).trim()) {
+                      return String(grp).trim().toLowerCase() === targetGroup.trim().toLowerCase();
+                    }
+                    const type = String(l.type || l.ledger_type || '').toLowerCase();
+                    const tgt = targetGroup.trim().toLowerCase();
+                    if (tgt.includes('bank') && (type.includes('bank') || type.includes('wallet'))) return true;
+                    if (tgt.includes('cash') && (type.includes('cash') || type.includes('petty'))) return true;
+                    if (tgt.includes('receivable') && (type.includes('receivable') || type.includes('client'))) return true;
+                    if (tgt.includes('payable') && (type.includes('payable') || type.includes('vendor'))) return true;
+                    if (tgt.includes('fixed asset') && (type.includes('asset') || type.includes('fixed'))) return true;
+                    if (tgt.includes('direct expense') && type.includes('direct')) return true;
+                    if ((tgt.includes('sales') || tgt.includes('income')) && (type.includes('sales') || type.includes('income') || type.includes('revenue'))) return true;
+                    if (tgt.includes('liability') && type.includes('liability')) return true;
+                    if (tgt.includes('capital') && (type.includes('capital') || type.includes('reserve'))) return true;
+                    if (tgt.includes('indirect expense') || tgt.includes('overhead')) return (type.includes('expense') || type.includes('overhead') || !type);
+                    return false;
+                  };
+
+                  const groupLedgers = allLedgerAccounts.filter(l => {
+                    const matchesGroup = matchLedgerGroup(l, selectedExpenseGroup || '');
+                    const matchesSearch = (l.name || '').toLowerCase().includes(searchLedgerQuery.toLowerCase()) ||
+                      (l.ledgerCode || '').toLowerCase().includes(searchLedgerQuery.toLowerCase());
+                    return matchesGroup && matchesSearch;
                   });
 
                   const renderCard = (l: any) => {
@@ -2335,64 +2703,47 @@ export default function AccountsLedgersPage() {
 
                     return (
                       <div
-                        key={l.id}
+                        key={l.id || l.ledgerCode}
                         onClick={(e) => {
                           if ((e.target as HTMLElement).closest('button')) return;
                           setInspectingLedgerCode(l.ledgerCode);
                         }}
-                        className="cursor-pointer bg-white border border-slate-200 hover:border-slate-850 hover:bg-slate-50/20 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4"
+                        className="cursor-pointer bg-white border border-slate-200/80 hover:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-4"
                       >
                         <div className="space-y-3">
                           {/* Top row: Code & Project Tag */}
-                          <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider bg-slate-50 border border-slate-200/60 px-2 py-0.5 rounded-md">
+                          <div className="flex justify-between items-center flex-wrap gap-1">
+                            <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider bg-slate-100/80 border border-slate-200/80 px-2.5 py-0.5 rounded-lg font-mono">
                               {l.ledgerCode}
                             </span>
-                            <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest bg-blue-50/50 px-2 py-0.5 rounded-md border border-blue-100">
+                            <span className="text-[9px] font-black text-blue-600 uppercase tracking-wider bg-blue-50/80 px-2.5 py-0.5 rounded-lg border border-blue-100">
                               {projName}
                             </span>
                           </div>
 
-                          {/* Name & Type */}
+                          {/* Name & Subtitle */}
                           <div className="space-y-1">
-                            <h3 className="text-xs font-black text-slate-900 leading-snug">{l.name}</h3>
-                            <div className="flex items-center gap-2">
-                              <span className="inline-block font-black text-[9px] px-2 py-0.5 rounded-md border uppercase bg-rose-50 text-rose-600 border-rose-100">
-                                Expense
-                              </span>
-                              <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider">
+                            <h3 className="text-xs font-black text-slate-900 leading-snug">
+                              {l.name}
+                            </h3>
+                            <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                              <span className="inline-block font-black text-[9px] px-2 py-0.5 rounded-md border uppercase bg-slate-100 text-slate-600 border-slate-200">
                                 {l.department || 'Operations'}
+                              </span>
+                              <span className={`inline-block font-black text-[9px] px-2 py-0.5 rounded-md border uppercase ${l.status === 'Inactive' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                }`}>
+                                {l.status || 'Active'}
                               </span>
                             </div>
                           </div>
                         </div>
 
-                        {/* Balance & CTA */}
-                        <div className="border-t border-slate-100 pt-3 flex items-center justify-between">
-                          <div>
-                            <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider block">Current Balance</span>
-                            <span className="text-sm font-black text-slate-900 block mt-0.5">
-                              ₹{Number(l.currentBalance || l.current_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                            </span>
-                          </div>
-
-                          <button
-                            onClick={() => {
-                              setQuickTxForm({
-                                ledgerCode: l.ledgerCode,
-                                direction: 'Debit',
-                                amount: '',
-                                date: new Date().toISOString().split('T')[0],
-                                description: '',
-                                projectId: l.project_id || 'Overhead',
-                                offsetLedgerCode: allLedgerAccounts.find(acc => acc.ledgerCode !== l.ledgerCode)?.ledgerCode || ''
-                              });
-                              setQuickTxModalOpen(true);
-                            }}
-                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors text-[10px] uppercase tracking-wider shadow-sm"
-                          >
-                            Record Entry
-                          </button>
+                        {/* Ledger Balance Row */}
+                        <div className="border-t border-slate-100 pt-2.5 flex items-center justify-between">
+                          <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Current Balance</span>
+                          <span className="text-xs font-black font-mono text-slate-900">
+                            ₹{Number(l.currentBalance || l.current_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
                         </div>
                       </div>
                     );
@@ -2400,464 +2751,756 @@ export default function AccountsLedgersPage() {
 
                   return (
                     <div className="space-y-4">
-                      {/* Section Header */}
-                      <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
-                        <span className="w-1.5 h-4 bg-blue-600 rounded-full"></span>
-                        <h2 className="text-xs font-black uppercase text-slate-700 tracking-wider">Ledger Profiles</h2>
-                        <span className="ml-auto text-[10px] font-black text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
-                          {expenseLedgers.length} Accounts
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <h2 className="text-xs font-black uppercase text-slate-700 tracking-wider">
+                          Ledgers in {selectedExpenseGroup}
+                        </h2>
+                        <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+                          {groupLedgers.length} Accounts
                         </span>
                       </div>
 
-                      {expenseLedgers.length === 0 ? (
-                        <div className="text-center py-10 text-xs text-slate-400 font-semibold bg-slate-50/50 rounded-2xl border border-slate-150 space-y-2">
-                          <p>No expense ledger accounts found.</p>
+                      {groupLedgers.length === 0 ? (
+                        <div className="text-center py-12 text-xs text-slate-400 font-semibold bg-slate-50/50 rounded-2xl border border-slate-200/80 space-y-2">
+                          <p>No ledger profiles created under "{selectedExpenseGroup}" yet.</p>
                           <button
-                            onClick={() => setActiveTab('create-ledger')}
-                            className="text-blue-600 font-black underline text-xs"
+                            onClick={() => {
+                              setCreateLedgerForm(prev => ({
+                                ...prev,
+                                groupName: selectedExpenseGroup,
+                                companyCategory: selectedExpenseGroup,
+                                ledgerCode: 'LDG-' + String(allLedgerAccounts.length + 1).padStart(3, '0')
+                              }));
+                              setActiveTab('create-ledger');
+                              setCreateSection('ledger');
+                            }}
+                            className="text-blue-600 font-black underline text-xs hover:text-blue-800"
                           >
-                            + Create your first expense ledger
+                            + Create first ledger in {selectedExpenseGroup}
                           </button>
                         </div>
                       ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-                          {expenseLedgers.map(renderCard)}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {groupLedgers.map(l => renderCard(l))}
                         </div>
                       )}
                     </div>
                   );
                 })()}
-
-
-
-
-
               </div>
-            ))}
+            )
+          )}
 
+          {/* 2. ASSETS & LIABILITIES TAB (BANK & CASH ACCOUNTS DIRECTORY) */}
+          {activeTab === 'assets-liabilities' && (
+            <div className="space-y-6">
+              {(() => {
+                const createdBankAccounts = allLedgerAccounts.filter(
+                  l => (l.type === 'Bank' || l.type === 'bank') && !bankAccounts.some(b => (b.ledgerCode && b.ledgerCode === l.ledgerCode) || b.id === l.id)
+                ).map(l => ({
+                  id: l.id || l.ledgerCode,
+                  name: l.name,
+                  accountNo: l.accountNumber || l.account_number || l.ledgerCode || 'N/A',
+                  bankName: l.bankName || l.bank_name || l.name,
+                  ifscCode: l.ifscCode || l.ifsc_code || 'N/A',
+                  branch: l.branchName || l.branch_name || 'Main Branch',
+                  type: 'Bank Ledger Account',
+                  currentBalance: Number(l.currentBalance || l.current_balance || l.openingBalance || 0),
+                  ledgerCode: l.ledgerCode
+                }));
 
+                const displayBankAccounts = [...bankAccounts, ...createdBankAccounts];
 
-          {/* ASSETS & LIABILITIES TAB (FIXED ASSETS REGISTRY, RECEIVABLES & PAYABLES) */}
-          {activeTab === 'assets-liabilities' && (() => {
-            // Real registered fixed assets list from state
-            const activeAssetsList = assets || [];
+                const createdPettyFloats = allLedgerAccounts.filter(
+                  l => (l.type === 'Cash' || l.type === 'cash') && !allPettyFloats.some(p => (p.ledgerCode && p.ledgerCode === l.ledgerCode) || p.id === l.id)
+                ).map(l => ({
+                  id: l.id || l.ledgerCode,
+                  name: l.name,
+                  custodianName: l.custodianName || l.custodian_name || l.responsiblePerson || l.name,
+                  siteName: l.description || 'General Cash Box',
+                  type: 'Cash Ledger Account',
+                  currentBalance: Number(l.currentBalance || l.current_balance || l.openingBalance || 0),
+                  ledgerCode: l.ledgerCode
+                }));
 
-            // Calculate straight line depreciation & book values
-            let totalOriginalCost = 0;
-            let totalAccumulatedDepreciation = 0;
-            let totalNetBookValue = 0;
+                const displayPettyFloats = [...allPettyFloats, ...createdPettyFloats];
 
-            const assetsWithDepreciation = activeAssetsList.map((ast: any) => {
-              const cost = Number(ast.purchaseCost || ast.cost || 0);
-              const salvage = Number(ast.salvageValue || 0);
-              const lifeYears = Number(ast.usefulLifeYears || ast.useful_life_years || 10);
-              const pYear = ast.purchaseDate ? new Date(ast.purchaseDate).getFullYear() : 2024;
-              const currentYear = new Date().getFullYear();
-              const yearsElapsed = Math.max(0, currentYear - pYear);
-              
-              const annualDep = lifeYears > 0 ? Math.max(0, (cost - salvage) / lifeYears) : 0;
-              const accumDep = Math.min(cost - salvage, annualDep * yearsElapsed);
-              const bookVal = Math.max(salvage, cost - accumDep);
+                const totalWalletBalance = displayBankAccounts.reduce((sum, b) => sum + Number(b.currentBalance || b.current_balance || b.openingBalance || 0), 0) +
+                  displayPettyFloats.reduce((sum, p) => sum + Number(p.currentBalance || p.current_balance || p.openingAmount || 0), 0);
 
-              totalOriginalCost += cost;
-              totalAccumulatedDepreciation += accumDep;
-              totalNetBookValue += bookVal;
-
-              return { ...ast, cost, salvage, lifeYears, annualDep, accumDep, bookVal };
-            });
-
-            // Calculate real financial totals
-            const totalReceivablesPending = clients.reduce((sum, c) => sum + Number(c.outstanding || c.currentBalance || 0), 0) || Number(clientOutstanding || 0);
-            const totalPayablesPending = vendors.reduce((sum, v) => sum + Number(v.outstanding || v.currentBalance || 0), 0) || Number(vendorOutstanding || 0);
-            const netCompanyBalance = (totalNetBookValue + totalReceivablesPending) - totalPayablesPending;
-
-            return (
-              <div className="space-y-8">
-                {/* Header Bar */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-5 gap-4">
-                  <div>
-                    <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-2.5">
-                      <Scale size={24} className="text-indigo-600" /> Assets &amp; Liabilities Directory
-                    </h1>
-                    <p className="text-xs text-slate-500 font-semibold mt-0.5">Fixed capital assets registry, straight-line depreciation, accounts receivable (clients), and accounts payable (vendors)</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setAssetModalOpen(true)}
-                      className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center gap-2"
-                    >
-                      <Plus size={15} /> + Add Asset Registry
-                    </button>
-                  </div>
-                </div>
-
-                {/* Sub-tab Switcher Pills */}
-                <div className="flex gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit border border-slate-200">
-                  <button
-                    onClick={() => setActiveAssetsSubTab('assets')}
-                    className={`px-5 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all ${
-                      activeAssetsSubTab === 'assets' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    Fixed Assets Register
-                  </button>
-                  <button
-                    onClick={() => setActiveAssetsSubTab('receivables')}
-                    className={`px-5 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all ${
-                      activeAssetsSubTab === 'receivables' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    Accounts Receivable (Clients)
-                  </button>
-                  <button
-                    onClick={() => setActiveAssetsSubTab('payables')}
-                    className={`px-5 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all ${
-                      activeAssetsSubTab === 'payables' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    Accounts Payable (Vendors)
-                  </button>
-                </div>
-
-                {/* Top 4 KPI Metric Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                  {/* Card 1: Total Company Net Asset Balance */}
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Total Net Asset Balance</span>
-                      <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
-                        <Scale size={18} />
-                      </div>
-                    </div>
-                    <div>
-                      <p className={`text-2xl font-black ${netCompanyBalance >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>
-                        ₹{netCompanyBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </p>
-                      <p className="text-[10px] text-slate-400 font-bold mt-1">Total Assets minus Total Liabilities</p>
-                    </div>
-                  </div>
-
-                  {/* Card 2: Pending Income / Uncollected Receivables */}
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Pending Income (Receivables)</span>
-                      <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
-                        <TrendingUp size={18} />
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-black text-emerald-700">
-                        ₹{totalReceivablesPending.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </p>
-                      <p className="text-[10px] text-emerald-600 font-bold mt-1 flex items-center gap-1">
-                        ✓ Uncollected client billing outstandings
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Card 3: Total Spent & Payables */}
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Total Spent &amp; Payables</span>
-                      <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100">
-                        <ArrowUp size={18} />
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-black text-rose-700">
-                        ₹{totalPayablesPending.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </p>
-                      <p className="text-[10px] text-rose-600 font-bold mt-1">Vendor outstandings &amp; material payables</p>
-                    </div>
-                  </div>
-
-                  {/* Card 4: Capital Assets Net Book Value */}
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Fixed Capital Assets Valuation</span>
-                      <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
-                        <Briefcase size={18} />
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-black text-blue-950">
-                        ₹{totalNetBookValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </p>
-                      <p className="text-[10px] text-slate-400 font-bold mt-1">Accumulated straight-line book value</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sub-Tab 1: Fixed Assets Register */}
-                {activeAssetsSubTab === 'assets' && (
+                return (
                   <div className="space-y-6">
-                    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 pb-4 gap-3">
+                    {/* Header Bar */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-4 gap-3">
+                      <div className="space-y-1">
+                        <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                          <Landmark size={24} className="text-blue-600" /> Bank &amp; Cash Accounts
+                        </h1>
+                        <p className="text-xs text-slate-500 font-semibold">View all your bank accounts, cash boxes, and current balances in one place.</p>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setBankModalOpen(true)}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center gap-1.5"
+                        >
+                          <Plus size={14} /> + Add Bank Account
+                        </button>
+                      </div>
+                    </div>
+
+                      {/* Total Summary Banner */}
+                      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 text-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
-                          <h3 className="text-sm font-black text-slate-900 uppercase flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-indigo-600"></span> Fixed Assets Registry &amp; Straight-Line Depreciation
-                          </h3>
-                          <p className="text-xs text-slate-500 font-semibold mt-0.5">Log capital equipment purchases and verify straight-line depreciation book values</p>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 block">TOTAL AVAILABLE BALANCE</span>
+                          <p className="text-3xl font-black text-white mt-1">
+                            ₹{totalWalletBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </p>
+                          <p className="text-xs text-slate-300 font-medium mt-1">
+                            Total money across {displayBankAccounts.length} Bank Account{displayBankAccounts.length !== 1 ? 's' : ''} and {displayPettyFloats.length} Cash Box{displayPettyFloats.length !== 1 ? 'es' : ''}.
+                          </p>
                         </div>
-
-                        <button
-                          onClick={() => setAssetModalOpen(true)}
-                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-xs transition-all flex items-center gap-1.5"
-                        >
-                          <Plus size={14} /> + Add Asset Registry
-                        </button>
                       </div>
 
-                      {/* Assets Table or Empty State */}
-                      {assetsWithDepreciation.length === 0 ? (
-                        <div className="text-center py-12 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200 space-y-3">
-                          <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl mx-auto flex items-center justify-center border border-indigo-100">
-                            <Briefcase size={22} />
+                      {/* Grid 1: Bank Accounts */}
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center border-b border-slate-200/80 pb-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
+                              <Landmark size={18} />
+                            </div>
+                            <div>
+                              <h2 className="text-sm font-black uppercase text-slate-900 tracking-wider">
+                                Bank Accounts
+                              </h2>
+                              <span className="text-[10px] text-slate-400 font-semibold block">Connected bank wallets &amp; settlement accounts</span>
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="text-sm font-black text-slate-900 uppercase">No assets registered yet</h4>
-                            <p className="text-xs text-slate-400 font-semibold mt-1">Register machinery, fleet vehicles, or office equipment to track accumulated straight-line book values.</p>
-                          </div>
-                          <button
-                            onClick={() => setAssetModalOpen(true)}
-                            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all inline-flex items-center gap-1.5"
-                          >
-                            <Plus size={15} /> + Add Asset Registry
-                          </button>
+                          <span className="text-xs font-black text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+                            {displayBankAccounts.length} Account{displayBankAccounts.length !== 1 ? 's' : ''}
+                          </span>
                         </div>
-                      ) : (
-                        <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-                          <table className="w-full text-left text-xs border-collapse">
-                            <thead>
-                              <tr className="bg-slate-50 border-b border-slate-200 text-[9px] font-black uppercase text-slate-500 tracking-wider">
-                                <th className="p-3.5">Asset Name &amp; Serial #</th>
-                                <th className="p-3.5">Category</th>
-                                <th className="p-3.5">Purchase Date</th>
-                                <th className="p-3.5 text-right">Original Cost (₹)</th>
-                                <th className="p-3.5 text-right">Accum. Dep. (₹)</th>
-                                <th className="p-3.5 text-right">Net Book Value (₹)</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 font-bold text-slate-800 bg-white">
-                              {assetsWithDepreciation.map((a: any) => (
-                                <tr key={a.id} className="hover:bg-slate-50 transition-colors">
-                                  <td className="p-3.5 font-black text-slate-900">
-                                    <div>
-                                      {a.name}
-                                      <span className="text-[10px] text-slate-400 font-mono font-normal block">S/N: {a.serialNo || a.id}</span>
+
+                        {displayBankAccounts.length === 0 ? (
+                          <div className="text-center py-12 bg-slate-50 rounded-3xl border border-dashed border-slate-200 text-xs font-semibold text-slate-400 space-y-2">
+                            <p>No bank accounts added yet.</p>
+                            <button onClick={() => setBankModalOpen(true)} className="text-blue-600 font-black underline hover:text-blue-800">+ Add your first bank account</button>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {displayBankAccounts.map((b: any) => {
+                              const cardId = `bank-${b.id || b.ledgerCode || b.accountNo || b.name}`;
+                              const bal = Number(b.currentBalance || b.current_balance || b.openingBalance || 0);
+                              const accNo = b.accountNo || b.account_no || b.accountNumber || b.account_number || '501004889201';
+                              const bankName = b.bankName || b.bank_name || (b.name.includes('HDFC') ? 'HDFC Bank Ltd.' : b.name.includes('ICICI') ? 'ICICI Bank Ltd.' : b.name.includes('SBI') ? 'State Bank of India' : 'Scheduled Bank');
+                              const ifsc = b.ifscCode || b.ifsc_code || b.ifsc || 'HDFC0001429';
+                              const branch = b.branch || b.branchName || b.branch_name || 'Main Branch';
+                              const accType = b.type || 'Bank Account';
+                              const isExpanded = expandedWalletCardId === cardId;
+                              const entries = (cardEntriesMap[cardId] || []).slice(0, 5);
+                              const isLoadingEntries = loadingCardEntries[cardId];
+
+                              return (
+                                <div
+                                  key={cardId}
+                                  className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs hover:border-slate-300 transition-all space-y-3"
+                                >
+                                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                    <div className="flex items-center gap-3.5 min-w-0">
+                                      <div className="p-3 bg-blue-50 text-blue-700 rounded-xl border border-blue-100 shrink-0">
+                                        <Landmark size={22} />
+                                      </div>
+                                      <div className="space-y-0.5 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <h3 className="text-sm font-black text-slate-900 truncate">{b.name}</h3>
+                                          <span className="text-[9px] font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200 shrink-0">
+                                            {bankName}
+                                          </span>
+                                          <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md shrink-0">
+                                            {accType}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
+                                          <span>Acc: <strong className="font-mono text-slate-800">{accNo}</strong></span>
+                                          <span>IFSC: <strong className="font-mono text-slate-800">{ifsc}</strong></span>
+                                          <span className="hidden sm:inline">Branch: {branch}</span>
+                                        </div>
+                                      </div>
                                     </div>
-                                  </td>
-                                  <td className="p-3.5">
-                                    <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 text-[9px] font-black uppercase rounded">
-                                      {a.category}
-                                    </span>
-                                  </td>
-                                  <td className="p-3.5 text-slate-600">{a.purchaseDate}</td>
-                                  <td className="p-3.5 text-right font-mono text-slate-900">₹{a.cost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                  <td className="p-3.5 text-right font-mono text-rose-600">-₹{a.accumDep.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                  <td className="p-3.5 text-right font-mono font-black text-emerald-700">₹{a.bookVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+
+                                    <div className="flex items-center justify-between md:justify-end gap-5 w-full md:w-auto border-t md:border-t-0 pt-3 md:pt-0 border-slate-100">
+                                      <div className="text-left md:text-right">
+                                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">AVAILABLE BALANCE</span>
+                                        <span className="text-lg font-black text-slate-900 block tracking-tight">
+                                          ₹{bal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                        </span>
+                                      </div>
+
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={() => {
+                                            if (b.ledgerCode) {
+                                              setInspectingLedgerCode(b.ledgerCode);
+                                              setActiveTab('ledger');
+                                            } else {
+                                              setSelectedBankAccount(b.id);
+                                              setActiveTab('bank-register');
+                                            }
+                                          }}
+                                          className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-black uppercase tracking-wider rounded-xl shadow-xs transition-all flex items-center gap-1 shrink-0"
+                                        >
+                                          Statement <ChevronRight size={12} />
+                                        </button>
+
+                                        <button
+                                          onClick={() => toggleWalletCardAccordion(cardId, b.ledgerCode)}
+                                          className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-xl border transition-all flex items-center gap-1 shrink-0 ${isExpanded
+                                              ? 'bg-blue-50 text-blue-700 border-blue-300'
+                                              : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                                            }`}
+                                        >
+                                          Last 5 Txns {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {isExpanded && (
+                                    <div className="border-t border-slate-100 pt-3 mt-1 space-y-2 bg-slate-50/70 rounded-xl p-3">
+                                      <div className="flex justify-between items-center px-1">
+                                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                                          Recent 5 Transactions for {b.name}
+                                        </span>
+                                        <span className="text-[10px] text-slate-400 font-semibold">Real-time settlement history</span>
+                                      </div>
+
+                                      {isLoadingEntries ? (
+                                        <div className="py-4 text-center text-xs font-semibold text-slate-400 animate-pulse">
+                                          Loading transactions...
+                                        </div>
+                                      ) : entries.length === 0 ? (
+                                        <div className="py-4 text-center text-xs font-medium text-slate-400 bg-white rounded-lg border border-slate-200/80">
+                                          No recorded transactions found for this account.
+                                        </div>
+                                      ) : (
+                                        <div className="overflow-x-auto">
+                                          <table className="w-full text-left border-collapse bg-white rounded-lg border border-slate-200/80 overflow-hidden text-xs">
+                                            <thead>
+                                              <tr className="bg-slate-100/80 text-[10px] font-black uppercase text-slate-500 border-b border-slate-200">
+                                                <th className="py-2 px-3">Date</th>
+                                                <th className="py-2 px-3">Voucher #</th>
+                                                <th className="py-2 px-3">Description</th>
+                                                <th className="py-2 px-3 text-right">Amount</th>
+                                                <th className="py-2 px-3 text-center">Status</th>
+                                              </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                              {entries.map((tx: any, idx: number) => {
+                                                const isDebit = Number(tx.debit_amount || 0) > 0;
+                                                const isCredit = Number(tx.credit_amount || 0) > 0;
+                                                const amount = isDebit ? Number(tx.debit_amount) : Number(tx.credit_amount);
+                                                const txDate = tx.date ? new Date(tx.date).toLocaleDateString('en-IN') : 'N/A';
+                                                const voucher = tx.voucher_no || tx.voucherNo || `TX-${tx.id || idx}`;
+                                                const desc = tx.description || tx.narration || 'Ledger Entry';
+
+                                                let statusLabel = 'PAID';
+                                                let statusBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+
+                                                if (tx.status === 'PENDING' || tx.status === 'INVOICE_RAISED') {
+                                                  statusLabel = 'PENDING';
+                                                  statusBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+                                                } else if (isDebit) {
+                                                  statusLabel = 'RECEIVED';
+                                                  statusBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
+                                                } else if (isCredit) {
+                                                  statusLabel = 'DEBITED';
+                                                  statusBadgeClass = 'bg-purple-50 text-purple-700 border-purple-200';
+                                                }
+
+                                                return (
+                                                  <tr key={tx.id || idx} className="hover:bg-slate-50/80 transition-colors">
+                                                    <td className="py-2 px-3 font-mono text-[11px] text-slate-600">{txDate}</td>
+                                                    <td className="py-2 px-3 font-mono font-bold text-slate-800 text-[11px]">{voucher}</td>
+                                                    <td className="py-2 px-3 text-slate-700 font-medium truncate max-w-[200px]">{desc}</td>
+                                                    <td className={`py-2 px-3 text-right font-black font-mono ${isDebit ? 'text-emerald-700' : 'text-slate-800'}`}>
+                                                      {isDebit ? `+₹${amount.toLocaleString('en-IN')}` : `-₹${amount.toLocaleString('en-IN')}`}
+                                                    </td>
+                                                    <td className="py-2 px-3 text-center">
+                                                      <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${statusBadgeClass}`}>
+                                                        {statusLabel}
+                                                      </span>
+                                                    </td>
+                                                  </tr>
+                                                );
+                                              })}
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Grid 2: Cash Boxes & Floats */}
+                      <div className="space-y-4 pt-4">
+                        <div className="flex justify-between items-center border-b border-slate-200/80 pb-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
+                              <Coins size={18} />
+                            </div>
+                            <div>
+                              <h2 className="text-sm font-black uppercase text-slate-900 tracking-wider">
+                                Cash Boxes &amp; Floats
+                              </h2>
+                              <span className="text-[10px] text-slate-400 font-semibold block">Petty cash floats &amp; site cash boxes</span>
+                            </div>
+                          </div>
+                          <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                            {displayPettyFloats.length} Box{displayPettyFloats.length !== 1 ? 'es' : ''}
+                          </span>
                         </div>
-                      )}
+
+                        {displayPettyFloats.length === 0 ? (
+                          <div className="text-center py-12 bg-slate-50 rounded-3xl border border-dashed border-slate-200 text-xs font-semibold text-slate-400">
+                            No cash boxes added yet.
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {displayPettyFloats.map((p: any) => {
+                              const cardId = `petty-${p.id || p.ledgerCode || p.custodianName}`;
+                              const bal = Number(p.currentBalance || p.current_balance || p.openingAmount || 0);
+                              const custodian = p.custodianName || p.custodian_name || p.name || 'Cash Custodian';
+                              const site = p.siteName || p.site_id ? `Site: ${p.siteName || p.site_id}` : 'General Cash Box';
+                              const isExpanded = expandedWalletCardId === cardId;
+                              const entries = (cardEntriesMap[cardId] || []).slice(0, 5);
+                              const isLoadingEntries = loadingCardEntries[cardId];
+
+                              return (
+                                <div
+                                  key={cardId}
+                                  className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs hover:border-slate-300 transition-all space-y-3"
+                                >
+                                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                    <div className="flex items-center gap-3.5 min-w-0">
+                                      <div className="p-3 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100 shrink-0">
+                                        <Coins size={22} />
+                                      </div>
+                                      <div className="space-y-0.5 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <h3 className="text-sm font-black text-slate-900 truncate">{custodian}</h3>
+                                          <span className="text-[9px] font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 shrink-0">
+                                            CASH FLOAT
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
+                                          <span>Scope: <strong className="font-semibold text-slate-800">{site}</strong></span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between md:justify-end gap-5 w-full md:w-auto border-t md:border-t-0 pt-3 md:pt-0 border-slate-100">
+                                      <div className="text-left md:text-right">
+                                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">CASH IN HAND</span>
+                                        <span className="text-lg font-black text-emerald-700 block tracking-tight">
+                                          ₹{bal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                        </span>
+                                      </div>
+
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={() => {
+                                            if (p.ledgerCode) {
+                                              setInspectingLedgerCode(p.ledgerCode);
+                                              setActiveTab('ledger');
+                                            } else {
+                                              setSelectedCustodian(p.custodianId || p.id);
+                                              setActiveTab('petty-cash');
+                                            }
+                                          }}
+                                          className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] font-black uppercase tracking-wider rounded-xl shadow-xs transition-all flex items-center gap-1 shrink-0"
+                                        >
+                                          Cash Log <ChevronRight size={12} />
+                                        </button>
+
+                                        <button
+                                          onClick={() => toggleWalletCardAccordion(cardId, p.ledgerCode)}
+                                          className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-xl border transition-all flex items-center gap-1 shrink-0 ${isExpanded
+                                              ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                                              : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                                            }`}
+                                        >
+                                          Last 5 Txns {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {isExpanded && (
+                                    <div className="border-t border-slate-100 pt-3 mt-1 space-y-2 bg-slate-50/70 rounded-xl p-3">
+                                      <div className="flex justify-between items-center px-1">
+                                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                                          Recent 5 Cash Log Transactions for {custodian}
+                                        </span>
+                                        <span className="text-[10px] text-slate-400 font-semibold">Float movement history</span>
+                                      </div>
+
+                                      {isLoadingEntries ? (
+                                        <div className="py-4 text-center text-xs font-semibold text-slate-400 animate-pulse">
+                                          Loading transactions...
+                                        </div>
+                                      ) : entries.length === 0 ? (
+                                        <div className="py-4 text-center text-xs font-medium text-slate-400 bg-white rounded-lg border border-slate-200/80">
+                                          No recorded transactions found for this cash box.
+                                        </div>
+                                      ) : (
+                                        <div className="overflow-x-auto">
+                                          <table className="w-full text-left border-collapse bg-white rounded-lg border border-slate-200/80 overflow-hidden text-xs">
+                                            <thead>
+                                              <tr className="bg-slate-100/80 text-[10px] font-black uppercase text-slate-500 border-b border-slate-200">
+                                                <th className="py-2 px-3">Date</th>
+                                                <th className="py-2 px-3">Voucher #</th>
+                                                <th className="py-2 px-3">Description</th>
+                                                <th className="py-2 px-3 text-right">Amount</th>
+                                                <th className="py-2 px-3 text-center">Status</th>
+                                              </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                              {entries.map((tx: any, idx: number) => {
+                                                const isDebit = Number(tx.debit_amount || 0) > 0;
+                                                const isCredit = Number(tx.credit_amount || 0) > 0;
+                                                const amount = isDebit ? Number(tx.debit_amount) : Number(tx.credit_amount);
+                                                const txDate = tx.date ? new Date(tx.date).toLocaleDateString('en-IN') : 'N/A';
+                                                const voucher = tx.voucher_no || tx.voucherNo || `CSH-${tx.id || idx}`;
+                                                const desc = tx.description || tx.narration || 'Cash Entry';
+
+                                                let statusLabel = 'PAID';
+                                                let statusBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+
+                                                if (tx.status === 'PENDING' || tx.status === 'INVOICE_RAISED') {
+                                                  statusLabel = 'PENDING';
+                                                  statusBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+                                                } else if (isDebit) {
+                                                  statusLabel = 'RECEIVED';
+                                                  statusBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
+                                                } else if (isCredit) {
+                                                  statusLabel = 'DEBITED';
+                                                  statusBadgeClass = 'bg-purple-50 text-purple-700 border-purple-200';
+                                                }
+
+                                                return (
+                                                  <tr key={tx.id || idx} className="hover:bg-slate-50/80 transition-colors">
+                                                    <td className="py-2 px-3 font-mono text-[11px] text-slate-600">{txDate}</td>
+                                                    <td className="py-2 px-3 font-mono font-bold text-slate-800 text-[11px]">{voucher}</td>
+                                                    <td className="py-2 px-3 text-slate-700 font-medium truncate max-w-[200px]">{desc}</td>
+                                                    <td className={`py-2 px-3 text-right font-black font-mono ${isDebit ? 'text-emerald-700' : 'text-slate-800'}`}>
+                                                      {isDebit ? `+₹${amount.toLocaleString('en-IN')}` : `-₹${amount.toLocaleString('en-IN')}`}
+                                                    </td>
+                                                    <td className="py-2 px-3 text-center">
+                                                      <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${statusBadgeClass}`}>
+                                                        {statusLabel}
+                                                      </span>
+                                                    </td>
+                                                  </tr>
+                                                );
+                                              })}
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          {/* 4. COMPANY EXPENSES & OVERHEADS TAB */}
+          {activeTab === 'company-expenses' && (
+            <div className="space-y-6">
+              {/* Header Bar */}
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Company Expenses & Overheads</h1>
+                    <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-md bg-purple-50 border border-purple-200 text-purple-700">
+                      Administrative & Payroll
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 font-semibold mt-1">
+                    Manage office salaries, PF & ESI statutory accounts, building rent, utilities, and administrative overheads.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => {
+                      setQuickTxForm({
+                        ledgerCode: companyLedgers[0]?.ledgerCode || '',
+                        direction: 'Debit',
+                        docType: 'Expenditure',
+                        amount: '',
+                        date: new Date().toISOString().split('T')[0],
+                        description: 'Office Salary / Overhead Expense Payment',
+                        projectId: 'Overhead',
+                        siteId: '',
+                        offsetLedgerCode: bankAccounts[0]?.ledgerCode || '',
+                        billRef: '',
+                        linkedVoucherNo: '',
+                        extraNotes: ''
+                      });
+                      setActiveTab('record-ledger');
+                    }}
+                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-sm flex items-center gap-1.5 transition-all"
+                  >
+                    <Plus size={14} /> + Record Office Expense
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setCreateLedgerForm(prev => ({
+                        ...prev,
+                        ledgerCategory: 'Company',
+                        groupName: 'Indirect Expenses / Overheads',
+                        companyCategory: 'Indirect Expenses / Overheads',
+                        ledgerCode: 'LDG-' + String(allLedgerAccounts.length + 1).padStart(3, '0')
+                      }));
+                      setActiveTab('create-ledger');
+                      setCreateSection('ledger');
+                    }}
+                    className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-sm flex items-center gap-1.5 transition-all"
+                  >
+                    <Plus size={14} /> + Add Overhead Account
+                  </button>
+                </div>
+              </div>
+
+              {/* Overhead Expense Summary Metrics */}
+              {(() => {
+                const totalOverheadSpend = companyLedgerEntries.reduce((sum, e) => sum + Number(e.debit_amount || 0), 0);
+                const salaryLedger = companyLedgers.find(l => (l.name || '').toLowerCase().includes('salary') || (l.name || '').toLowerCase().includes('payroll'));
+                const pfLedger = companyLedgers.find(l => (l.name || '').toLowerCase().includes('pf') || (l.name || '').toLowerCase().includes('provident') || (l.name || '').toLowerCase().includes('esi'));
+
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs space-y-1">
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Total Overhead Spend</span>
+                      <div className="text-xl font-black text-slate-900 font-mono">
+                        ₹{totalOverheadSpend.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-400 block">Recorded company expenses</span>
+                    </div>
+
+                    <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs space-y-1">
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Office Salaries & Payroll</span>
+                      <div className="text-xl font-black text-blue-700 font-mono">
+                        ₹{Number(salaryLedger?.currentBalance || salaryLedger?.current_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </div>
+                      <span className="text-[10px] font-bold text-blue-600 block">Staff salaries & allowances</span>
+                    </div>
+
+                    <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs space-y-1">
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">PF & ESI Deductions</span>
+                      <div className="text-xl font-black text-purple-700 font-mono">
+                        ₹{Number(pfLedger?.currentBalance || pfLedger?.current_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </div>
+                      <span className="text-[10px] font-bold text-purple-600 block">Statutory employer benefits</span>
+                    </div>
+
+                    <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs space-y-1">
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Overhead Accounts</span>
+                      <div className="text-xl font-black text-emerald-700 font-mono">
+                        {companyLedgers.length} Profiles
+                      </div>
+                      <span className="text-[10px] font-bold text-emerald-600 block">Active administrative ledgers</span>
                     </div>
                   </div>
-                )}
+                );
+              })()}
 
-                {/* Sub-Tab 2: Accounts Receivable (Clients) */}
-                {activeAssetsSubTab === 'receivables' && (
-                  <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-5 shadow-sm">
-                    <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-                      <div>
-                        <h3 className="text-sm font-black text-slate-900 uppercase">Accounts Receivable (Clients) Directory</h3>
-                        <p className="text-xs text-slate-500 font-semibold">Track outstanding client billing, milestone receivables, and pending income</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {(clients.length > 0 ? clients : [
-                        { id: 'c1', name: 'National Highways Authority (NHAI)', project: 'Tech Park Highway Overpass', outstanding: 1250000 },
-                        { id: 'c2', name: 'Telangana Metro Rail Corp', project: 'Metro Line Phase-2', outstanding: 850000 },
-                        { id: 'c3', name: 'Urban Infra Developers Ltd', project: 'Residential Tower Scope', outstanding: 450000 }
-                      ]).map((c: any, idx: number) => (
-                        <div key={c.id || idx} className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 space-y-4 shadow-2xs">
-                          <div className="flex justify-between items-center">
-                            <span className="text-[9px] font-black uppercase text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                              PENDING RECEIVABLE
-                            </span>
-                            <span className="text-[10px] font-mono font-bold text-slate-400">CL-00{idx + 1}</span>
-                          </div>
-
-                          <div>
-                            <h4 className="text-sm font-black text-slate-900">{c.name}</h4>
-                            <p className="text-[10px] text-blue-900 font-extrabold mt-0.5">Project: {c.project || 'General Scope'}</p>
-                          </div>
-
-                          <div className="border-t border-slate-200 pt-3 flex justify-between items-center">
-                            <span className="text-[10px] text-slate-400 font-bold uppercase">Pending Income</span>
-                            <span className="text-base font-black text-emerald-700">₹{Number(c.outstanding || 150000).toLocaleString('en-IN')}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+              {/* Overhead Expense Accounts & Categories */}
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <h2 className="text-xs font-black uppercase text-slate-700 tracking-wider">
+                    Company Overhead Accounts & Categories
+                  </h2>
+                  <div className="relative max-w-xs w-full">
+                    <Search size={14} className="absolute left-3 top-2.5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search company overhead accounts..."
+                      value={searchLedgerQuery}
+                      onChange={e => setSearchLedgerQuery(e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl pl-8 pr-3 py-1.5 text-xs font-bold bg-white focus:outline-none focus:border-slate-800"
+                    />
                   </div>
-                )}
+                </div>
 
-                {/* Sub-Tab 3: Accounts Payable (Vendors) */}
-                {activeAssetsSubTab === 'payables' && (
-                  <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-5 shadow-sm">
-                    <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-                      <div>
-                        <h3 className="text-sm font-black text-slate-900 uppercase">Accounts Payable (Vendors) Directory</h3>
-                        <p className="text-xs text-slate-500 font-semibold">Track outstanding vendor invoices, material supplier payables, and contractor bills</p>
-                      </div>
-                    </div>
+                {(() => {
+                  const filteredCompanyLedgers = companyLedgers.filter(l =>
+                    (l.name || '').toLowerCase().includes(searchLedgerQuery.toLowerCase()) ||
+                    (l.ledgerCode || '').toLowerCase().includes(searchLedgerQuery.toLowerCase())
+                  );
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {(vendors.length > 0 ? vendors : [
-                        { id: 'v1', name: 'UltraTech Cement Ltd', category: 'Raw Materials', outstanding: 450000 },
-                        { id: 'v2', name: 'Tata Steel TMT Rebar Suppliers', category: 'Structural Steel', outstanding: 680000 },
-                        { id: 'v3', name: 'Deccan Earthmovers & Machinery', category: 'Equipment Hire', outstanding: 220000 }
-                      ]).map((v: any, idx: number) => (
-                        <div key={v.id || idx} className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 space-y-4 shadow-2xs">
-                          <div className="flex justify-between items-center">
-                            <span className="text-[9px] font-black uppercase text-rose-800 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                              PAYABLE DUE
-                            </span>
-                            <span className="text-[10px] font-mono font-bold text-slate-400">VND-00{idx + 1}</span>
-                          </div>
-
-                          <div>
-                            <h4 className="text-sm font-black text-slate-900">{v.name}</h4>
-                            <p className="text-[10px] text-slate-500 font-extrabold mt-0.5">Category: {v.category || 'Vendor Supplier'}</p>
-                          </div>
-
-                          <div className="border-t border-slate-200 pt-3 flex justify-between items-center">
-                            <span className="text-[10px] text-slate-400 font-bold uppercase">Payable Due</span>
-                            <span className="text-base font-black text-rose-700">₹{Number(v.outstanding || 85000).toLocaleString('en-IN')}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Add Asset Registry Interactive Modal */}
-                {assetModalOpen && (
-                  <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl p-6 max-w-lg w-full space-y-5 border border-slate-200 shadow-2xl animate-in fade-in zoom-in duration-200">
-                      <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                        <h3 className="text-base font-black text-slate-900 uppercase flex items-center gap-2">
-                          <Plus size={18} className="text-indigo-600" /> Register Capital Asset
-                        </h3>
-                        <button onClick={() => setAssetModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
-                          <X size={18} />
-                        </button>
-                      </div>
-
-                      <div className="space-y-4 text-xs">
-                        <div className="space-y-1.5">
-                          <label className="font-extrabold uppercase text-slate-700 block">Asset Name / Description *</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. JCB Excavator 3DX / Tata Dumper"
-                            value={assetForm.description}
-                            onChange={e => setAssetForm({ ...assetForm, description: e.target.value })}
-                            className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 font-bold focus:outline-none focus:border-slate-900"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1.5">
-                            <label className="font-extrabold uppercase text-slate-700 block">Original Purchase Cost (₹) *</label>
-                            <input
-                              type="number"
-                              placeholder="0.00"
-                              value={assetForm.purchaseCost}
-                              onChange={e => setAssetForm({ ...assetForm, purchaseCost: e.target.value })}
-                              className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 font-bold focus:outline-none focus:border-slate-900"
-                            />
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <label className="font-extrabold uppercase text-slate-700 block">Purchase Date *</label>
-                            <input
-                              type="date"
-                              value={assetForm.purchaseDate}
-                              onChange={e => setAssetForm({ ...assetForm, purchaseDate: e.target.value })}
-                              className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 font-bold focus:outline-none focus:border-slate-900"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1.5">
-                            <label className="font-extrabold uppercase text-slate-700 block">Useful Life (Years)</label>
-                            <input
-                              type="number"
-                              placeholder="10"
-                              value={assetForm.usefulLifeYears}
-                              onChange={e => setAssetForm({ ...assetForm, usefulLifeYears: e.target.value })}
-                              className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 font-bold focus:outline-none focus:border-slate-900"
-                            />
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <label className="font-extrabold uppercase text-slate-700 block">Assign Worksite Scope</label>
-                            <select
-                              value={assetForm.assignedProjectId}
-                              onChange={e => setAssetForm({ ...assetForm, assignedProjectId: e.target.value })}
-                              className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 font-bold bg-white focus:outline-none focus:border-slate-900"
-                            >
-                              <option value="">-- Main Storage Yard --</option>
-                              {worksites.map(w => (
-                                <option key={w.id} value={w.id}>{w.name}</option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
-                        <button
-                          onClick={() => setAssetModalOpen(false)}
-                          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-all"
-                        >
-                          Cancel
-                        </button>
+                  if (filteredCompanyLedgers.length === 0) {
+                    return (
+                      <div className="text-center py-12 bg-white border border-slate-200 rounded-2xl p-6 space-y-3">
+                        <p className="text-xs text-slate-500 font-semibold">No company overhead accounts created yet.</p>
                         <button
                           onClick={() => {
-                            if (!assetForm.description || !assetForm.purchaseCost) {
-                              alert('Please provide Asset Description and Purchase Cost.');
-                              return;
-                            }
-                            const newAsset = {
-                              id: 'ast-' + (assets.length + 10),
-                              name: assetForm.description,
-                              category: 'Machinery & Equipment',
-                              purchaseCost: Number(assetForm.purchaseCost),
-                              purchaseDate: assetForm.purchaseDate,
-                              usefulLifeYears: Number(assetForm.usefulLifeYears || 10),
-                              salvageValue: 0
-                            };
-                            setAssets(prev => [...prev, newAsset]);
-                            setAssetModalOpen(false);
-                            setAssetForm({ purchaseCost: '', description: '', purchaseDate: new Date().toISOString().split('T')[0], usefulLifeYears: '5', assignedProjectId: '' });
-                            alert('Capital asset registered successfully in Fixed Assets Registry!');
+                            setCreateLedgerForm(prev => ({
+                              ...prev,
+                              ledgerCategory: 'Company',
+                              groupName: 'Indirect Expenses / Overheads',
+                              companyCategory: 'Indirect Expenses / Overheads',
+                              ledgerCode: 'LDG-' + String(allLedgerAccounts.length + 1).padStart(3, '0')
+                            }));
+                            setActiveTab('create-ledger');
+                            setCreateSection('ledger');
                           }}
-                          className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center gap-1.5"
+                          className="px-4 py-2 bg-blue-600 text-white font-black text-xs uppercase tracking-wider rounded-xl hover:bg-blue-700 shadow-sm transition-all"
                         >
-                          <CheckCircle size={15} /> Save Capital Asset
+                          + Create Office Salaries / Overhead Ledger
                         </button>
                       </div>
+                    );
+                  }
+
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {filteredCompanyLedgers.map((l: any) => {
+                        const bal = Number(l.currentBalance || l.current_balance || 0);
+                        const isInspecting = selectedCompanyLedger === l.ledgerCode;
+
+                        return (
+                          <div
+                            key={l.id || l.ledgerCode}
+                            onClick={() => {
+                              setSelectedCompanyLedger(l.ledgerCode);
+                            }}
+                            className={`cursor-pointer bg-white border rounded-2xl p-5 shadow-2xs hover:shadow-md transition-all space-y-4 ${
+                              isInspecting ? 'border-blue-600 ring-2 ring-blue-500/10' : 'border-slate-200/80 hover:border-slate-400'
+                            }`}
+                          >
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center">
+                                <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider bg-slate-100 px-2.5 py-0.5 rounded-lg font-mono">
+                                  {l.ledgerCode}
+                                </span>
+                                <span className="text-[9px] font-black uppercase text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                                  {l.department || 'Administrative'}
+                                </span>
+                              </div>
+
+                              <div>
+                                <h3 className="text-sm font-black text-slate-900 leading-snug">{l.name}</h3>
+                                <p className="text-[11px] text-slate-400 font-semibold line-clamp-1 mt-0.5">
+                                  {l.description || 'Company overhead expense account'}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="border-t border-slate-100 pt-3 flex items-center justify-between">
+                              <div>
+                                <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block">CURRENT BALANCE</span>
+                                <span className="text-xs font-black font-mono text-slate-900">
+                                  ₹{bal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                </span>
+                              </div>
+
+                              <button
+                                onClick={(evt) => {
+                                  evt.stopPropagation();
+                                  setInspectingLedgerCode(l.ledgerCode);
+                                  setActiveTab('ledger');
+                                }}
+                                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-black text-[10px] uppercase tracking-wider rounded-xl transition-all"
+                              >
+                                View Log
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
-            );
-          })()}
+
+              {/* Selected Overhead Ledger Detailed Transactions Log */}
+              {selectedCompanyLedger && (
+                <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-2xs mt-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 pb-3 gap-2">
+                    <div>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-blue-600 block">TRANSACTION REGISTER</span>
+                      <h3 className="text-sm font-black text-slate-900">
+                        {companyLedgers.find(l => l.ledgerCode === selectedCompanyLedger)?.name || selectedCompanyLedger} Ledger Entries
+                      </h3>
+                    </div>
+                    <button
+                      onClick={() => setSelectedCompanyLedger('')}
+                      className="text-xs font-bold text-slate-400 hover:text-slate-700"
+                    >
+                      Clear Selection
+                    </button>
+                  </div>
+
+                  {loadingCompanyEntries ? (
+                    <div className="py-8 text-center text-xs font-semibold text-slate-400">Loading ledger entries...</div>
+                  ) : companyLedgerEntries.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-slate-400 font-semibold bg-slate-50 rounded-xl">
+                      No voucher entries posted for this overhead account yet.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                            <th className="p-3">Posting Date</th>
+                            <th className="p-3">Voucher #</th>
+                            <th className="p-3">Particulars / Description</th>
+                            <th className="p-3 text-right">Debit (₹)</th>
+                            <th className="p-3 text-right">Credit (₹)</th>
+                            <th className="p-3 text-center">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 font-bold text-slate-800">
+                          {companyLedgerEntries.map((e: any, idx: number) => (
+                            <tr key={e.id || idx} className="hover:bg-slate-50/60">
+                              <td className="p-3">{new Date(e.date || new Date()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                              <td className="p-3 font-mono font-black text-slate-900">{e.voucher_no || `VOU-${idx}`}</td>
+                              <td className="p-3 text-slate-700 font-medium">{e.description || e.narration || 'Overhead expense'}</td>
+                              <td className="p-3 text-right font-black text-rose-600">
+                                {Number(e.debit_amount || 0) > 0 ? `₹${Number(e.debit_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
+                              </td>
+                              <td className="p-3 text-right font-black text-emerald-600">
+                                {Number(e.credit_amount || 0) > 0 ? `₹${Number(e.credit_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-'}
+                              </td>
+                              <td className="p-3 text-center">
+                                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-black uppercase rounded-md">
+                                  POSTED
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 5. RECORD LEDGER ENTRY PAGE TAB (INLINE - NO MODAL BORDER OVERLAY) */}
           {activeTab === 'record-ledger' && (
@@ -2985,37 +3628,110 @@ export default function AccountsLedgersPage() {
               </div>
 
               {/* Section 1: Account & Transaction Scope */}
-              <div className="bg-slate-50/80 p-6 rounded-3xl border border-slate-200/90 space-y-4 shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">1. Account &amp; Transaction Scope</h4>
-                </div>
+              {(() => {
+                // Collect unique groups
+                const allGroupsSet = new Set<string>();
+                ledgerGroups.forEach(g => { if (g.name) allGroupsSet.add(g.name); });
+                ['Direct Expenses', 'Indirect Expenses', 'Overhead & Administrative', 'Bank Accounts', 'Sundry Debtors (Clients)', 'Sundry Creditors (Vendors)'].forEach(g => allGroupsSet.add(g));
+                allLedgerAccounts.forEach(l => {
+                  const grp = l.groupName || l.group_name || l.companyCategory || l.company_category;
+                  if (grp) allGroupsSet.add(grp);
+                });
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-extrabold uppercase text-slate-700 block">Selected Ledger Account *</label>
-                    <select
-                      value={quickTxForm.ledgerCode}
-                      disabled={true}
-                      className="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold bg-slate-100/90 text-slate-700 cursor-not-allowed shadow-2xs opacity-90"
-                    >
-                      {allLedgerAccounts.map(acc => (
-                        <option key={acc.id} value={acc.ledgerCode}>{acc.name} ({acc.ledgerCode})</option>
-                      ))}
-                    </select>
-                  </div>
+                const groupList = Array.from(allGroupsSet);
 
-                  <div className="space-y-2">
-                    <label className="text-xs font-extrabold uppercase text-slate-700 block">Accounting Direction *</label>
-                    <input
-                      type="text"
-                      disabled={true}
-                      value={quickTxForm.direction === 'Credit' ? 'Credit (Money In / Income / Credit Note)' : 'Debit (Money Out / Expense / Debit Note)'}
-                      className="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold bg-slate-100/90 text-slate-700 cursor-not-allowed shadow-2xs"
-                    />
+                // Find group of currently selected ledger
+                const selectedLedgerObj = allLedgerAccounts.find(l => l.ledgerCode === quickTxForm.ledgerCode);
+                const activeGroup = recordTxSelectedGroup || (selectedLedgerObj ? (selectedLedgerObj.groupName || selectedLedgerObj.group_name || selectedLedgerObj.companyCategory || selectedLedgerObj.company_category || groupList[0]) : groupList[0]);
+
+                // Ledgers inside activeGroup
+                const groupLedgers = allLedgerAccounts.filter(l => {
+                  const grp = l.groupName || l.group_name || l.companyCategory || l.company_category || 'General Expenses';
+                  return grp === activeGroup;
+                });
+
+                return (
+                  <div className="bg-slate-50/80 p-6 rounded-3xl border border-slate-200/90 space-y-4 shadow-2xs">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">1. Account &amp; Transaction Scope</h4>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                      {/* Field 1: Primary Group Selection */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-extrabold uppercase text-slate-700 block">
+                          Select Accounting Group *
+                        </label>
+                        <select
+                          value={activeGroup}
+                          onChange={e => {
+                            const newGroup = e.target.value;
+                            setRecordTxSelectedGroup(newGroup);
+                            const matchingLedgers = allLedgerAccounts.filter(l => {
+                              const grp = l.groupName || l.group_name || l.companyCategory || l.company_category || 'General Expenses';
+                              return grp === newGroup;
+                            });
+                            if (matchingLedgers.length > 0) {
+                              setQuickTxForm(prev => ({ ...prev, ledgerCode: matchingLedgers[0].ledgerCode }));
+                            } else {
+                              setQuickTxForm(prev => ({ ...prev, ledgerCode: '' }));
+                            }
+                          }}
+                          className="w-full border border-slate-300 rounded-2xl px-4 py-3 text-xs font-bold bg-white focus:outline-none focus:border-slate-900 shadow-2xs"
+                        >
+                          {groupList.map(gName => {
+                            const count = allLedgerAccounts.filter(l => {
+                              const grp = l.groupName || l.group_name || l.companyCategory || l.company_category || 'General Expenses';
+                              return grp === gName;
+                            }).length;
+                            return (
+                              <option key={gName} value={gName}>
+                                {gName} ({count} {count === 1 ? 'ledger' : 'ledgers'})
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+
+                      {/* Field 2: Ledger Account Selection inside selected group */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-extrabold uppercase text-slate-700 block">
+                          Select Ledger Profile ({groupLedgers.length} in group) *
+                        </label>
+                        <select
+                          value={quickTxForm.ledgerCode}
+                          onChange={e => setQuickTxForm({ ...quickTxForm, ledgerCode: e.target.value })}
+                          className="w-full border border-slate-300 rounded-2xl px-4 py-3 text-xs font-bold bg-white focus:outline-none focus:border-slate-900 shadow-2xs"
+                        >
+                          {groupLedgers.length === 0 ? (
+                            <option value="">No ledgers in this group yet</option>
+                          ) : (
+                            groupLedgers.map(acc => (
+                              <option key={acc.id} value={acc.ledgerCode}>
+                                {acc.name} ({acc.ledgerCode})
+                              </option>
+                            ))
+                          )}
+                        </select>
+                      </div>
+
+                      {/* Field 3: Accounting Direction */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-extrabold uppercase text-slate-700 block">
+                          Accounting Direction *
+                        </label>
+                        <input
+                          type="text"
+                          disabled={true}
+                          value={quickTxForm.direction === 'Credit' ? 'Credit (Money In / Income)' : 'Debit (Money Out / Expense)'}
+                          className="w-full border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold bg-slate-100/90 text-slate-700 cursor-not-allowed shadow-2xs"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Section 2: Financial Amount & Allocation Scope */}
               <div className="bg-slate-50/80 p-6 rounded-3xl border border-slate-200/90 space-y-5 shadow-2xs">
@@ -3024,7 +3740,7 @@ export default function AccountsLedgersPage() {
                   <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">2. Financial Amount &amp; Site Allocation Scope</h4>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-extrabold uppercase text-slate-700 block">
                       Enter Amount (₹) *
@@ -3036,6 +3752,53 @@ export default function AccountsLedgersPage() {
                       onChange={e => setQuickTxForm({ ...quickTxForm, amount: e.target.value })}
                       className="w-full border border-slate-300 rounded-2xl px-4 py-3 text-sm font-black bg-white focus:outline-none focus:border-slate-900 shadow-2xs text-slate-900"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-extrabold uppercase text-slate-700 block">
+                      Settlement Bank / Cash Account (Wallet) *
+                    </label>
+                    <select
+                      value={quickTxForm.offsetLedgerCode}
+                      onChange={e => setQuickTxForm({ ...quickTxForm, offsetLedgerCode: e.target.value })}
+                      className="w-full border border-slate-300 rounded-2xl px-4 py-3 text-xs font-bold bg-white focus:outline-none focus:border-slate-900 shadow-2xs"
+                    >
+                      <option value="">-- Choose Settlement Bank / Cash Account --</option>
+                      {allLedgerAccounts.filter(l => (l.type === 'Bank' || l.type === 'Cash') && l.ledgerCode !== quickTxForm.ledgerCode).length > 0 && (
+                        <optgroup label="Created Bank & Cash Ledgers">
+                          {allLedgerAccounts.filter(l => (l.type === 'Bank' || l.type === 'Cash') && l.ledgerCode !== quickTxForm.ledgerCode).map(b => (
+                            <option key={b.id || b.ledgerCode} value={b.ledgerCode}>
+                              {b.name} ({b.type} - {b.ledgerCode}) | Bal: ₹{Number(b.currentBalance || b.current_balance || b.openingBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {bankAccounts.length > 0 && (
+                        <optgroup label="System Bank Accounts">
+                          {bankAccounts.map(b => (
+                            <option key={b.id} value={b.ledgerCode || b.id}>
+                              {b.name} (Bal: ₹{Number(b.currentBalance || b.current_balance || b.openingBalance || 0).toLocaleString('en-IN')})
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {allPettyFloats.length > 0 && (
+                        <optgroup label="Cash Floats & Boxes">
+                          {allPettyFloats.map(p => (
+                            <option key={p.id} value={p.id}>
+                              {p.custodianName || p.name || 'Petty Cash'} (Bal: ₹{Number(p.currentBalance || p.current_balance || p.openingAmount || 0).toLocaleString('en-IN')})
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      <optgroup label="Other General Ledger Accounts">
+                        {allLedgerAccounts.filter(l => l.type !== 'Bank' && l.type !== 'Cash' && l.ledgerCode !== quickTxForm.ledgerCode).map(acc => (
+                          <option key={acc.id} value={acc.ledgerCode}>
+                            {acc.name} ({acc.ledgerCode})
+                          </option>
+                        ))}
+                      </optgroup>
+                    </select>
                   </div>
 
                   <div className="space-y-2">
@@ -3779,6 +4542,22 @@ export default function AccountsLedgersPage() {
                       <option value="Cash">Petty Cash / Direct Cash</option>
                     </select>
                   </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-500 block">Settlement Bank / Cash Account (Wallet)</label>
+                    <select
+                      value={paidOffsetLedgerCodeInput}
+                      onChange={e => setPaidOffsetLedgerCodeInput(e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold bg-white focus:outline-none focus:border-slate-800"
+                    >
+                      <option value="">-- Choose Settlement Account (Optional) --</option>
+                      {allLedgerAccounts.filter(l => (l.type === 'Bank' || l.type === 'Cash') && l.ledgerCode !== paidFormTx?.ledger_code).map(b => (
+                        <option key={b.id || b.ledgerCode} value={b.ledgerCode}>
+                          {b.name} ({b.type} - {b.ledgerCode}) | Bal: ₹{Number(b.currentBalance || b.current_balance || b.openingBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
@@ -3796,7 +4575,8 @@ export default function AccountsLedgersPage() {
                           entryId: paidFormTx.id,
                           voucherNo: paidFormTx.voucherNo,
                           status: 'PAID',
-                          paidDate: paidDateInput
+                          paidDate: paidDateInput,
+                          offsetLedgerCode: paidOffsetLedgerCodeInput
                         })
                       });
                       if (res.ok) {
@@ -4049,27 +4829,27 @@ export default function AccountsLedgersPage() {
                           </div>
                         </div>
 
-                        {/* Card 2: Total Project Expenditure */}
+                        {/* Card 2: Total Project Debit */}
                         <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex items-center gap-4">
                           <div className="p-3 bg-rose-50 text-rose-600 rounded-xl">
                             <ArrowUp size={18} />
                           </div>
                           <div>
-                            <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider block">Total Project Expenditure</span>
+                            <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider block">Total Project Debit</span>
                             <span className="text-base font-black text-rose-700 mt-0.5 block">₹{totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                            <span className="text-[9px] text-rose-600 font-semibold block mt-0.5">Project expenses &amp; payouts</span>
+                            <span className="text-[9px] text-rose-600 font-semibold block mt-0.5">Project debits &amp; payouts</span>
                           </div>
                         </div>
 
-                        {/* Card 3: Total Project Income */}
+                        {/* Card 3: Total Project Credit */}
                         <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex items-center gap-4">
                           <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
                             <TrendingUp size={18} />
                           </div>
                           <div>
-                            <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider block">Total Project Income</span>
+                            <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider block">Total Project Credit</span>
                             <span className="text-base font-black text-emerald-700 mt-0.5 block">₹{totalIncome.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                            <span className="text-[9px] text-emerald-600 font-semibold block mt-0.5">Project receipts &amp; inflows</span>
+                            <span className="text-[9px] text-emerald-600 font-semibold block mt-0.5">Project credits &amp; inflows</span>
                           </div>
                         </div>
 
@@ -4095,103 +4875,6 @@ export default function AccountsLedgersPage() {
                     );
                   })()}
 
-                  {/* Detailed Chronological Project Transaction Ledger Feed */}
-                  <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-sm">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div>
-                        <h3 className="text-xs font-black uppercase text-slate-700 tracking-wider">Project Transaction Feed</h3>
-                        <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Chronological record of every material invoice, petty float spent, or bank transfer matching this project.</p>
-                      </div>
-
-                      {/* Search and Filters */}
-                      <div className="flex flex-wrap items-center gap-3">
-                        <div className="relative max-w-xs">
-                          <Search size={14} className="absolute left-3.5 top-3 text-slate-400" />
-                          <input
-                            type="text"
-                            placeholder="Search transactions..."
-                            value={searchLedgerQuery}
-                            onChange={e => setSearchLedgerQuery(e.target.value)}
-                            className="border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs font-bold focus:outline-none focus:border-slate-800 bg-slate-50 w-64"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Transaction Feed Table */}
-                    <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="bg-slate-50 border-b border-slate-200">
-                            <th className="p-3.5 text-[10px] font-black uppercase text-slate-400 tracking-wider">Date</th>
-                            <th className="p-3.5 text-[10px] font-black uppercase text-slate-400 tracking-wider">Voucher / Ref</th>
-                            <th className="p-3.5 text-[10px] font-black uppercase text-slate-400 tracking-wider">Source / Register</th>
-                            <th className="p-3.5 text-[10px] font-black uppercase text-slate-400 tracking-wider">Description</th>
-                            <th className="p-3.5 text-[10px] font-black uppercase text-slate-400 tracking-wider text-right">Amount (₹)</th>
-                            <th className="p-3.5 text-[10px] font-black uppercase text-slate-400 tracking-wider text-center">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {loadingProjectLedgers ? (
-                            <tr>
-                              <td colSpan={6} className="p-8 text-center text-xs font-semibold text-slate-400">
-                                Loading project transaction ledger...
-                              </td>
-                            </tr>
-                          ) : (() => {
-                            const filtered = (projectHistory || []).filter(tx => {
-                              const q = searchLedgerQuery.toLowerCase();
-                              return (tx.note || '').toLowerCase().includes(q) ||
-                                (tx.voucher_no || '').toLowerCase().includes(q) ||
-                                (tx.source || '').toLowerCase().includes(q) ||
-                                (tx.type || '').toLowerCase().includes(q);
-                            });
-
-                            if (filtered.length === 0) {
-                              return (
-                                <tr>
-                                  <td colSpan={6} className="p-8 text-center text-xs font-semibold text-slate-400">
-                                    No transactions recorded for this project yet.
-                                  </td>
-                                </tr>
-                              );
-                            }
-
-                            return filtered.map((tx: any, idx: number) => {
-                              let badgeColor = 'bg-slate-100 text-slate-600 border-slate-200';
-                              if (tx.source === 'Petty Cash') badgeColor = 'bg-amber-50 text-amber-600 border-amber-100';
-                              else if (tx.source === 'Stock Issue') badgeColor = 'bg-blue-50 text-blue-600 border-blue-100';
-                              else if (tx.source === 'Direct Payment' || tx.source === 'Journal') badgeColor = 'bg-emerald-50 text-emerald-600 border-emerald-100';
-
-                              return (
-                                <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                                  <td className="p-3.5 text-xs font-semibold text-slate-500">
-                                    {new Date(tx.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                  </td>
-                                  <td className="p-3.5 text-xs font-black text-slate-900">{tx.voucher_no || 'N/A'}</td>
-                                  <td className="p-3.5 text-xs">
-                                    <span className={`inline-block font-black text-[9px] px-2 py-0.5 rounded-md border uppercase ${badgeColor}`}>
-                                      {tx.source} • {tx.type || 'General'}
-                                    </span>
-                                  </td>
-                                  <td className="p-3.5 text-xs font-medium text-slate-600">{tx.note || 'No narration provided'}</td>
-                                  <td className="p-3.5 text-xs font-black text-slate-900 text-right">
-                                    ₹{Number(tx.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                  </td>
-                                  <td className="p-3.5 text-xs text-center">
-                                    <span className={`inline-block font-black text-[9px] px-2 py-0.5 rounded-md border uppercase bg-emerald-50 text-emerald-650 border-emerald-100`}>
-                                      {tx.status || 'Posted'}
-                                    </span>
-                                  </td>
-                                </tr>
-                              );
-                            });
-                          })()}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
                   {/* Back to All Projects Link */}
                   <div className="pt-2">
                     <button
@@ -4216,7 +4899,6 @@ export default function AccountsLedgersPage() {
                   <h1 className="text-2xl font-black text-slate-900 tracking-tight">Company Expenses &amp; Overheads</h1>
                   <p className="text-xs text-slate-400 font-semibold mt-0.5">Manage administrative expenses, payroll accounts, office utilities, and Drawings.</p>
                 </div>
-
                 <button
                   onClick={() => {
                     setQuickTxForm({
@@ -4238,10 +4920,8 @@ export default function AccountsLedgersPage() {
                   <Plus size={14} /> Record Office Expense
                 </button>
               </div>
-
               {/* Main Split Layout */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
                 {/* Left Column: Overheads Ledgers List */}
                 <div className="lg:col-span-1 space-y-4">
                   <h3 className="text-xs font-black uppercase text-slate-700 tracking-wider">Overhead Accounts</h3>
@@ -4276,7 +4956,6 @@ export default function AccountsLedgersPage() {
                     )}
                   </div>
                 </div>
-
                 {/* Right Column: Ledger Entry Feed & Detailed Ledger Cards */}
                 <div className="lg:col-span-2 space-y-4">
                   {(() => {
@@ -4288,10 +4967,8 @@ export default function AccountsLedgersPage() {
                         </div>
                       );
                     }
-
                     return (
                       <div className="space-y-4">
-
                         {/* Ledger Card Meta */}
                         <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl flex flex-col md:flex-row justify-between gap-4">
                           <div>
@@ -4306,11 +4983,9 @@ export default function AccountsLedgersPage() {
                             </span>
                           </div>
                         </div>
-
                         {/* Entries Table */}
                         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
                           <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Account Transaction History</h4>
-
                           <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                             <table className="w-full text-left border-collapse">
                               <thead>
@@ -4356,18 +5031,13 @@ export default function AccountsLedgersPage() {
                             </table>
                           </div>
                         </div>
-
                       </div>
                     );
                   })()}
                 </div>
-
               </div>
-
             </div>
           )}
-
-
           {/* 4. ASSETS & LIABILITIES TAB */}
           {activeTab === 'assets-liabilities' && (
             <div className="space-y-6">
@@ -4390,7 +5060,6 @@ export default function AccountsLedgersPage() {
                   </button>
                 ))}
               </div>
-
               {activeAssetsSubTab === 'assets' && (
                 <div className="space-y-6">
 
@@ -4411,7 +5080,6 @@ export default function AccountsLedgersPage() {
                       <Plus size={13} /> Add Asset Registry
                     </button>
                   </div>
-
                   {assets.length === 0 ? (
                     renderEmptyState(
                       "No assets registered yet",
@@ -4427,7 +5095,6 @@ export default function AccountsLedgersPage() {
                         const cost = Number(ass.purchase_cost || 0);
                         const book = Number(ass.current_book_value || 0);
                         const pct = cost > 0 ? (book / cost) * 100 : 0;
-
                         return (
                           <div key={ass.id} className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex flex-col justify-between h-44">
                             <div className="flex justify-between items-start">
@@ -4439,7 +5106,6 @@ export default function AccountsLedgersPage() {
                                 {ass.useful_life_years} Years
                               </span>
                             </div>
-
                             <div className="space-y-1.5 mt-2">
                               <div className="flex justify-between items-baseline">
                                 <span className="text-[9px] font-black uppercase text-slate-400">Current Value</span>
@@ -4458,13 +5124,10 @@ export default function AccountsLedgersPage() {
                       })}
                     </div>
                   )}
-
                 </div>
               )}
-
               {activeAssetsSubTab === 'receivables' && (
                 <div className="space-y-6">
-
                   {/* Content Pane Header */}
                   <div className="flex justify-between items-start border-b border-slate-100 pb-4">
                     <div>
@@ -4476,7 +5139,6 @@ export default function AccountsLedgersPage() {
                       </p>
                     </div>
                   </div>
-
                   {clients.length === 0 ? (
                     renderEmptyState(
                       "No clients added to Accounts yet",
@@ -4505,10 +5167,8 @@ export default function AccountsLedgersPage() {
                           );
                         })}
                       </div>
-
                       {selectedClient && (
                         <div className="space-y-4 border-t border-slate-100 pt-6">
-
                           {/* Quick Actions Row */}
                           <div className="flex items-center gap-6 py-2">
                             <div className="flex flex-col items-center">
@@ -4521,10 +5181,8 @@ export default function AccountsLedgersPage() {
                               <span className="text-[10px] font-black text-slate-500 mt-1">Add Entry</span>
                             </div>
                           </div>
-
                           {/* Statement Filters */}
                           {renderFilterBar(true)}
-
                           {/* Transaction Feed */}
                           <div className="space-y-4">
                             <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">Statement feed</h3>
@@ -4535,10 +5193,8 @@ export default function AccountsLedgersPage() {
                       )}
                     </>
                   )}
-
                 </div>
               )}
-
               {activeAssetsSubTab === 'payables' && (
                 <div className="space-y-6">
 
@@ -4553,7 +5209,6 @@ export default function AccountsLedgersPage() {
                       </p>
                     </div>
                   </div>
-
                   {vendors.length === 0 ? (
                     renderEmptyState(
                       "No vendors added to Accounts yet",
@@ -4582,10 +5237,8 @@ export default function AccountsLedgersPage() {
                           );
                         })}
                       </div>
-
                       {selectedVendor && (
                         <div className="space-y-4 border-t border-slate-100 pt-6">
-
                           {/* Quick Actions Row */}
                           <div className="flex items-center gap-6 py-2">
                             <div className="flex flex-col items-center">
@@ -4598,21 +5251,17 @@ export default function AccountsLedgersPage() {
                               <span className="text-[10px] font-black text-slate-500 mt-1">Add Entry</span>
                             </div>
                           </div>
-
                           {/* Statement Filters */}
                           {renderFilterBar(true)}
-
                           {/* Transaction Feed */}
                           <div className="space-y-4">
                             <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">Statement feed</h3>
                             {renderTransactionFeed(vendorStatement, 'vendor')}
                           </div>
-
                         </div>
                       )}
                     </>
                   )}
-
                 </div>
               )}
             </div>
@@ -4624,132 +5273,695 @@ export default function AccountsLedgersPage() {
               <div className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider flex items-center gap-1.5">
                 <span>General Ledgers</span>
                 <ChevronRight size={10} className="text-slate-350" />
-                <span className="text-slate-600">Create Ledger Profile</span>
+                <span className="text-slate-600">
+                  {createSection === 'ledger' ? 'Create Ledger Profile' : 'Create Group'}
+                </span>
               </div>
-              <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-black text-slate-900 tracking-tight">Create Ledger Profile</h1>
-              </div>
-
-              <div className="max-w-3xl space-y-6">
-                {/* Basic Information Card */}
-                <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-5 shadow-sm">
-                  <div>
-                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Basic Information</h3>
-                    <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Primary accounting ledger credentials and parameters.</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase text-slate-500 block font-extrabold">Ledger Name *</label>
-                      <input
-                        type="text"
-                        placeholder="Enter ledger name"
-                        value={createLedgerForm.name}
-                        onChange={e => setCreateLedgerForm({ ...createLedgerForm, name: e.target.value })}
-                        className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase text-slate-500 block font-extrabold">Ledger Code *</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. LDG-009"
-                        value={createLedgerForm.ledgerCode}
-                        onChange={e => setCreateLedgerForm({ ...createLedgerForm, ledgerCode: e.target.value })}
-                        className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase text-slate-500 block font-extrabold">Person Name / Responsible Person (Optional)</label>
-                      <input
-                        type="text"
-                        list="team-person-list"
-                        placeholder="Enter or select person name..."
-                        value={createLedgerForm.responsiblePerson}
-                        onChange={e => setCreateLedgerForm({ ...createLedgerForm, responsiblePerson: e.target.value })}
-                        className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800"
-                      />
-                      <datalist id="team-person-list">
-                        {employees.map(emp => <option key={emp.id} value={emp.name} />)}
-                      </datalist>
-                    </div>
-
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer Action Buttons */}
-              <div className="flex justify-between items-center bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+              {/* Sub-navigation Tabs: Create Ledger vs Create Group */}
+              <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
                 <button
-                  onClick={() => setActiveTab('ledger')}
-                  className="text-xs font-black text-slate-500 hover:text-slate-800 uppercase tracking-wider"
+                  type="button"
+                  onClick={() => setCreateSection('ledger')}
+                  className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 ${createSection === 'ledger'
+                      ? 'bg-slate-900 text-white shadow-md'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
                 >
-                  Cancel
+                  <Plus size={14} /> Section 1: Create Ledger
                 </button>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => alert('Draft saved successfully!')}
-                    className="px-5 py-2 border border-slate-200 text-slate-600 font-bold text-xs uppercase tracking-wider rounded-xl hover:bg-slate-50 transition-colors"
-                  >
-                    Save Draft
-                  </button>
-                  <button
-                    onClick={async () => {
-                      if (!createLedgerForm.name.trim()) {
-                        alert('Ledger Name is required!');
-                        return;
-                      }
-                      if (!createLedgerForm.ledgerCode.trim()) {
-                        alert('Ledger Code is required!');
-                        return;
-                      }
-
-                      // Prepare request data
-                      const resolvedProjectId = createLedgerForm.ledgerCategory === 'Company' ? 'Overhead' : (createLedgerForm.projectId || projects[0]?.id || 'Overhead');
-                      const requestData = {
-                        ...createLedgerForm,
-                        projectId: resolvedProjectId,
-                        type: createLedgerForm.ledgerCategory === 'Company'
-                          ? (createLedgerForm.companyCategory === 'General Bank / Current Account' ? 'Bank' : 'Expense')
-                          : createLedgerForm.type
-                      };
-
-                      const res = await apiFetch('/api/tenant/ledger/project-ledgers', {
-                        method: 'POST',
-                        body: JSON.stringify(requestData)
-                      });
-                      if (res.ok) {
-                        alert('Ledger profile created successfully!');
-                        fetchAllLedgerAccounts();
-
-                        if (createLedgerForm.ledgerCategory === 'Project') {
-                          setSelectedProjectPl(createLedgerForm.projectId);
-                          setActiveTab('project-costing');
-                          fetchProjectLedgers(createLedgerForm.projectId);
-                        } else {
-                          setActiveTab('ledger');
-                        }
-                      } else {
-                        const err = await res.json();
-                        alert(err.error || 'Failed to create ledger');
-                      }
-                    }}
-                    className="px-5 py-2 bg-blue-600 text-white font-bold text-xs uppercase tracking-wider rounded-xl hover:bg-blue-700 shadow-md transition-colors"
-                  >
-                    Create Ledger
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setCreateSection('group')}
+                  className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 ${createSection === 'group'
+                      ? 'bg-slate-900 text-white shadow-md'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                >
+                  <FolderPlus size={14} /> Section 2: Create Group
+                </button>
               </div>
+              {/* SECTION 1: CREATE LEDGER */}
+              {createSection === 'ledger' && (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tight">Create Ledger Profile</h1>
+                  </div>
+                  <div className="max-w-3xl space-y-6">
+                    {/* Basic Information Card */}
+                    <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-5 shadow-sm">
+                      <div>
+                        <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Basic Information</h3>
+                        <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Primary accounting ledger credentials, classification group, and parameters.</p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase text-slate-500 block font-extrabold">Ledger Name *</label>
+                          <input
+                            type="text"
+                            placeholder="Enter ledger name"
+                            value={createLedgerForm.name}
+                            onChange={e => setCreateLedgerForm({ ...createLedgerForm, name: e.target.value })}
+                            className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase text-slate-500 block font-extrabold">Ledger Code *</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. LDG-009"
+                            value={createLedgerForm.ledgerCode}
+                            onChange={e => setCreateLedgerForm({ ...createLedgerForm, ledgerCode: e.target.value })}
+                            className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase text-slate-500 block font-extrabold">Primary Group / Group Name *</label>
+                          <select
+                            value={createLedgerForm.groupName}
+                            onChange={e => setCreateLedgerForm({ ...createLedgerForm, groupName: e.target.value })}
+                            className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800 bg-white"
+                          >
+                            <option value="">-- Select Primary Group --</option>
+                            <optgroup label="Standard Accounting Groups">
+                              <option value="Indirect Expenses / Overheads">Indirect Expenses / Overheads</option>
+                              <option value="Direct Expenses">Direct Expenses</option>
+                              <option value="Bank Accounts">Bank Accounts</option>
+                              <option value="Cash Floats">Cash Floats</option>
+                              <option value="Accounts Receivable">Accounts Receivable</option>
+                              <option value="Accounts Payable">Accounts Payable</option>
+                              <option value="Fixed Assets">Fixed Assets</option>
+                              <option value="Current Assets">Current Assets</option>
+                              <option value="Current Liabilities">Current Liabilities</option>
+                              <option value="Capital &amp; Drawings">Capital &amp; Drawings</option>
+                              <option value="Sales / Revenue">Sales / Revenue</option>
+                              <option value="Other Income">Other Income</option>
+                            </optgroup>
+                            {ledgerGroups.length > 0 && (
+                              <optgroup label="Custom Created Groups">
+                                {ledgerGroups.map((g, idx) => {
+                                  const gName = g?.name || g?.groupName || g?.group_name;
+                                  if (!gName) return null;
+                                  return (
+                                    <option key={g.id || idx} value={gName}>
+                                      {gName}
+                                    </option>
+                                  );
+                                })}
+                              </optgroup>
+                            )}
+                          </select>
+                          <span className="text-[9px] text-slate-400 font-semibold block">Primary group classification for ledger statements.</span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase text-slate-500 block font-extrabold">Ledger Type *</label>
+                          <select
+                            value={createLedgerForm.type || 'Expense'}
+                            onChange={e => setCreateLedgerForm({ ...createLedgerForm, type: e.target.value })}
+                            className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800 bg-white"
+                          >
+                            <option value="Expense">General Ledger (Expense / Overhead)</option>
+                            <option value="Bank">Bank Ledger (Bank Account)</option>
+                            <option value="Cash">Cash Ledger (Petty Cash Float)</option>
+                            <option value="Receivable">Accounts Receivable (Client Account)</option>
+                            <option value="Payable">Accounts Payable (Vendor Account)</option>
+                          </select>
+                          <span className="text-[9px] text-slate-400 font-semibold block">Nature of ledger (General, Bank, or Cash).</span>
+                        </div>
+                      </div>
+
+                      {/* Dynamic Schema Fields based on Ledger Type */}
+                      {createLedgerForm.type === 'Bank' && (
+                        <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-2xl space-y-3">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-blue-800 block">Bank Account Specification</span>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-black uppercase text-slate-500 block">Bank Name *</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. State Bank of India, HDFC Bank"
+                                value={createLedgerForm.bankName}
+                                onChange={e => setCreateLedgerForm({ ...createLedgerForm, bankName: e.target.value })}
+                                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800 bg-white"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-black uppercase text-slate-500 block">Account Number *</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. 5010023456789"
+                                value={createLedgerForm.accountNumber}
+                                onChange={e => setCreateLedgerForm({ ...createLedgerForm, accountNumber: e.target.value })}
+                                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800 bg-white font-mono"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-black uppercase text-slate-500 block">IFSC / SWIFT Code *</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. SBIN0001234"
+                                value={createLedgerForm.ifscCode}
+                                onChange={e => setCreateLedgerForm({ ...createLedgerForm, ifscCode: e.target.value })}
+                                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800 bg-white uppercase font-mono"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-black uppercase text-slate-500 block">Branch Name</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. Main Branch, Commercial Hub"
+                                value={createLedgerForm.branchName}
+                                onChange={e => setCreateLedgerForm({ ...createLedgerForm, branchName: e.target.value })}
+                                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800 bg-white"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {createLedgerForm.type === 'Cash' && (
+                        <div className="p-4 bg-amber-50/50 border border-amber-100 rounded-2xl space-y-3">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 block">Cash Float Specification</span>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-black uppercase text-slate-500 block">Custodian Person / Manager *</label>
+                              <input
+                                type="text"
+                                list="team-person-list"
+                                placeholder="Enter cash custodian name..."
+                                value={createLedgerForm.custodianName || createLedgerForm.responsiblePerson}
+                                onChange={e => setCreateLedgerForm({ ...createLedgerForm, custodianName: e.target.value, responsiblePerson: e.target.value })}
+                                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800 bg-white"
+                              />
+                              <datalist id="team-person-list">
+                                {employees.map(emp => <option key={emp.id} value={emp.name} />)}
+                              </datalist>
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-black uppercase text-slate-500 block">Cash Box Location / Notes</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. Main Office Safe Box 2"
+                                value={createLedgerForm.description}
+                                onChange={e => setCreateLedgerForm({ ...createLedgerForm, description: e.target.value })}
+                                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800 bg-white"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {createLedgerForm.type === 'Receivable' && (
+                        <div className="p-4 bg-purple-50/50 border border-purple-100 rounded-2xl space-y-3">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-purple-800 block">Client Profile Details</span>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-black uppercase text-slate-500 block">GSTIN / Tax Registration ID</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. 27AAAAA0000A1Z5"
+                                value={createLedgerForm.gstin}
+                                onChange={e => setCreateLedgerForm({ ...createLedgerForm, gstin: e.target.value })}
+                                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800 bg-white font-mono uppercase"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-black uppercase text-slate-500 block">Primary Contact Phone / Email</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. +91 9876543210 / accounts@client.com"
+                                value={createLedgerForm.contactInfo}
+                                onChange={e => setCreateLedgerForm({ ...createLedgerForm, contactInfo: e.target.value })}
+                                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800 bg-white"
+                              />
+                            </div>
+                            <div className="md:col-span-2 space-y-1">
+                              <label className="text-[10px] font-black uppercase text-slate-500 block">Billing Address</label>
+                              <input
+                                type="text"
+                                placeholder="Registered business billing address..."
+                                value={createLedgerForm.address}
+                                onChange={e => setCreateLedgerForm({ ...createLedgerForm, address: e.target.value })}
+                                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800 bg-white"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {createLedgerForm.type === 'Payable' && (
+                        <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl space-y-3">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 block">Vendor Profile & Payment Terms</span>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-black uppercase text-slate-500 block">GSTIN / Tax ID</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. 29ABCDE1234F1Z9"
+                                value={createLedgerForm.gstin}
+                                onChange={e => setCreateLedgerForm({ ...createLedgerForm, gstin: e.target.value })}
+                                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800 bg-white font-mono uppercase"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-black uppercase text-slate-500 block">Payment Terms</label>
+                              <select
+                                value={createLedgerForm.paymentTerms || 'Net 30'}
+                                onChange={e => setCreateLedgerForm({ ...createLedgerForm, paymentTerms: e.target.value })}
+                                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800 bg-white"
+                              >
+                                <option value="Immediate">Immediate / Advance</option>
+                                <option value="Net 15">Net 15 Days</option>
+                                <option value="Net 30">Net 30 Days</option>
+                                <option value="Net 60">Net 60 Days</option>
+                              </select>
+                            </div>
+                            <div className="md:col-span-2 space-y-1">
+                              <label className="text-[10px] font-black uppercase text-slate-500 block">Vendor Payout Bank Details</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. HDFC Account # 5010098765432 / IFSC HDFC0000123"
+                                value={createLedgerForm.accountNumber}
+                                onChange={e => setCreateLedgerForm({ ...createLedgerForm, accountNumber: e.target.value })}
+                                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800 bg-white font-mono"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {createLedgerForm.type === 'Expense' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-slate-500 block font-extrabold">Person Name / Responsible Person (Optional)</label>
+                            <input
+                              type="text"
+                              list="team-person-list"
+                              placeholder="Enter or select person name..."
+                              value={createLedgerForm.responsiblePerson}
+                              onChange={e => setCreateLedgerForm({ ...createLedgerForm, responsiblePerson: e.target.value })}
+                              className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800"
+                            />
+                            <datalist id="team-person-list">
+                              {employees.map(emp => <option key={emp.id} value={emp.name} />)}
+                            </datalist>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Footer Action Buttons */}
+                  <div className="flex justify-between items-center bg-white border border-slate-200 rounded-xl p-4 shadow-sm max-w-3xl">
+                    <button
+                      onClick={() => setActiveTab('ledger')}
+                      className="text-xs font-black text-slate-500 hover:text-slate-800 uppercase tracking-wider"
+                    >
+                      Cancel
+                    </button>
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => alert('Draft saved successfully!')}
+                        className="px-5 py-2 border border-slate-200 text-slate-600 font-bold text-xs uppercase tracking-wider rounded-xl hover:bg-slate-50 transition-colors"
+                      >
+                        Save Draft
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (!createLedgerForm.name.trim()) {
+                            alert('Ledger Name is required!');
+                            return;
+                          }
+                          if (!createLedgerForm.ledgerCode.trim()) {
+                            alert('Ledger Code is required!');
+                            return;
+                          }
+
+                          const firstAvailableGroup = ledgerGroups[0]?.name || ledgerGroups[0]?.groupName || ledgerGroups[0]?.group_name || 'General Expenses';
+                          const assignedGroup = createLedgerForm.groupName || firstAvailableGroup;
+                          const resolvedProjectId = createLedgerForm.ledgerCategory === 'Company' ? 'Overhead' : (createLedgerForm.projectId || projects[0]?.id || 'Overhead');
+
+                          const requestData = {
+                            ...createLedgerForm,
+                            groupName: assignedGroup,
+                            group_name: assignedGroup,
+                            companyCategory: assignedGroup,
+                            company_category: assignedGroup,
+                            projectId: resolvedProjectId,
+                            type: createLedgerForm.type || 'Expense'
+                          };
+
+                          const fallbackLedger = {
+                            id: String(Date.now()),
+                            name: createLedgerForm.name.trim(),
+                            ledgerCode: createLedgerForm.ledgerCode.trim(),
+                            groupName: assignedGroup,
+                            group_name: assignedGroup,
+                            companyCategory: assignedGroup,
+                            company_category: assignedGroup,
+                            type: createLedgerForm.type || 'Expense',
+                            status: createLedgerForm.status || 'Active',
+                            currentBalance: Number(createLedgerForm.openingBalance || 0),
+                            current_balance: Number(createLedgerForm.openingBalance || 0),
+                            department: createLedgerForm.department || 'Operations',
+                            project_id: resolvedProjectId
+                          };
+
+                          try {
+                            const res = await apiFetch('/api/tenant/ledger/project-ledgers', {
+                              method: 'POST',
+                              body: JSON.stringify(requestData)
+                            });
+                            if (res.ok) {
+                              const saved = await res.json();
+                              const formattedSaved = {
+                                ...saved,
+                                groupName: saved.groupName || saved.group_name || assignedGroup,
+                                group_name: saved.group_name || saved.groupName || assignedGroup,
+                                companyCategory: saved.companyCategory || saved.company_category || assignedGroup,
+                                company_category: saved.company_category || saved.companyCategory || assignedGroup
+                              };
+                              setAllLedgerAccounts(prev => [formattedSaved, ...prev]);
+                            } else {
+                              setAllLedgerAccounts(prev => [fallbackLedger, ...prev]);
+                            }
+                          } catch (err) {
+                            setAllLedgerAccounts(prev => [fallbackLedger, ...prev]);
+                          }
+
+                          setSelectedExpenseGroup(assignedGroup);
+                          setActiveTab('ledger');
+                          setSuccessModal({
+                            open: true,
+                            title: 'Ledger Created Successfully! 🎉',
+                            message: `Ledger profile "${createLedgerForm.name}" has been created under group "${assignedGroup}".`
+                          });
+
+                          setCreateLedgerForm({
+                            name: '',
+                            ledgerCode: '',
+                            type: 'Expense',
+                            openingBalance: '0.00',
+                            balanceType: 'Credit',
+                            status: 'Active',
+                            description: '',
+                            projectId: '',
+                            department: '',
+                            responsiblePerson: '',
+                            ledgerCategory: 'Project',
+                            overallCost: '',
+                            advancePaid: '',
+                            companyCategory: '',
+                            groupName: '',
+                            bankName: '',
+                            accountNumber: '',
+                            ifscCode: '',
+                            branchName: '',
+                            custodianName: '',
+                            gstin: '',
+                            address: '',
+                            contactInfo: '',
+                            paymentTerms: ''
+                          });
+                        }}
+                        className="px-5 py-2 bg-blue-600 text-white font-bold text-xs uppercase tracking-wider rounded-xl hover:bg-blue-700 shadow-md transition-colors"
+                      >
+                        Create Ledger
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SECTION 2: CREATE GROUP */}
+              {createSection === 'group' && (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h1 className="text-2xl font-black text-slate-900 tracking-tight">Create Group</h1>
+                      <p className="text-xs text-slate-400 font-semibold mt-0.5">Define accounting classification groups for organizing ledgers, balance sheets, and P&L statements.</p>
+                    </div>
+                  </div>
+
+                  <div className="max-w-3xl space-y-6">
+                    {/* Create Group Form Card */}
+                    <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-5 shadow-sm">
+                      <div>
+                        <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                          <FolderPlus size={16} className="text-blue-600" /> New Ledger Group Setup
+                        </h3>
+                        <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Set up parent/child ledger category hierarchy.</p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase text-slate-500 block font-extrabold">Group Name *</label>
+                          <input
+                            type="text"
+                            placeholder="Enter group name (e.g. Site Equipment Expenses)"
+                            value={createGroupForm.groupName}
+                            onChange={e => setCreateGroupForm({ ...createGroupForm, groupName: e.target.value })}
+                            className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase text-slate-500 block font-extrabold">Group Code</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. GRP-009"
+                            value={createGroupForm.groupCode || `GRP-00${ledgerGroups.length + 1}`}
+                            onChange={e => setCreateGroupForm({ ...createGroupForm, groupCode: e.target.value })}
+                            className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800 font-mono"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase text-slate-500 block font-extrabold">Description / Purpose</label>
+                          <textarea
+                            rows={2}
+                            placeholder="Optional details regarding accounting treatment for this group..."
+                            value={createGroupForm.description}
+                            onChange={e => setCreateGroupForm({ ...createGroupForm, description: e.target.value })}
+                            className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-slate-800"
+                          />
+                        </div>
+
+                        <div className="pt-2 flex gap-3">
+                          <button
+                            onClick={async () => {
+                              if (!createGroupForm.groupName.trim()) {
+                                alert('Group Name is required!');
+                                return;
+                              }
+                              const grpName = createGroupForm.groupName.trim();
+                              const fallbackGrp = {
+                                id: String(Date.now()),
+                                name: grpName,
+                                groupName: grpName,
+                                groupCode: createGroupForm.groupCode.trim() || `GRP-00${ledgerGroups.length + 1}`,
+                                description: createGroupForm.description
+                              };
+                              try {
+                                const res = await apiFetch('/api/tenant/ledger/groups', {
+                                  method: 'POST',
+                                  body: JSON.stringify(createGroupForm)
+                                });
+                                if (res.ok) {
+                                  const saved = await res.json();
+                                  const formattedSaved = {
+                                    ...saved,
+                                    name: saved.name || saved.groupName || saved.group_name || grpName,
+                                    groupName: saved.name || saved.groupName || saved.group_name || grpName
+                                  };
+                                  setLedgerGroups(prev => [formattedSaved, ...prev]);
+                                } else {
+                                  setLedgerGroups(prev => [fallbackGrp, ...prev]);
+                                }
+                              } catch (err) {
+                                setLedgerGroups(prev => [fallbackGrp, ...prev]);
+                              }
+
+                              setCreateGroupForm({
+                                groupName: '',
+                                groupCode: '',
+                                description: ''
+                              });
+                              setSelectedExpenseGroup(null);
+                              setActiveTab('ledger');
+                              setSuccessModal({
+                                open: true,
+                                title: 'Ledger Group Created! 🎉',
+                                message: `Accounting group "${grpName}" has been created successfully and added to your Ledger Groups directory.`
+                              });
+                            }}
+                            className="w-full py-2.5 bg-blue-600 text-white font-bold text-xs uppercase tracking-wider rounded-xl hover:bg-blue-700 shadow-md transition-colors flex items-center justify-center gap-1.5"
+                          >
+                            <FolderPlus size={14} /> Create Group
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
       )}
       {/* ─── BOTTOM SHEET / CENTERED DIALOG MODALS ───────────────────────────── */}
+
+      {/* Wallet Breakdown Modal (Bank Accounts & Cash Balance Breakdown) */}
+      {showWalletBreakdownModal && (() => {
+        const totalWalletBal = bankAccounts.reduce((sum, b) => sum + Number(b.currentBalance || b.current_balance || b.openingBalance || 0), 0) +
+          allPettyFloats.reduce((sum, p) => sum + Number(p.currentBalance || p.current_balance || p.openingAmount || 0), 0);
+
+        return (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+            <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl p-6 space-y-6 my-8 border border-slate-200">
+              {/* Header */}
+              <div className="flex justify-between items-start border-b border-slate-100 pb-4">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
+                    Wallet &amp; Liquidity Breakdown
+                  </span>
+                  <h2 className="text-xl font-black text-slate-900 tracking-tight mt-1.5 flex items-center gap-2">
+                    <Wallet size={20} className="text-emerald-600" /> Total Money in Wallet
+                  </h2>
+                  <p className="text-xs text-slate-400 font-semibold mt-0.5">Segregated list of bank accounts and petty cash floats.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <span className="text-[9px] font-extrabold uppercase text-slate-400 block">Total Liquidity</span>
+                    <span className="text-lg font-black text-emerald-700">₹{totalWalletBal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <button onClick={() => setShowWalletBreakdownModal(false)} className="p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors">
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-1">
+                {/* 1. BANK ACCOUNTS SEGREGATION */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                      <Landmark size={14} className="text-blue-600" /> Bank Accounts ({bankAccounts.length})
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setShowWalletBreakdownModal(false);
+                        setBankModalOpen(true);
+                      }}
+                      className="text-xs font-black text-blue-600 hover:underline uppercase flex items-center gap-1"
+                    >
+                      <Plus size={12} /> + Add Bank Account
+                    </button>
+                  </div>
+
+                  {bankAccounts.length === 0 ? (
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-400 font-semibold text-center">
+                      No bank accounts configured yet.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3">
+                      {bankAccounts.map((b: any) => {
+                        const bal = Number(b.currentBalance || b.current_balance || b.openingBalance || 0);
+                        return (
+                          <div key={b.id} className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-sm flex items-center justify-between hover:border-slate-800 transition-all">
+                            <div className="flex items-center gap-3">
+                              <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                                <Landmark size={18} />
+                              </div>
+                              <div>
+                                <h4 className="text-xs font-black text-slate-900 leading-snug">{b.name}</h4>
+                                <p className="text-[10px] text-slate-400 font-mono font-bold mt-0.5">
+                                  {b.accountNo || b.account_no ? `A/c: ${b.accountNo || b.account_no}` : (b.type || 'Bank Account')}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="text-right">
+                              <span className="text-[9px] font-bold text-slate-400 uppercase block">Available Balance</span>
+                              <span className="text-sm font-black text-slate-900">
+                                ₹{bal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. PETTY CASH & CASH FLOATS SEGREGATION */}
+                <div className="space-y-3 pt-2">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <Coins size={14} className="text-emerald-600" /> Cash Floats &amp; Petty Cash Boxes ({allPettyFloats.length})
+                  </h3>
+
+                  {allPettyFloats.length === 0 ? (
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-400 font-semibold text-center">
+                      No petty cash floats setup yet.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3">
+                      {allPettyFloats.map((p: any) => {
+                        const bal = Number(p.currentBalance || p.current_balance || p.openingAmount || 0);
+                        return (
+                          <div key={p.id} className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-sm flex items-center justify-between hover:border-slate-800 transition-all">
+                            <div className="flex items-center gap-3">
+                              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                                <Coins size={18} />
+                              </div>
+                              <div>
+                                <h4 className="text-xs font-black text-slate-900 leading-snug">{p.custodianName || p.name || 'Petty Cash Box'}</h4>
+                                <p className="text-[10px] text-slate-400 font-bold mt-0.5">
+                                  {p.siteName || p.site_id ? `Site: ${p.siteName || p.site_id}` : 'General Cash Float'}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="text-right">
+                              <span className="text-[9px] font-bold text-slate-400 uppercase block">Cash in Hand</span>
+                              <span className="text-sm font-black text-emerald-700">
+                                ₹{bal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="border-t border-slate-100 pt-4 flex justify-between items-center">
+                <button
+                  onClick={() => setShowWalletBreakdownModal(false)}
+                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black uppercase tracking-wider rounded-xl transition-all"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    setShowWalletBreakdownModal(false);
+                    setActiveTab('record-ledger');
+                  }}
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center gap-1.5"
+                >
+                  <Plus size={14} /> Record Entry into Wallet
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Journal Voucher Modal */}
       {journalModalOpen && (
@@ -6209,6 +7421,27 @@ export default function AccountsLedgersPage() {
                 Create Item
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUCCESS NOTIFICATION MODAL POPUP */}
+      {successModal?.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+              <CheckCircle size={32} />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-black text-slate-900 tracking-tight">{successModal.title}</h3>
+              <p className="text-xs font-semibold text-slate-500 leading-relaxed">{successModal.message}</p>
+            </div>
+            <button
+              onClick={() => setSuccessModal(null)}
+              className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all cursor-pointer"
+            >
+              Done &amp; Close
+            </button>
           </div>
         </div>
       )}

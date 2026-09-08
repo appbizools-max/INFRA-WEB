@@ -20,24 +20,6 @@ services:
       retries: 5
 
 
-  api:
-    build:
-      context: ./api
-      dockerfile: Dockerfile
-    container_name: infraops360_api
-    command: npm run dev
-    ports:
-      - "${API_PORT:-3000}:3000"
-    volumes:
-      - ./api:/app
-      - /app/node_modules
-    environment:
-      PORT: 3000
-      DATABASE_URL: ${API_DATABASE_URL:-postgresql://postgres:infraops_dev_pass@db:5432/infraops360?schema=public}
-    depends_on:
-      db:
-        condition: service_healthy
-
   # Backend Service (Express, pg, nodemon)
   backend:
     build:
