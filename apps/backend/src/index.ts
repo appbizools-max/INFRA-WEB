@@ -4,12 +4,9 @@ import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
 import { Pool } from 'pg';
 import * as admin from 'firebase-admin';
-
 import fs from 'fs';
 import path from 'path';
-
 dotenv.config();
-
 // Initialize Firebase Admin (Requires GOOGLE_APPLICATION_CREDENTIALS or serviceAccountKey.json)
 try {
   const localKeyPath = path.join(process.cwd(), 'serviceAccountKey.json');
@@ -30,12 +27,9 @@ try {
 } catch (e: any) {
   console.log('Firebase Admin init skipped or failed:', e.message);
 }
-
 const app = express();
 const port = process.env.PORT || 5000;
-
 app.set('etag', false); // Disable ETag generation to ensure 200 OK responses
-
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
@@ -46,71 +40,55 @@ app.use((req, res, next) => {
   }
   next();
 });
-
 app.use(cors());
 app.use(express.json({ limit: '5mb' }));
-
 // Request logger middleware with timing & status formatting
 app.use((req, res, next) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-
   const start = Date.now();
   const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
   const method = req.method.padEnd(6);
-
   res.on('finish', () => {
     const duration = Date.now() - start;
     const status = res.statusCode;
     const statusEmoji = status < 300 ? '🟢' : status < 400 ? '🟡' : '🔴';
     console.log(`${statusEmoji} [${timestamp}] ${method} ${status} ${req.originalUrl || req.url} (${duration}ms)`);
   });
-
   next();
 });
-
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/infraops360'
 });
-
 // Basic in-memory OTP store for email verification
 const emailOtpStore = new Map<string, { otp: string, expiresAt: number }>();
-
 // In-memory OTP store for mobile verification (staff onboarding)
 const mobileOtpStore = new Map<string, { otp: string, expiresAt: number }>();
-
 // Auth Endpoints
 app.post('/api/auth/check-user', async (req, res) => {
   const { email, mobile } = req.body;
-
   try {
     let exists = false;
-
     if (email) {
       const cleanEmail = email.trim().toLowerCase();
       try {
         const tenantCheck = await pool.query('SELECT id FROM tenants WHERE LOWER(email) = $1', [cleanEmail]);
         if (tenantCheck.rows.length > 0) exists = true;
       } catch (e) {}
-
       try {
         const adminCheck = await pool.query('SELECT id FROM tenant_admins WHERE LOWER(email) = $1', [cleanEmail]);
         if (adminCheck.rows.length > 0) exists = true;
       } catch (e) {}
-
       try {
         const userCheck = await pool.query("SELECT id, status FROM tenant_users WHERE LOWER(email) = $1 AND COALESCE(status, 'Active') != 'Deactivated'", [cleanEmail]);
         if (userCheck.rows.length > 0) exists = true;
       } catch (e) {}
-
       return res.json({ exists });
     }
-
     if (mobile) {
       const rawMobile = mobile.replace('+91', '').trim();
       const formattedMobile = `+91${rawMobile}`;
-
       try {
         const tenantCheck = await pool.query(
           'SELECT id FROM tenants WHERE phone = $1 OR phone = $2 OR phone = $3',
@@ -151,12 +129,9 @@ app.post('/api/auth/send-email-otp', async (req, res) => {
 
   const cleanEmail = email.trim().toLowerCase();
   const otp = '123456';
-
   // Store it (expires in 10 minutes)
   emailOtpStore.set(cleanEmail, { otp, expiresAt: Date.now() + 10 * 60 * 1000 });
-
   console.log(`[EMAIL OTP] Sending to ${cleanEmail}: ${otp}`);
-
   if (process.env.RESEND_API_KEY) {
     try {
       const resendApiKey = process.env.RESEND_API_KEY || '';
@@ -177,7 +152,6 @@ app.post('/api/auth/send-email-otp', async (req, res) => {
         </div>
       `
       });
-
       const options = {
         hostname: 'api.resend.com',
         path: '/emails',
@@ -188,7 +162,6 @@ app.post('/api/auth/send-email-otp', async (req, res) => {
           'Content-Length': Buffer.byteLength(postData)
         }
       };
-
       const reqOptions = https.request(options, (resObj: any) => {
         let body = '';
         resObj.on('data', (chunk: any) => body += chunk);
@@ -200,30 +173,23 @@ app.post('/api/auth/send-email-otp', async (req, res) => {
           }
         });
       });
-
       reqOptions.on('error', (e: any) => {
         console.error('Failed to send email via Resend API:', e);
       });
-
       reqOptions.write(postData);
       reqOptions.end();
-
     } catch (err) {
       console.error('Failed to execute Resend request:', err);
     }
   }
-
   res.json({ message: 'OTP sent successfully' });
 });
-
 app.post('/api/auth/verify-email-otp', async (req, res) => {
   const { email, otp } = req.body;
   if (!email || !otp) return res.status(400).json({ error: 'Email and OTP required' });
-
   const cleanEmail = email.trim().toLowerCase();
   const isTestEmail = cleanEmail.includes('test');
   const isTestOtp = otp === '123456';
-
   let record = emailOtpStore.get(cleanEmail);
 
   // Fallback for test accounts/OTPs to survive development watcher server restarts
