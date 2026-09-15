@@ -3,5 +3,4 @@ dist
 .env
 Dockerfile
 .dockerignore
-nginx.conf
 npm-debug.log
