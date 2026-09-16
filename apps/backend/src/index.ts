@@ -312,17 +312,62 @@ app.post('/api/tenant/draft', async (req, res) => {
   }
 });
 
-// Ensure core tables exist before ALTER TABLE migrations run
+// Ensure core tables and complete columns exist before ALTER TABLE migrations run
 pool.query(`
+  CREATE TABLE IF NOT EXISTS subscription_plans (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT,
+    price_monthly DECIMAL DEFAULT 0,
+    included_tonnage INTEGER DEFAULT 0,
+    included_equipment INTEGER DEFAULT 0,
+    additional_tonnage_price DECIMAL DEFAULT 0,
+    additional_equipment_price DECIMAL DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS tenants (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
+    name VARCHAR(255),
+    company_name VARCHAR(255),
+    email VARCHAR(255),
     subdomain VARCHAR(255) UNIQUE,
     phone VARCHAR(50),
+    industry_type VARCHAR(255),
+    country VARCHAR(255),
+    state VARCHAR(255),
+    pincode VARCHAR(50),
+    city VARCHAR(255),
+    company_website VARCHAR(255),
+    company_size VARCHAR(50),
+    company_code VARCHAR(50),
+    company_address TEXT,
+    gst_number VARCHAR(100),
+    pan_number VARCHAR(100),
+    msme_number VARCHAR(100),
+    subscription_plan_id INTEGER,
+    trial_ends_at TIMESTAMP,
+    payment_status VARCHAR(50) DEFAULT 'active',
+    razorpay_payment_id VARCHAR(255),
+    razorpay_order_id VARCHAR(255),
+    custom_fields JSONB,
     status VARCHAR(50) DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
+
+  CREATE TABLE IF NOT EXISTS tenant_admins (
+    id SERIAL PRIMARY KEY,
+    tenant_id INTEGER REFERENCES tenants(id) ON DELETE CASCADE,
+    firebase_uid VARCHAR(255) UNIQUE,
+    admin_name VARCHAR(255) NOT NULL,
+    designation VARCHAR(255),
+    mobile VARCHAR(50) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS tenant_drafts (
     id SERIAL PRIMARY KEY,
     firebase_uid VARCHAR(255) UNIQUE NOT NULL,
@@ -330,17 +375,37 @@ pool.query(`
     step INTEGER DEFAULT 1,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
-`).then(() => {
-  pool.query('ALTER TABLE tenant_drafts ADD CONSTRAINT unique_firebase_uid UNIQUE (firebase_uid);').catch(() => {});
-  pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS subdomain VARCHAR(255) UNIQUE;').catch(() => {});
-  pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMP;').catch(() => {});
-  pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT \'active\';').catch(() => {});
-  pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS razorpay_payment_id VARCHAR(255);').catch(() => {});
-  pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS razorpay_order_id VARCHAR(255);').catch(() => {});
-  pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS company_address TEXT;').catch(() => {});
-  pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS pan_number VARCHAR(100);').catch(() => {});
-  pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS msme_number VARCHAR(100);').catch(() => {});
-  pool.query('ALTER TABLE tenants ADD COLUMN IF NOT EXISTS company_code VARCHAR(50);').catch(() => {});
+`).then(async () => {
+  const migrations = [
+    'ALTER TABLE tenant_drafts ADD CONSTRAINT unique_firebase_uid UNIQUE (firebase_uid);',
+    'ALTER TABLE tenants ALTER COLUMN name DROP NOT NULL;',
+    'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS company_name VARCHAR(255);',
+    'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS industry_type VARCHAR(255);',
+    'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS country VARCHAR(255);',
+    'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS state VARCHAR(255);',
+    'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS pincode VARCHAR(50);',
+    'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS city VARCHAR(255);',
+    'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS company_website VARCHAR(255);',
+    'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS company_size VARCHAR(50);',
+    'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS company_code VARCHAR(50);',
+    'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS company_address TEXT;',
+    'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS gst_number VARCHAR(100);',
+    'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS pan_number VARCHAR(100);',
+    'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS msme_number VARCHAR(100);',
+    'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS subscription_plan_id INTEGER REFERENCES subscription_plans(id);',
+    'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS subdomain VARCHAR(255) UNIQUE;',
+    'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMP;',
+    'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT \'active\';',
+    'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS razorpay_payment_id VARCHAR(255);',
+    'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS razorpay_order_id VARCHAR(255);',
+    'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS custom_fields JSONB;',
+    'UPDATE tenants SET company_name = name WHERE company_name IS NULL AND name IS NOT NULL;'
+  ];
+
+  for (const sql of migrations) {
+    try { await pool.query(sql); } catch (_) {}
+  }
+  console.log('✅ Core tenants, subscription plans, and admin schema verified.');
 }).catch(err => console.error('Database startup notice:', err.message));
 
 // Check/Create tenant_users table
