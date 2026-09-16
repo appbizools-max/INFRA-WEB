@@ -383,6 +383,8 @@ pool.query(`
   const migrations = [
     'ALTER TABLE tenant_drafts ADD CONSTRAINT unique_firebase_uid UNIQUE (firebase_uid);',
     'ALTER TABLE tenants ALTER COLUMN name DROP NOT NULL;',
+    'ALTER TABLE tenants ALTER COLUMN email DROP NOT NULL;',
+    'ALTER TABLE tenants DROP CONSTRAINT IF EXISTS tenants_email_key;',
     'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS company_name VARCHAR(255);',
     'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS industry_type VARCHAR(255);',
     'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS country VARCHAR(255);',
@@ -916,13 +918,16 @@ app.post('/api/tenant/register', async (req, res) => {
     // 3. Insert into Tenants table
     const tenantResult = await client.query(
       `INSERT INTO tenants (
-        company_name, industry_type, country, state, pincode, city, 
+        company_name, name, email, phone, industry_type, country, state, pincode, city, 
         company_website, company_size, company_address, gst_number, pan_number, msme_number, subscription_plan_id, subdomain,
         trial_ends_at, payment_status, razorpay_payment_id, razorpay_order_id, company_code, custom_fields
       ) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING id`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23) RETURNING id`,
       [
         finalCompanyName,
+        finalCompanyName,
+        finalEmail,
+        finalMobile,
         industryType,
         country,
         state,
