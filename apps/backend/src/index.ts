@@ -87,28 +87,32 @@ app.post('/api/auth/check-user', async (req, res) => {
       return res.json({ exists });
     }
     if (mobile) {
-      const rawMobile = mobile.replace('+91', '').trim();
-      const formattedMobile = `+91${rawMobile}`;
+      const digits = mobile.replace(/\D/g, '');
+      const last10 = digits.slice(-10);
+      const rawMobile = last10;
+      const formattedMobile = `+91${last10}`;
+      const searchPattern = `%${last10}`;
+
       try {
         const tenantCheck = await pool.query(
-          'SELECT id FROM tenants WHERE phone = $1 OR phone = $2 OR phone = $3',
-          [mobile, rawMobile, formattedMobile]
+          'SELECT id FROM tenants WHERE phone = $1 OR phone = $2 OR phone = $3 OR phone LIKE $4',
+          [mobile, rawMobile, formattedMobile, searchPattern]
         );
         if (tenantCheck.rows.length > 0) exists = true;
       } catch (e) {}
 
       try {
         const adminCheck = await pool.query(
-          'SELECT id FROM tenant_admins WHERE mobile = $1 OR mobile = $2 OR mobile = $3',
-          [mobile, rawMobile, formattedMobile]
+          'SELECT id FROM tenant_admins WHERE mobile = $1 OR mobile = $2 OR mobile = $3 OR mobile LIKE $4',
+          [mobile, rawMobile, formattedMobile, searchPattern]
         );
         if (adminCheck.rows.length > 0) exists = true;
       } catch (e) {}
 
       try {
         const userCheck = await pool.query(
-          "SELECT id, status FROM tenant_users WHERE (mobile = $1 OR mobile = $2 OR mobile = $3) AND COALESCE(status, 'Active') != 'Deactivated'",
-          [mobile, rawMobile, formattedMobile]
+          "SELECT id, status FROM tenant_users WHERE (mobile = $1 OR mobile = $2 OR mobile = $3 OR mobile LIKE $4) AND COALESCE(status, 'Active') != 'Deactivated'",
+          [mobile, rawMobile, formattedMobile, searchPattern]
         );
         if (userCheck.rows.length > 0) exists = true;
       } catch (e) {}
