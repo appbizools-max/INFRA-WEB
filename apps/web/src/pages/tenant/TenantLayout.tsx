@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Users, Building2, Box, Wrench, UserCheck, Briefcase, Network, Wallet, User, Settings, Search, Bell, Menu, X, LogOut, ChevronRight, ChevronLeft, MapPin, Shield, UserCog, Layers, DollarSign, ShoppingCart, Clipboard, TrendingUp, Clock, Plus, FolderPlus } from 'lucide-react';
+import { Home, Users, Building2, Box, Wrench, UserCheck, Briefcase, Network, Wallet, User, Settings, Search, Bell, Menu, X, LogOut, ChevronRight, ChevronLeft, MapPin, Shield, UserCog, Layers, DollarSign, ShoppingCart, Clipboard, ClipboardList, TrendingUp, Clock, Plus, FolderPlus } from 'lucide-react';
 import sideIconImg from '../../assets/Side Icon.png';
 import { useAuth } from '../../context/AuthContext';
 import { signOut } from 'firebase/auth';
@@ -132,14 +132,13 @@ export default function TenantLayout() {
         { name: 'Work Sites', path: '/tenant/work-sites', icon: MapPin }
       ]
     },
-    ...(isAdmin ? [
-      { name: 'Access & Controls', path: '/tenant/access-controls', icon: Shield }
-    ] : []),
     ...(isAdmin || isHR ? [
       { name: 'HR Management', path: '/tenant/hr', icon: UserCog },
       { name: 'Attendance Tracker', path: '/tenant/attendance-tracker', icon: UserCheck },
       { name: 'Team', path: '/tenant/team', icon: Users },
-      { name: 'Divisions', path: '/tenant/divisions', icon: Network }
+      { name: 'Divisions', path: '/tenant/divisions', icon: Network },
+      { name: 'Departments', path: '/tenant/departments', icon: Building2 },
+      { name: 'Roles', path: '/tenant/roles', icon: Shield },
     ] : []),
     ...(isAdmin || isAccountant ? [
       {
@@ -155,6 +154,7 @@ export default function TenantLayout() {
         ]
       }
     ] : []),
+    { name: 'Work Orders', path: '/tenant/work-orders', icon: ClipboardList },
   ];
   const preferenceNavItems = [
     { name: 'Profile', path: '/tenant/profile', icon: User },

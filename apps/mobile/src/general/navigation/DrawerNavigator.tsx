@@ -19,6 +19,8 @@ import WorkSitesScreen from '../../tenant/worksite/WorkSitesScreen';
 import AccessControlsScreen from '../../tenant/access-controls/AccessControlsScreen';
 import HRScreen from '../../tenant/hr/HRScreen';
 import DivisionsScreen from '../../tenant/divisions/DivisionsScreen';
+import DepartmentsScreen from '../../tenant/departments/DepartmentsScreen';
+import RolesScreen from '../../tenant/roles/RolesScreen';
 import AttendanceTrackerScreen from '../../tenant/hr/AttendanceTrackerScreen';
 import { BASE_URL, mobileApiFetch } from '../../services/api';
 
@@ -165,7 +167,11 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
           <DrawerItem label="Divisions" iconName="map" routeName="Divisions" />
         )}
         {(isAdmin || isHR) && (
-          <DrawerItem label="Team" iconName="users" routeName="Team" />
+          <>
+            <DrawerItem label="Departments" iconName="grid" routeName="Departments" />
+            <DrawerItem label="Roles" iconName="award" routeName="Roles" />
+            <DrawerItem label="Team" iconName="users" routeName="Team" />
+          </>
         )}
 
         {/* ADMIN ONLY RESTRICTED MENU */}
@@ -277,6 +283,8 @@ export default function DrawerNavigator() {
       <Drawer.Screen name="HR" component={HRScreen} />
       <Drawer.Screen name="Attendance Tracker" component={AttendanceTrackerScreen} />
       <Drawer.Screen name="Divisions" component={DivisionsScreen} />
+      <Drawer.Screen name="Departments" component={DepartmentsScreen} />
+      <Drawer.Screen name="Roles" component={RolesScreen} />
       <Drawer.Screen name="Sub-Contractors" component={ModuleComingSoonScreen} />
 
       <Drawer.Screen name="Profile" component={ProfileScreen} />

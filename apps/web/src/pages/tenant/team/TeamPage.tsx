@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Users, Search, Plus, Mail, Phone, X, Briefcase, Award, Clock, Trash2, AlertCircle, MapPin, Shield, Heart, Home, Camera, FileText, DollarSign, CheckCircle, Upload, User, CreditCard, ArrowLeft } from 'lucide-react';
+import { Users, Search, Plus, Mail, Phone, X, Briefcase, Award, Clock, Trash2, AlertCircle, MapPin, Shield, Heart, Home, Camera, FileText, CheckCircle, Upload, User, CreditCard, ArrowLeft, ChevronDown, Check, Eye } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 interface TeamMember {
   id: string;
@@ -13,6 +13,8 @@ interface TeamMember {
   member_id: string;
   division_id?: string;
   division_name?: string;
+  division_ids?: string[];
+  divisions_list?: { id: string; name: string }[];
   alternate_mobile?: string;
   aadhar_number?: string;
   residing_address?: string;
@@ -33,7 +35,266 @@ interface TeamMember {
   joining_date?: string;
 }
 
-const DEPARTMENTS = ['All', 'Operations', 'Logistics', 'Site Ops', 'Human Resources', 'Accountant'];
+function DivisionMultiSelectDropdown({
+  divisions,
+  selectedIds,
+  onChange,
+  placeholder = "Select Divisions..."
+}: {
+  divisions: any[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+  placeholder?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [filterText, setFilterText] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const filteredDivisions = divisions.filter(d =>
+    d.name.toLowerCase().includes(filterText.toLowerCase()) ||
+    (d.city && d.city.toLowerCase().includes(filterText.toLowerCase())) ||
+    (d.state && d.state.toLowerCase().includes(filterText.toLowerCase()))
+  );
+
+  const toggleDivision = (id: string) => {
+    if (selectedIds.includes(id)) {
+      onChange(selectedIds.filter(item => item !== id));
+    } else {
+      onChange([...selectedIds, id]);
+    }
+  };
+
+  const selectAll = () => {
+    onChange(divisions.map(d => d.id));
+  };
+
+  const clearAll = () => {
+    onChange([]);
+  };
+
+  const isAllSelected = divisions.length > 0 && selectedIds.length === divisions.length;
+  const selectedDivisions = divisions.filter(d => selectedIds.includes(d.id));
+
+  return (
+    <div className="relative w-full" ref={dropdownRef}>
+      {/* Dropdown Trigger */}
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full min-h-[42px] px-3.5 py-2 bg-slate-50 hover:bg-white border border-slate-200 hover:border-slate-300 rounded-xl flex items-center justify-between cursor-pointer transition-all shadow-2xs"
+      >
+        <div className="flex flex-wrap items-center gap-1.5 flex-1 pr-2">
+          {selectedDivisions.length === 0 ? (
+            <span className="text-sm text-slate-400 font-medium">{placeholder}</span>
+          ) : isAllSelected ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 border border-blue-200 text-[#2563EB] text-xs font-bold rounded-lg shadow-2xs">
+              <Check size={12} className="stroke-[3]" />
+              <span>All Divisions ({divisions.length})</span>
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  clearAll();
+                }}
+                className="hover:text-red-500 rounded-full p-0.5 cursor-pointer ml-1"
+                title="Clear all divisions"
+              >
+                <X size={12} />
+              </span>
+            </span>
+          ) : (
+            selectedDivisions.map(div => (
+              <span
+                key={div.id}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-blue-50 border border-blue-200 text-[#2563EB] text-xs font-bold rounded-lg shadow-2xs"
+              >
+                <span className="truncate max-w-[150px]">{div.name}</span>
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleDivision(div.id);
+                  }}
+                  className="hover:text-red-500 rounded-full p-0.5 cursor-pointer"
+                >
+                  <X size={12} />
+                </span>
+              </span>
+            ))
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0 text-slate-400">
+          {isAllSelected ? (
+            <span className="text-[10px] font-black px-2 py-0.5 bg-[#2563EB] text-white rounded-md tracking-wider shadow-2xs">
+              ALL ({divisions.length})
+            </span>
+          ) : selectedIds.length > 0 ? (
+            <span className="text-[11px] font-black px-1.5 py-0.5 bg-slate-200 text-slate-700 rounded-md">
+              {selectedIds.length}
+            </span>
+          ) : null}
+          <ChevronDown
+            size={16}
+            className={`transition-transform duration-200 ${isOpen ? 'rotate-180 text-slate-700' : ''}`}
+          />
+        </div>
+      </div>
+
+      {/* Dropdown Menu Popover */}
+      {isOpen && (
+        <div className="absolute z-50 left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+          {/* Header & Quick Actions */}
+          <div className="p-2 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={13} />
+              <input
+                type="text"
+                placeholder="Search divisions..."
+                value={filterText}
+                onChange={(e) => setFilterText(e.target.value)}
+                className="w-full pl-7 pr-2 py-1 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-[#001538]"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+            <div className="flex items-center gap-1 text-[11px] font-bold shrink-0">
+              <button
+                type="button"
+                onClick={selectAll}
+                className="px-2 py-1 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+              >
+                Select All
+              </button>
+              <button
+                type="button"
+                onClick={clearAll}
+                className="px-2 py-1 text-slate-500 hover:bg-slate-200 rounded-md transition-colors"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+
+          {/* Division Options List */}
+          <div className="max-h-56 overflow-y-auto p-1 divide-y divide-slate-100">
+            {/* Explicit 'All Divisions' Option */}
+            {divisions.length > 0 && (!filterText || 'all divisions'.includes(filterText.toLowerCase()) || 'all'.includes(filterText.toLowerCase())) && (
+              <div
+                onClick={() => {
+                  if (isAllSelected) {
+                    clearAll();
+                  } else {
+                    selectAll();
+                  }
+                }}
+                className={`flex items-center justify-between px-3 py-2.5 text-xs rounded-lg cursor-pointer transition-colors ${
+                  isAllSelected ? 'bg-blue-50/90 text-[#2563EB]' : 'hover:bg-slate-50 text-slate-800'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div
+                    className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                      isAllSelected ? 'bg-[#2563EB] border-[#2563EB] text-white' : 'border-slate-300 bg-white'
+                    }`}
+                  >
+                    {isAllSelected && <Check size={12} className="stroke-[3]" />}
+                  </div>
+                  <div>
+                    <span className="font-black block leading-tight text-slate-900">
+                      All Divisions
+                    </span>
+                    <span className="text-[10px] text-slate-400 block leading-tight">
+                      Assign to all {divisions.length} corporate divisions
+                    </span>
+                  </div>
+                </div>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
+                  isAllSelected ? 'bg-[#2563EB] text-white' : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {isAllSelected ? 'All Selected' : `Select All (${divisions.length})`}
+                </span>
+              </div>
+            )}
+
+            {filteredDivisions.length === 0 && divisions.length > 0 ? (
+              <div className="py-4 text-center text-xs text-slate-400 font-medium">
+                No matching divisions found
+              </div>
+            ) : filteredDivisions.length === 0 ? (
+              <div className="py-4 text-center text-xs text-slate-400 font-medium">
+                No divisions created yet
+              </div>
+            ) : (
+              filteredDivisions.map(div => {
+                const isSelected = selectedIds.includes(div.id);
+                return (
+                  <div
+                    key={div.id}
+                    onClick={() => toggleDivision(div.id)}
+                    className={`flex items-center justify-between px-3 py-2 text-xs rounded-lg cursor-pointer transition-colors ${
+                      isSelected ? 'bg-blue-50/80 text-[#2563EB]' : 'hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                          isSelected ? 'bg-[#2563EB] border-[#2563EB] text-white' : 'border-slate-300 bg-white'
+                        }`}
+                      >
+                        {isSelected && <Check size={12} className="stroke-[3]" />}
+                      </div>
+                      <div className="truncate">
+                        <span className="font-bold block leading-tight text-slate-800">{div.name}</span>
+                        {(div.city || div.state) && (
+                          <span className="text-[10px] text-slate-400 block leading-tight truncate">
+                            {[div.city, div.state].filter(Boolean).join(', ')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {isSelected && (
+                      <span className="text-[10px] font-bold text-[#2563EB] shrink-0 uppercase tracking-wider">
+                        Selected
+                      </span>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Footer Bar */}
+          <div className="p-2 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs">
+            <span className="text-slate-500 font-medium text-[11px]">
+              {isAllSelected ? (
+                <strong className="text-blue-600 font-bold">All {divisions.length} divisions selected</strong>
+              ) : (
+                `${selectedIds.length} of ${divisions.length} selected`
+              )}
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="px-3 py-1 bg-[#001538] hover:bg-[#001538]/90 text-white rounded-lg text-xs font-bold transition-all shadow-2xs"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function TeamPage() {
   const { currentUser } = useAuth();
@@ -45,13 +306,27 @@ export default function TeamPage() {
   const [divisions, setDivisions] = useState<any[]>([]);
   const [selectedDivisionFilter, setSelectedDivisionFilter] = useState('All');
 
+  // Live Departments & Roles for Interconnection
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [roles, setRoles] = useState<any[]>([]);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [isEditingDivision, setIsEditingDivision] = useState(false);
-  const [editDivisionId, setEditDivisionId] = useState('');
+  const [editDivisionIds, setEditDivisionIds] = useState<string[]>([]);
 
-  const handleUpdateDivision = (memberId: string, divId: string) => {
+  const openMemberDetails = (member: TeamMember) => {
+    setSelectedMember(member);
+    const cur = (member.division_ids && member.division_ids.length > 0)
+      ? member.division_ids
+      : (member.division_id ? [member.division_id] : []);
+    setEditDivisionIds(cur);
+    setIsEditingDivision(false);
+    setDetailsOpen(true);
+  };
+
+  const handleUpdateDivisions = (memberId: string, divIds: string[]) => {
     if (!selectedMember) return;
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
     const host = baseUrl.startsWith('http://localhost:3001') ? 'http://localhost:5000' : baseUrl;
@@ -67,26 +342,28 @@ export default function TeamPage() {
         department: selectedMember.department,
         email: selectedMember.email,
         mobile: selectedMember.mobile,
-        divisionId: divId || null,
+        divisionIds: divIds,
       }),
     })
       .then(res => {
         if (res.ok) return res.json();
-        throw new Error('Failed to update division');
+        throw new Error('Failed to update divisions');
       })
       .then(updatedMember => {
-        const divObj = divisions.find(d => d.id === updatedMember.division_id);
-        const formatted = {
+        const assignedDivs = divisions.filter(d => (updatedMember.division_ids || divIds).includes(d.id));
+        const formatted: TeamMember = {
           ...selectedMember,
           division_id: updatedMember.division_id,
-          division_name: divObj ? divObj.name : undefined
+          division_ids: updatedMember.division_ids || divIds,
+          divisions_list: assignedDivs.map(d => ({ id: d.id, name: d.name })),
+          division_name: assignedDivs[0]?.name || undefined
         };
         setSelectedMember(formatted);
         setTeam(team.map(m => m.id === memberId ? formatted : m));
         setIsEditingDivision(false);
       })
       .catch(err => {
-        alert(err.message || 'Error updating member division');
+        alert(err.message || 'Error updating member divisions');
       });
   };
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -94,10 +371,10 @@ export default function TeamPage() {
   // New Member Form State
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState('');
-  const [newDept, setNewDept] = useState('Operations');
+  const [newDept, setNewDept] = useState('Operational Staff');
   const [newEmail, setNewEmail] = useState('');
   const [newMobile, setNewMobile] = useState('');
-  const [newDivisionId, setNewDivisionId] = useState('');
+  const [newDivisionIds, setNewDivisionIds] = useState<string[]>([]);
   const [newAlternateMobile, setNewAlternateMobile] = useState('');
   const [newAadharNumber, setNewAadharNumber] = useState('');
   const [newResidingAddress, setNewResidingAddress] = useState('');
@@ -108,6 +385,8 @@ export default function TeamPage() {
   const [newBloodGroup, setNewBloodGroup] = useState('');
   const [newProfilePhoto, setNewProfilePhoto] = useState('');
   const [newAadharCopy, setNewAadharCopy] = useState('');
+  const [aadharFileName, setAadharFileName] = useState('');
+  const aadharFileInputRef = useRef<HTMLInputElement>(null);
   const [newSalary, setNewSalary] = useState('');
   const [newBankName, setNewBankName] = useState('');
   const [newBankAccountNumber, setNewBankAccountNumber] = useState('');
@@ -157,6 +436,13 @@ export default function TeamPage() {
     reader.readAsDataURL(file);
   };
 
+  const handleAadharFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAadharFileName(file.name);
+    handleFileToBase64(file, setNewAadharCopy);
+  };
+
   const fetchTeamMembers = () => {
     if (currentUser) {
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -172,9 +458,14 @@ export default function TeamPage() {
           const formattedData = data.map((member: any) => {
             const nameParts = member.name.trim().split(' ');
             const initials = nameParts.map((p: string) => p[0]).join('').toUpperCase().substring(0, 2);
+            const divIds = Array.isArray(member.division_ids)
+              ? member.division_ids
+              : (member.division_id ? [member.division_id] : []);
             return {
               ...member,
               initials: initials || 'U',
+              division_ids: divIds,
+              divisions_list: member.divisions_list || [],
             };
           });
           setTeam(formattedData);
@@ -206,9 +497,51 @@ export default function TeamPage() {
     }
   };
 
+  const fetchDepartmentsAndRoles = async () => {
+    if (!currentUser) return;
+    try {
+      const [deptRes, rolesRes] = await Promise.all([
+        fetch(`${apiHost}/api/tenant/departments/${currentUser.uid}`),
+        fetch(`${apiHost}/api/tenant/roles/${currentUser.uid}`)
+      ]);
+      let deptList: any[] = [];
+      let roleList: any[] = [];
+      if (deptRes.ok) {
+        const d = await deptRes.json();
+        deptList = Array.isArray(d) ? d : (d.departments || []);
+        setDepartments(deptList);
+      }
+      if (rolesRes.ok) {
+        const r = await rolesRes.json();
+        roleList = Array.isArray(r) ? r : (r.roles || []);
+        setRoles(roleList);
+      }
+
+      // Interconnect initial department and role selection
+      const initialDept = deptList.length > 0 ? deptList[0].name : 'Operational Staff';
+      setNewDept(prev => (!prev || prev === 'Operations' ? initialDept : prev));
+
+      const activeDept = (!newDept || newDept === 'Operations') ? initialDept : newDept;
+      const deptLower = activeDept.trim().toLowerCase();
+      if (deptLower === 'accounts') {
+        setNewRole(prev => (!prev ? 'Accountant' : prev));
+      } else if (deptLower === 'hr' || deptLower === 'human resources') {
+        setNewRole(prev => (!prev ? 'HR' : prev));
+      } else {
+        const dRoles = roleList.filter(role => (role.department || '').trim().toLowerCase() === deptLower);
+        if (dRoles.length > 0) {
+          setNewRole(prev => (!prev ? dRoles[0].name : prev));
+        }
+      }
+    } catch (err) {
+      console.error('Error loading departments or roles in TeamPage:', err);
+    }
+  };
+
   useEffect(() => {
     fetchTeamMembers();
     fetchDivisions();
+    fetchDepartmentsAndRoles();
   }, [currentUser]);
 
   const handleAddMember = (e: React.FormEvent) => {
@@ -234,7 +567,8 @@ export default function TeamPage() {
         department: newDept,
         email: newEmail.trim(),
         mobile: newMobile.trim(),
-        divisionId: newDivisionId || null,
+        divisionIds: newDivisionIds,
+        divisionId: newDivisionIds[0] || null,
         alternateMobile: newAlternateMobile.trim() || null,
         aadharNumber: newAadharNumber.trim() || null,
         residingAddress: newResidingAddress.trim() || null,
@@ -262,15 +596,37 @@ export default function TeamPage() {
       .then(savedMember => {
         const nameParts = savedMember.name.trim().split(' ');
         const initials = nameParts.map((p: string) => p[0]).join('').toUpperCase().substring(0, 2);
-        const divObj = divisions.find(d => d.id === savedMember.division_id);
-        const formattedMember = { ...savedMember, initials: initials || 'U', division_name: divObj ? divObj.name : undefined };
+        const assignedDivIds = savedMember.division_ids || newDivisionIds;
+        const assignedDivs = divisions.filter(d => assignedDivIds.includes(d.id));
+        const formattedMember: TeamMember = {
+          ...savedMember,
+          initials: initials || 'U',
+          division_ids: assignedDivIds,
+          divisions_list: assignedDivs.map(d => ({ id: d.id, name: d.name })),
+          division_name: assignedDivs[0]?.name || undefined
+        };
         setTeam([formattedMember, ...team]);
+        // Refresh departments and roles in case a custom one was added
+        fetchDepartmentsAndRoles();
         // Reset all form fields
-        setNewName(''); setNewRole(''); setNewDept('Operations'); setNewEmail(''); setNewMobile('');
-        setNewDivisionId(''); setNewAlternateMobile(''); setNewAadharNumber('');
+        setNewName(''); 
+        setNewEmail(''); 
+        setNewMobile('');
+        const resetDept = departments[0]?.name || 'Operational Staff';
+        setNewDept(resetDept);
+        const resetLower = resetDept.trim().toLowerCase();
+        if (resetLower === 'accounts') {
+          setNewRole('Accountant');
+        } else if (resetLower === 'hr' || resetLower === 'human resources') {
+          setNewRole('HR');
+        } else {
+          const dRoles = roles.filter(r => (r.department || '').trim().toLowerCase() === resetLower);
+          setNewRole(dRoles.length > 0 ? dRoles[0].name : '');
+        }
+        setNewDivisionIds([]); setNewAlternateMobile(''); setNewAadharNumber('');
         setNewResidingAddress(''); setNewPermanentAddress(''); setSameAsResiding(false);
         setNewEmergencyName(''); setNewEmergencyMobile(''); setNewBloodGroup('');
-        setNewProfilePhoto(''); setNewAadharCopy(''); setNewSalary('');
+        setNewProfilePhoto(''); setNewAadharCopy(''); setAadharFileName(''); setNewSalary('');
         setNewBankName(''); setNewBankAccountNumber(''); setNewIfscCode(''); setNewAccountHolderName('');
         setNewSubRole('');
         setNewEmployeeType('Permanent');
@@ -317,7 +673,10 @@ export default function TeamPage() {
       member.department.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesDept = selectedDept === 'All' || member.department === selectedDept;
-    const matchesDivision = selectedDivisionFilter === 'All' || member.division_id === selectedDivisionFilter;
+    const matchesDivision =
+      selectedDivisionFilter === 'All' ||
+      member.division_id === selectedDivisionFilter ||
+      (Array.isArray(member.division_ids) && member.division_ids.includes(selectedDivisionFilter));
 
     return matchesSearch && matchesDept && matchesDivision;
   });
@@ -385,16 +744,20 @@ export default function TeamPage() {
             {/* Add Team Member Button */}
             <button
               onClick={() => setModalOpen(true)}
-              className="w-full md:w-auto px-5 py-2.5 bg-[#001538] hover:bg-[#001538]/90 text-white text-sm font-black rounded-xl transition-all shadow-sm hover:shadow flex items-center justify-center gap-2 group"
+              className="w-full md:w-auto px-5 py-2.5 bg-[#001538] hover:bg-[#001538]/90 text-white text-sm font-black rounded-xl transition-all shadow-sm hover:shadow flex items-center justify-center gap-2 group whitespace-nowrap"
             >
               <Plus size={18} className="group-hover:rotate-90 transition-transform duration-200" />
               Add Member
             </button>
           </div>
 
-          {/* Filters (Department Chips) */}
+          {/* Filters (Dynamic Department Chips) */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-            {DEPARTMENTS.map(dept => {
+            {Array.from(new Set([
+              'All',
+              ...departments.map(d => d.name),
+              ...team.map(m => m.department).filter(Boolean)
+            ])).map(dept => {
               const isActive = selectedDept === dept;
               return (
                 <button
@@ -411,54 +774,124 @@ export default function TeamPage() {
             })}
           </div>
 
-          {/* Directory Grid */}
+          {/* Directory Table */}
           {filteredTeam.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredTeam.map(member => (
-                <div
-                  key={member.id}
-                  onClick={() => {
-                    setSelectedMember(member);
-                    setDetailsOpen(true);
-                  }}
-                  className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer hover:border-blue-200 hover:-translate-y-0.5 duration-200"
-                >
-                  <div className="flex items-center space-x-4">
-                    {/* Avatar (Cohesive Slate Background matching Mobile) */}
-                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-base font-black shadow-inner shrink-0 bg-[#2D3748] text-white">
-                      {member.initials}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h4 className="text-base font-black text-slate-800 leading-tight group-hover:text-[#001538] transition-colors truncate">
-                        {member.name}
-                      </h4>
-                      <p className="text-xs font-semibold text-slate-400 mt-1">ID: {member.member_id || 'Generating...'}</p>
-                      <p className="text-xs text-slate-500 font-medium mt-0.5 truncate">{member.role}</p>
-                    </div>
-                  </div>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50/80 border-b border-slate-200 text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                        <th className="py-3.5 px-4 text-center w-12">S.No</th>
+                        <th className="py-3.5 px-4 min-w-[220px]">Member</th>
+                        <th className="py-3.5 px-4">Member ID</th>
+                        <th className="py-3.5 px-4">Role / Designation</th>
+                        <th className="py-3.5 px-4">Department</th>
+                        <th className="py-3.5 px-4 min-w-[180px]">Division Assignment</th>
+                        <th className="py-3.5 px-4 text-center w-28">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
+                      {filteredTeam.map((member, idx) => {
+                        const memberDivs = (member.divisions_list && member.divisions_list.length > 0)
+                          ? member.divisions_list
+                          : (member.division_ids && member.division_ids.length > 0)
+                            ? divisions.filter(d => member.division_ids!.includes(d.id))
+                            : member.division_name
+                              ? [{ id: member.division_id || '', name: member.division_name }]
+                              : [];
+                        const isAllDivs = divisions.length > 1 && memberDivs.length >= divisions.length;
 
-                  <div className="flex flex-wrap items-center justify-between mt-4 pt-3 border-t border-slate-100 gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className="px-2.5 py-1 bg-slate-100 rounded-lg text-[10px] font-bold text-slate-500">
-                        {member.department}
-                      </span>
-                      {member.division_name && (
-                        <span className="px-2.5 py-1 bg-blue-50 border border-blue-100 rounded-lg text-[10px] font-bold text-[#2563EB]">
-                          {member.division_name}
-                        </span>
-                      )}
-                    </div>
-                    <span className={`px-2 py-0.5 text-[9px] font-bold rounded-md uppercase tracking-wider ${member.status === 'Active' ? 'bg-emerald-50 text-emerald-600' :
-                        member.status === 'On Duty' ? 'bg-teal-50 text-teal-600' :
-                          member.status === 'Away' ? 'bg-amber-50 text-amber-600' :
-                            'bg-slate-50 text-slate-600'
-                      }`}>
-                      {member.status}
-                    </span>
-                  </div>
+                        return (
+                          <tr
+                            key={member.id}
+                            onClick={() => openMemberDetails(member)}
+                            className="hover:bg-blue-50/30 transition-colors cursor-pointer group"
+                          >
+                            <td className="py-3 px-4 text-center text-slate-400 font-bold">{idx + 1}</td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center space-x-3">
+                                {member.profile_photo ? (
+                                  <img
+                                    src={member.profile_photo}
+                                    alt={member.name}
+                                    className="w-10 h-10 rounded-xl object-cover border border-slate-200 shrink-0 shadow-2xs"
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black shadow-inner shrink-0 bg-[#2D3748] text-white">
+                                    {member.initials}
+                                  </div>
+                                )}
+                                <div className="min-w-0">
+                                  <span className="font-bold text-slate-900 group-hover:text-[#001538] transition-colors block text-sm leading-tight truncate">
+                                    {member.name}
+                                  </span>
+                                  <span className="text-[11px] text-slate-400 font-medium truncate block mt-0.5">
+                                    {member.email || member.mobile || 'No contact specified'}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 whitespace-nowrap">
+                              <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded-md border border-slate-200/80">
+                                {member.member_id || 'Generating...'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="font-bold text-slate-800 text-xs block">
+                                {member.role || 'Unassigned'}
+                              </span>
+                              {member.employee_type && (
+                                <span className="text-[10px] text-slate-400 font-medium block mt-0.5">
+                                  {member.employee_type}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 whitespace-nowrap">
+                              <span className="inline-block px-2.5 py-1 bg-slate-100 text-slate-700 font-bold text-[11px] rounded-lg border border-slate-200/60">
+                                {member.department}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              {isAllDivs ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#2563EB] text-white rounded-lg text-[10px] font-black tracking-wide shadow-2xs">
+                                  <Check size={11} className="stroke-[3]" />
+                                  All Divisions ({divisions.length})
+                                </span>
+                              ) : memberDivs.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {memberDivs.map(div => (
+                                    <span
+                                      key={div.id || div.name}
+                                      className="px-2 py-0.5 bg-blue-50 border border-blue-100 rounded-md text-[10px] font-bold text-[#2563EB]"
+                                    >
+                                      {div.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-slate-400 italic font-medium">Unassigned</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-center whitespace-nowrap">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openMemberDetails(member);
+                                }}
+                                className="px-2.5 py-1 text-xs font-bold text-slate-600 hover:text-[#001538] hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center gap-1 border border-slate-200/80 group-hover:border-slate-300"
+                              >
+                                <Eye size={13} />
+                                <span>View</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
-            </div>
+              </div>
           ) : (
             <div className="text-center py-16 bg-white border border-slate-200 rounded-2xl shadow-sm">
               <Users className="mx-auto text-slate-300 mb-4" size={48} />
@@ -536,13 +969,82 @@ export default function TeamPage() {
                   </div>
                 </div>
 
-                {/* Aadhar Copy Upload */}
+                {/* Aadhar Copy Media Upload */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Aadhar Card Copy (URL)</label>
-                  <div className="relative">
-                    <FileText className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                    <input type="text" placeholder="https://example.com/aadhar.pdf" className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#001538] transition-all" value={newAadharCopy} onChange={(e) => setNewAadharCopy(e.target.value)} />
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                      Aadhar Card Copy
+                    </label>
+                    {newAadharCopy && (
+                      <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
+                        <CheckCircle size={12} /> Media Attached
+                      </span>
+                    )}
                   </div>
+
+                  <input
+                    ref={aadharFileInputRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="hidden"
+                    onChange={handleAadharFileChange}
+                  />
+
+                  {!newAadharCopy ? (
+                    <button
+                      type="button"
+                      onClick={() => aadharFileInputRef.current?.click()}
+                      className="w-full py-2 px-3.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 hover:border-[#001538] rounded-xl flex items-center justify-between text-left transition-all group cursor-pointer shadow-2xs"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                          <Upload size={15} />
+                        </div>
+                        <div className="truncate">
+                          <span className="text-xs font-bold text-slate-700 block truncate">Upload Aadhar Media</span>
+                          <span className="text-[10px] text-slate-400 block truncate">PDF, JPG, PNG (Max 2MB)</span>
+                        </div>
+                      </div>
+                      <span className="px-2.5 py-1 bg-white border border-slate-200 text-slate-700 text-[11px] font-bold rounded-lg shrink-0 group-hover:bg-[#001538] group-hover:text-white group-hover:border-[#001538] transition-all">
+                        Browse
+                      </span>
+                    </button>
+                  ) : (
+                    <div className="w-full py-2 px-3 bg-emerald-50/60 border border-emerald-200 rounded-xl flex items-center justify-between gap-2 shadow-2xs">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                          <FileText size={16} />
+                        </div>
+                        <div className="truncate">
+                          <span className="text-xs font-bold text-slate-800 block truncate">
+                            {aadharFileName || 'Aadhar Document Attached'}
+                          </span>
+                          <span className="text-[10px] text-emerald-600 font-semibold block">Ready to submit</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => aadharFileInputRef.current?.click()}
+                          className="px-2 py-1 text-[11px] font-bold text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                        >
+                          Change
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewAadharCopy('');
+                            setAadharFileName('');
+                            if (aadharFileInputRef.current) aadharFileInputRef.current.value = '';
+                          }}
+                          className="p-1 text-slate-400 hover:text-red-500 rounded-md transition-colors"
+                          title="Remove file"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Residing Address */}
@@ -604,25 +1106,120 @@ export default function TeamPage() {
 
               <hr className="border-slate-100" />
 
-              {/* ─── SECTION: Employment Details ─── */}
+              {/* ─── SECTION: Employment Details (Interconnected Department & Role) ─── */}
               <div className="space-y-1 pb-1"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Employment Details</p></div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Role */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Role / Designation *</label>
-                  <div className="relative">
-                    <Briefcase className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                    <input type="text" required placeholder="e.g. Operations Head" className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#001538] transition-all" value={newRole} onChange={(e) => setNewRole(e.target.value)} />
+              
+              {/* 1. Department Selection (First) */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+                  Department *
+                </label>
+
+                <div className="flex flex-wrap gap-2 pt-0.5">
+                  {(departments.length > 0 ? departments.map(d => d.name) : ['Operational Staff', 'FMS', 'Accounts', 'HR']).map(dept => {
+                      const isSelected = newDept === dept;
+                      return (
+                        <button
+                          type="button"
+                          key={dept}
+                          onClick={() => {
+                            setNewDept(dept);
+                            const deptLower = dept.trim().toLowerCase();
+                            if (deptLower === 'accounts') {
+                              setNewRole('Accountant');
+                            } else if (deptLower === 'hr' || deptLower === 'human resources') {
+                              setNewRole('HR');
+                            } else {
+                              // Auto-select first role of this department if available
+                              const dRoles = roles.filter(r => (r.department || '').trim().toLowerCase() === deptLower);
+                              if (dRoles.length > 0) {
+                                setNewRole(dRoles[0].name);
+                              } else {
+                                setNewRole('');
+                              }
+                            }
+                          }}
+                          className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all ${
+                            isSelected 
+                              ? 'bg-[#001538] text-white border-[#001538] shadow-xs' 
+                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          {dept}
+                        </button>
+                      );
+                    })}
                   </div>
-                </div>
-                {/* Salary */}
+              </div>
+
+              {/* 2. Role / Designation (Interconnected to Department) */}
+              {/* 2. Role / Designation & Employee Type */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Monthly Salary (₹)</label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                    <input type="number" placeholder="e.g. 25000" className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#001538] transition-all" value={newSalary} onChange={(e) => setNewSalary(e.target.value)} />
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+                      Role / Designation *
+                    </label>
+                    {(() => {
+                      const deptLower = (newDept || '').trim().toLowerCase();
+                      let dRoles = roles.filter(r => (r.department || '').trim().toLowerCase() === deptLower);
+                      if (deptLower === 'accounts' && !dRoles.some(r => r.name.toLowerCase() === 'accountant')) {
+                        dRoles = [{ id: 'acc-role', name: 'Accountant', access_level: 'Financial', department: 'Accounts' }, ...dRoles];
+                      }
+                      if ((deptLower === 'hr' || deptLower === 'human resources') && !dRoles.some(r => r.name.toLowerCase() === 'hr')) {
+                        dRoles = [{ id: 'hr-role', name: 'HR', access_level: 'HR', department: 'HR' }, ...dRoles];
+                      }
+                      return dRoles.length > 0 ? (
+                        <span className="text-[10px] text-emerald-600 font-bold">
+                          {dRoles.length} Available Roles
+                        </span>
+                      ) : null;
+                    })()}
                   </div>
+
+                  {(() => {
+                    const deptLower = (newDept || '').trim().toLowerCase();
+                    let dRoles = roles.filter(r => (r.department || '').trim().toLowerCase() === deptLower);
+                    if (deptLower === 'accounts' && !dRoles.some(r => r.name.toLowerCase() === 'accountant')) {
+                      dRoles = [{ id: 'acc-role', name: 'Accountant', access_level: 'Financial', department: 'Accounts' }, ...dRoles];
+                    }
+                    if ((deptLower === 'hr' || deptLower === 'human resources') && !dRoles.some(r => r.name.toLowerCase() === 'hr')) {
+                      dRoles = [{ id: 'hr-role', name: 'HR', access_level: 'HR', department: 'HR' }, ...dRoles];
+                    }
+                    
+                    if (dRoles.length > 0) {
+                      return (
+                        <select
+                          value={newRole}
+                          onChange={(e) => setNewRole(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#001538]"
+                        >
+                          <option value="" disabled>-- Select Role in {newDept} --</option>
+                          {dRoles.map(r => (
+                            <option key={r.id || r.name} value={r.name}>
+                              {r.name} ({r.access_level || 'Operational'})
+                            </option>
+                          ))}
+                        </select>
+                      );
+                    } else {
+                      return (
+                        <div className="relative">
+                          <Briefcase className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                          <input
+                            type="text"
+                            required
+                            placeholder={`e.g. ${newDept} Officer`}
+                            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#001538] transition-all"
+                            value={newRole}
+                            onChange={(e) => setNewRole(e.target.value)}
+                          />
+                        </div>
+                      );
+                    }
+                  })()}
                 </div>
+
                 {/* Employee Type */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Employee Type *</label>
@@ -640,57 +1237,49 @@ export default function TeamPage() {
                   </select>
                 </div>
               </div>
-              {/* Department Chips */}
+
+              {/* Division Assignment (Drop and Select) */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Department *</label>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {['Operations', 'Logistics', 'Site Ops', 'Human Resources', 'Accountant'].map(dept => (
-                    <button type="button" key={dept} onClick={() => setNewDept(dept)} className={`px-3.5 py-2 text-xs font-semibold rounded-xl border transition-all ${newDept === dept ? 'bg-[#001538]/10 text-[#001538] border-[#001538]' : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-300'}`}>{dept}</button>
-                  ))}
-                </div>
-              </div>
-              {/* Division Select & Joining Date */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Division Assignment</label>
-                  <select value={newDivisionId} onChange={(e) => setNewDivisionId(e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#001538]">
-                    <option value="">No Division (Unassigned)</option>
-                    {divisions.map((div) => (<option key={div.id} value={div.id}>{div.name}</option>))}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Joining Date *</label>
-                  <input
-                    type="date"
-                    required
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#001538]"
-                    value={newJoiningDate}
-                    onChange={(e) => setNewJoiningDate(e.target.value)}
-                  />
-                </div>
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+                  Division Assignment
+                </label>
+                <DivisionMultiSelectDropdown
+                  divisions={divisions}
+                  selectedIds={newDivisionIds}
+                  onChange={setNewDivisionIds}
+                  placeholder="Drop down to select divisions..."
+                />
               </div>
 
-              {/* Operational Sub-Role (Conditional) */}
-              {(newDept === 'Operations' || newDept === 'Site Ops') && (
-                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Operational Sub-Role *</label>
-                  <select
-                    value={newSubRole}
-                    onChange={(e) => setNewSubRole(e.target.value)}
-                    required
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#001538]"
-                  >
-                    <option value="">Select Sub-Role</option>
-                    <option value="Operational Manager">Operational Manager</option>
-                    <option value="Site Incharge">Site Incharge</option>
-                    <option value="Site Supervisor">Site Supervisor</option>
-                    <option value="Driver">Driver</option>
-                    <option value="Helper">Helper</option>
-                    <option value="Crane Operator">Crane Operator</option>
-                    <option value="Dozer Operator">Dozer Operator</option>
-                  </select>
-                </div>
-              )}
+              {/* Joining Date */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Joining Date *</label>
+                <input
+                  type="date"
+                  required
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#001538]"
+                  value={newJoiningDate}
+                  onChange={(e) => setNewJoiningDate(e.target.value)}
+                />
+              </div>
+
+              {/* Monthly Salary */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Monthly Salary (₹)</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="e.g. 25000"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#001538] transition-all"
+                  value={newSalary}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, '');
+                    setNewSalary(val);
+                  }}
+                />
+              </div>
+
+
 
               <hr className="border-slate-100" />
 
@@ -788,37 +1377,98 @@ export default function TeamPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-3.5 text-slate-700">
-                  <MapPin size={16} className="text-slate-400 shrink-0" />
+                <div className="flex items-start space-x-3.5 text-slate-700">
+                  <MapPin size={16} className="text-slate-400 shrink-0 mt-1" />
                   <div className="flex-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Division Assignment</span>
-                    <div className="flex items-center justify-between mt-0.5">
-                      {isEditingDivision ? (
-                        <select
-                          value={editDivisionId}
-                          onChange={(e) => handleUpdateDivision(selectedMember.id, e.target.value)}
-                          className="text-xs font-semibold bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-800 focus:outline-none focus:border-[#001538]"
-                        >
-                          <option value="">No Division (Unassigned)</option>
-                          {divisions.map((div) => (
-                            <option key={div.id} value={div.id}>{div.name}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span className={`text-sm font-semibold ${selectedMember.division_name ? 'text-[#2563EB]' : 'text-slate-400 italic'}`}>
-                          {selectedMember.division_name || 'Unassigned'}
-                        </span>
-                      )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Division Assignment ({(() => {
+                          const list = (selectedMember.divisions_list && selectedMember.divisions_list.length > 0)
+                            ? selectedMember.divisions_list
+                            : (selectedMember.division_ids && selectedMember.division_ids.length > 0)
+                              ? divisions.filter(d => selectedMember.division_ids!.includes(d.id))
+                              : selectedMember.division_name
+                                ? [{ id: selectedMember.division_id || '', name: selectedMember.division_name }]
+                                : [];
+                          return list.length;
+                        })()})
+                      </span>
                       <button
                         onClick={() => {
-                          setEditDivisionId(selectedMember.division_id || '');
+                          if (!isEditingDivision) {
+                            const cur = (selectedMember.division_ids && selectedMember.division_ids.length > 0)
+                              ? selectedMember.division_ids
+                              : (selectedMember.division_id ? [selectedMember.division_id] : []);
+                            setEditDivisionIds(cur);
+                          }
                           setIsEditingDivision(!isEditingDivision);
                         }}
-                        className="text-[10px] text-[#001538] hover:underline font-black ml-2 uppercase tracking-wider"
+                        className="text-[10px] text-[#001538] hover:underline font-black uppercase tracking-wider"
                       >
                         {isEditingDivision ? 'Cancel' : 'Change'}
                       </button>
                     </div>
+
+                    {isEditingDivision ? (
+                      <div className="mt-2 space-y-2 p-3 bg-white border border-slate-200 rounded-xl shadow-xs">
+                        <DivisionMultiSelectDropdown
+                          divisions={divisions}
+                          selectedIds={editDivisionIds}
+                          onChange={setEditDivisionIds}
+                          placeholder="Drop down to select divisions..."
+                        />
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                          <button
+                            type="button"
+                            onClick={() => setIsEditingDivision(false)}
+                            className="px-2.5 py-1 text-xs font-semibold text-slate-500 hover:text-slate-700"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateDivisions(selectedMember.id, editDivisionIds)}
+                            className="px-3 py-1 bg-[#001538] hover:bg-[#001538]/90 text-white text-xs font-bold rounded-lg shadow-xs"
+                          >
+                            Save Divisions
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {(() => {
+                          const list = (selectedMember.divisions_list && selectedMember.divisions_list.length > 0)
+                            ? selectedMember.divisions_list
+                            : (selectedMember.division_ids && selectedMember.division_ids.length > 0)
+                              ? divisions.filter(d => selectedMember.division_ids!.includes(d.id))
+                              : selectedMember.division_name
+                                ? [{ id: selectedMember.division_id || '', name: selectedMember.division_name }]
+                                : [];
+
+                          if (list.length === 0) {
+                            return <span className="text-xs text-slate-400 italic font-semibold">No Division (Unassigned)</span>;
+                          }
+
+                          if (divisions.length > 1 && list.length >= divisions.length) {
+                            return (
+                              <span className="px-3 py-1 bg-[#2563EB] text-white rounded-lg text-xs font-black tracking-wide shadow-2xs flex items-center gap-1.5">
+                                <Check size={13} className="stroke-[3]" />
+                                All Divisions ({divisions.length})
+                              </span>
+                            );
+                          }
+
+                          return list.map(div => (
+                            <span
+                              key={div.id || div.name}
+                              className="px-2.5 py-0.5 bg-blue-50 border border-blue-100 rounded-lg text-xs font-bold text-[#2563EB]"
+                            >
+                              {div.name}
+                            </span>
+                          ));
+                        })()}
+                      </div>
+                    )}
                   </div>
                 </div>
 

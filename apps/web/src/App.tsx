@@ -20,9 +20,11 @@ import ProjectsPage from './pages/tenant/project/ProjectsPage';
 import CreateProjectPage from './pages/tenant/project/CreateProjectPage';
 import ProjectDetailsPage from './pages/tenant/project/ProjectDetailsPage';
 import WorkSitesPage from './pages/tenant/worksite/WorkSitesPage';
-import AccessControlsPage from './pages/tenant/access-controls/AccessControlsPage';
+import WorkOrdersPage from './pages/tenant/workorder/WorkOrdersPage';
 import HRPage from './pages/tenant/hr/HRPage';
 import DivisionsPage from './pages/tenant/divisions/DivisionsPage';
+import DepartmentsPage from './pages/tenant/departments/DepartmentsPage';
+import RolesPage from './pages/tenant/roles/RolesPage';
 import ComingSoon from './pages/tenant/ComingSoon';
 import AttendanceTrackerPage from './pages/tenant/hr/AttendanceTrackerPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -151,11 +153,7 @@ function App() {
             <Route path="project-management/new" element={<CreateProjectPage />} />
             <Route path="project-management/:id" element={<ProjectDetailsPage />} />
             <Route path="work-sites" element={<WorkSitesPage />} />
-            <Route path="access-controls" element={
-              <RoleGuard allowedRoles={['admin']}>
-                <AccessControlsPage />
-              </RoleGuard>
-            } />
+            <Route path="access-controls" element={<Navigate to="/tenant/roles" replace />} />
             <Route path="hr" element={
               <RoleGuard allowedRoles={['admin', 'hr']}>
                 <HRPage />
@@ -171,11 +169,22 @@ function App() {
                 <DivisionsPage />
               </RoleGuard>
             } />
+            <Route path="departments" element={
+              <RoleGuard allowedRoles={['admin', 'hr']}>
+                <DepartmentsPage />
+              </RoleGuard>
+            } />
+            <Route path="roles" element={
+              <RoleGuard allowedRoles={['admin', 'hr']}>
+                <RolesPage />
+              </RoleGuard>
+            } />
             <Route path="accounts-ledgers" element={
               <RoleGuard allowedRoles={['admin', 'accountant', 'finance']}>
                 <AccountsLedgersPage />
               </RoleGuard>
             } />
+            <Route path="work-orders" element={<WorkOrdersPage />} />
             <Route path="sub-contractors" element={<ComingSoon moduleName="Sub-Contractors" />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="settings" element={<ComingSoon moduleName="Settings" />} />
