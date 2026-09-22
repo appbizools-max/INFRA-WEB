@@ -2645,7 +2645,6 @@ app.get(['/api/tenant/project/:id', '/api/tenant/projects/detail/:id'], async (r
         companyUsers = uRes.rows;
       } catch (uErr: any) { }
     }
-
     res.json({
       ...proj,
       workOrder,
@@ -2673,7 +2672,6 @@ app.get(['/api/tenant/project/:id', '/api/tenant/projects/detail/:id'], async (r
     res.status(500).json({ error: err.message });
   }
 });
-
 // POST Record Project Transaction
 app.post('/api/tenant/project/:id/transactions', async (req, res) => {
   const { id } = req.params;
@@ -3635,16 +3633,31 @@ app.get('/api/tenant/divisions/:userUid', async (req, res) => {
     if (!tenantId) {
       return res.status(404).json({ error: 'Tenant profile not found' });
     }
-    const divisionsRes = await pool.query(
-      `SELECT d.id, d.name, d.state, d.city, d.pincodes, d.description, d.status, d.created_at,
-              COALESCE(COUNT(DISTINCT u.id), 0)::INTEGER AS member_count
-       FROM tenant_divisions d
-       LEFT JOIN tenant_users u ON (u.division_id = d.id OR d.id::text = ANY(u.division_ids))
-       WHERE d.tenant_id = $1
-       GROUP BY d.id
-       ORDER BY d.created_at DESC`,
-      [tenantId]
-    );
+    let divisionsRes;
+    try {
+      divisionsRes = await pool.query(
+        `SELECT d.id, d.name, d.state, d.city, d.pincodes, d.description, d.status, d.created_at,
+                COALESCE(COUNT(DISTINCT u.id), 0)::INTEGER AS member_count
+         FROM tenant_divisions d
+         LEFT JOIN tenant_users u ON (u.division_id = d.id OR (u.division_ids IS NOT NULL AND d.id::text = ANY(u.division_ids)))
+         WHERE d.tenant_id = $1
+         GROUP BY d.id
+         ORDER BY d.created_at DESC`,
+        [tenantId]
+      );
+    } catch (joinErr: any) {
+      // Safe fallback if division_ids array column does not exist yet
+      divisionsRes = await pool.query(
+        `SELECT d.id, d.name, d.state, d.city, d.pincodes, d.description, d.status, d.created_at,
+                COALESCE(COUNT(DISTINCT u.id), 0)::INTEGER AS member_count
+         FROM tenant_divisions d
+         LEFT JOIN tenant_users u ON u.division_id = d.id
+         WHERE d.tenant_id = $1
+         GROUP BY d.id
+         ORDER BY d.created_at DESC`,
+        [tenantId]
+      );
+    }
     res.json(divisionsRes.rows);
   } catch (err: any) {
     console.error(`[GET /api/tenant/divisions] Error:`, err);
@@ -3655,10 +3668,18 @@ app.get('/api/tenant/divisions/:userUid', async (req, res) => {
 app.get('/api/tenant/divisions/:id/team', async (req, res) => {
   const { id } = req.params;
   try {
-    const teamRes = await pool.query(
-      'SELECT id, name, role, department, email, mobile, status, member_id FROM tenant_users WHERE division_id = $1 OR $1::text = ANY(division_ids) ORDER BY name ASC',
-      [id]
-    );
+    let teamRes;
+    try {
+      teamRes = await pool.query(
+        'SELECT id, name, role, department, email, mobile, status, member_id FROM tenant_users WHERE division_id = $1 OR (division_ids IS NOT NULL AND $1::text = ANY(division_ids)) ORDER BY name ASC',
+        [id]
+      );
+    } catch {
+      teamRes = await pool.query(
+        'SELECT id, name, role, department, email, mobile, status, member_id FROM tenant_users WHERE division_id = $1 ORDER BY name ASC',
+        [id]
+      );
+    }
     res.json(teamRes.rows);
   } catch (err: any) {
     console.error(`[GET /api/tenant/divisions/team] Error:`, err);
@@ -3668,9 +3689,12 @@ app.get('/api/tenant/divisions/:id/team', async (req, res) => {
 // POST Division
 app.post('/api/tenant/divisions', async (req, res) => {
   const { userUid, name, state, city, pincodes, description, status } = req.body;
-  if (!userUid || !name || !state || !city) {
-    return res.status(400).json({ error: 'Missing required fields: userUid, name, state, city are required' });
+  if (!userUid || !name || !name.trim()) {
+    return res.status(400).json({ error: 'Missing required field: name is required' });
   }
+  const effectiveState = (state && state.trim()) ? state.trim() : 'General';
+  const effectiveCity = (city && city.trim()) ? city.trim() : 'General';
+
   try {
     const { authorized, tenantId } = await checkIsAdminOrHR(userUid);
     if (!tenantId) {
@@ -3692,7 +3716,7 @@ app.post('/api/tenant/divisions', async (req, res) => {
       `INSERT INTO tenant_divisions (tenant_id, name, state, city, pincodes, description, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [tenantId, name.trim(), state.trim(), city.trim(), pincodes || '', description || '', status || 'Active']
+      [tenantId, name.trim(), effectiveState, effectiveCity, pincodes || '', description || '', status || 'Active']
     );
     res.status(201).json(insertRes.rows[0]);
   } catch (err: any) {
@@ -3704,9 +3728,11 @@ app.post('/api/tenant/divisions', async (req, res) => {
 app.put('/api/tenant/divisions/:id', async (req, res) => {
   const { id } = req.params;
   const { userUid, name, state, city, pincodes, description, status } = req.body;
-  if (!userUid || !name || !state || !city) {
-    return res.status(400).json({ error: 'Missing required fields: userUid, name, state, city are required' });
+  if (!userUid || !name || !name.trim()) {
+    return res.status(400).json({ error: 'Missing required field: name is required' });
   }
+  const effectiveState = (state && state.trim()) ? state.trim() : 'General';
+  const effectiveCity = (city && city.trim()) ? city.trim() : 'General';
   try {
     const { authorized, tenantId } = await checkIsAdminOrHR(userUid);
     if (!tenantId) {
@@ -3728,7 +3754,7 @@ app.put('/api/tenant/divisions/:id', async (req, res) => {
        SET name = $1, state = $2, city = $3, pincodes = $4, description = $5, status = $6
        WHERE id = $7 AND tenant_id = $8
        RETURNING *`,
-      [name.trim(), state.trim(), city.trim(), pincodes || '', description || '', status || 'Active', id, tenantId]
+      [name.trim(), effectiveState, effectiveCity, pincodes || '', description || '', status || 'Active', id, tenantId]
     );
     if (updateRes.rows.length === 0) {
       return res.status(404).json({ error: 'Division not found' });
@@ -6149,9 +6175,76 @@ app.listen(Number(port), '0.0.0.0', async () => {
     `);
   console.log('✅ Auto-created/verified tenant_divisions table on server startup');
 
-  // Add division_id column to tenant_users table if missing
+  // Add division_id and division_ids columns to tenant_users table if missing
   await pool.query('ALTER TABLE tenant_users ADD COLUMN IF NOT EXISTS division_id UUID REFERENCES tenant_divisions(id) ON DELETE SET NULL;');
-  console.log('✅ Auto-created/verified division_id column in tenant_users table on server startup');
+  await pool.query('ALTER TABLE tenant_users ADD COLUMN IF NOT EXISTS division_ids TEXT[] DEFAULT \'{}\';');
+  console.log('✅ Auto-created/verified division_id & division_ids columns in tenant_users table on server startup');
+
+  // Auto-create tenant_work_orders table and columns
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tenant_work_orders (
+      id SERIAL PRIMARY KEY,
+      tenant_id INTEGER REFERENCES tenants(id) ON DELETE CASCADE,
+      order_number VARCHAR(100) UNIQUE NOT NULL,
+      title VARCHAR(255) NOT NULL,
+      description TEXT,
+      project_id VARCHAR(100),
+      project_name VARCHAR(255),
+      client_id TEXT,
+      client_name TEXT,
+      client_code TEXT,
+      worksite_id VARCHAR(100),
+      worksite_name VARCHAR(255),
+      assigned_staff_id VARCHAR(100),
+      assigned_staff_name VARCHAR(255),
+      division_name VARCHAR(255),
+      department_name VARCHAR(255),
+      priority VARCHAR(50) DEFAULT 'Medium',
+      status VARCHAR(50) DEFAULT 'Pending',
+      start_date VARCHAR(50),
+      due_date VARCHAR(50),
+      end_date VARCHAR(50),
+      project_location_address TEXT,
+      commodity VARCHAR(100),
+      contract_quantity VARCHAR(100),
+      contract_quantity_unit VARCHAR(50),
+      estimated_cost NUMERIC(15,2) DEFAULT 0,
+      actual_cost NUMERIC(15,2) DEFAULT 0,
+      notes TEXT,
+      created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+    ALTER TABLE tenant_work_orders ADD COLUMN IF NOT EXISTS end_date VARCHAR(50);
+    ALTER TABLE tenant_work_orders ADD COLUMN IF NOT EXISTS project_location_address TEXT;
+    ALTER TABLE tenant_work_orders ADD COLUMN IF NOT EXISTS commodity VARCHAR(100);
+    ALTER TABLE tenant_work_orders ADD COLUMN IF NOT EXISTS contract_quantity VARCHAR(100);
+    ALTER TABLE tenant_work_orders ADD COLUMN IF NOT EXISTS contract_quantity_unit VARCHAR(50);
+    ALTER TABLE tenant_work_orders ADD COLUMN IF NOT EXISTS client_id TEXT;
+    ALTER TABLE tenant_work_orders ADD COLUMN IF NOT EXISTS client_name TEXT;
+    ALTER TABLE tenant_work_orders ADD COLUMN IF NOT EXISTS client_code TEXT;
+  `);
+  console.log('✅ Auto-created/verified tenant_work_orders table on server startup');
+
+  // Auto-create tenant_project_transactions table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tenant_project_transactions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id INTEGER REFERENCES tenants(id) ON DELETE CASCADE,
+      project_id VARCHAR(100) NOT NULL,
+      date DATE NOT NULL DEFAULT CURRENT_DATE,
+      type VARCHAR(100) NOT NULL,
+      category VARCHAR(100) DEFAULT 'General',
+      amount NUMERIC(15,2) NOT NULL DEFAULT 0.00,
+      party_name VARCHAR(255) DEFAULT '',
+      entry_flow VARCHAR(20) NOT NULL DEFAULT 'debit',
+      voucher_no VARCHAR(100) DEFAULT '',
+      note TEXT DEFAULT '',
+      status VARCHAR(50) DEFAULT 'Posted',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_project_tx_proj_id ON tenant_project_transactions (project_id);
+  `);
+  console.log('✅ Auto-created/verified tenant_project_transactions table on server startup');
 
   // Initialize tenant_departments table automatically
   await pool.query(`
