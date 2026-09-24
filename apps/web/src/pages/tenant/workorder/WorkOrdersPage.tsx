@@ -785,7 +785,7 @@ export default function WorkOrdersPage() {
               </div>
               <div>
                 <h3 className="font-bold text-sm text-slate-900">1. Basic Order Information</h3>
-                <p className="text-[11px] text-slate-400">Order title, client assignment, division, and work sites</p>
+                <p className="text-[11px] text-slate-400">Order title, client assignment, and operational division</p>
               </div>
             </div>
 
@@ -818,7 +818,7 @@ export default function WorkOrdersPage() {
               </div>
 
               {/* Division Multi-Select */}
-              <div className="relative" ref={divisionDropdownRef}>
+              <div className="relative md:col-span-2" ref={divisionDropdownRef}>
                 <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center justify-between">
                   <span>Division(s)</span>
                   {formData.selectedDivisions.length > 0 && (
@@ -886,9 +886,62 @@ export default function WorkOrdersPage() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
 
-              {/* Work Site Multi-Select */}
-              <div className="relative" ref={worksiteDropdownRef}>
+          {/* Section 2: Origin, Destination & Multi-Modal Transit */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-emerald-50 text-[#46B351] flex items-center justify-center font-bold">
+                  <MapPin size={16} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900">2. Origin, Destination & Transit Logistics</h3>
+                  <p className="text-[11px] text-slate-400">Work sites, loading & unloading points, site address, and multi-modal transport</p>
+                </div>
+              </div>
+              <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
+                Logistics & Route
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              {/* Origin & Destination Side by Side */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center gap-1.5">
+                    <MapPin size={13} className="text-blue-500" />
+                    Loading Location (Origin / Start Point)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.loadingLocation}
+                    onChange={e => setFormData(prev => ({ ...prev, loadingLocation: e.target.value }))}
+                    placeholder="e.g. Talcher Coal Mines Siding #3, Angul, Odisha"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium text-xs text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center gap-1.5">
+                    <MapPin size={13} className="text-rose-500" />
+                    Unloading Location (Destination / End Point)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.unloadingLocation}
+                    onChange={e => setFormData(prev => ({ ...prev, unloadingLocation: e.target.value }))}
+                    placeholder="e.g. NTPC Thermal Power Plant Bunker #2, Ramagundam"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium text-xs text-slate-800"
+                  />
+                </div>
+              </div>
+
+              {/* Work Site Multi-Select & Project Location Address Side by Side */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Work Site Multi-Select */}
+                <div className="relative" ref={worksiteDropdownRef}>
                 <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center justify-between">
                   <span>Work Site(s)</span>
                   {formData.selectedWorksiteIds.length > 0 && (
@@ -964,57 +1017,6 @@ export default function WorkOrdersPage() {
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-
-          {/* Section 2: Origin, Destination & Multi-Modal Transit */}
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-lg bg-emerald-50 text-[#46B351] flex items-center justify-center font-bold">
-                  <MapPin size={16} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm text-slate-900">2. Origin, Destination & Transit Logistics</h3>
-                  <p className="text-[11px] text-slate-400">Loading location, unloading point, project site address, and multi-modal transport</p>
-                </div>
-              </div>
-              <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
-                Logistics & Route
-              </span>
-            </div>
-
-            <div className="space-y-4">
-              {/* Origin & Destination Side by Side */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center gap-1.5">
-                    <MapPin size={13} className="text-blue-500" />
-                    Loading Location (Origin / Start Point)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.loadingLocation}
-                    onChange={e => setFormData(prev => ({ ...prev, loadingLocation: e.target.value }))}
-                    placeholder="e.g. Talcher Coal Mines Siding #3, Angul, Odisha"
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium text-xs text-slate-800"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center gap-1.5">
-                    <MapPin size={13} className="text-rose-500" />
-                    Unloading Location (Destination / End Point)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.unloadingLocation}
-                    onChange={e => setFormData(prev => ({ ...prev, unloadingLocation: e.target.value }))}
-                    placeholder="e.g. NTPC Thermal Power Plant Bunker #2, Ramagundam"
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium text-xs text-slate-800"
-                  />
-                </div>
-              </div>
 
               <div>
                 <label className="block font-bold text-slate-700 text-xs mb-1.5">
@@ -1028,6 +1030,7 @@ export default function WorkOrdersPage() {
                   placeholder="e.g., North Expressway Sector 4, Terminal Dock A"
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
                 />
+              </div>
               </div>
 
               {/* Mode(s) of Transport */}
