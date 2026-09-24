@@ -774,7 +774,7 @@ export default function WorkOrdersPage() {
           </div>
         </div>
 
-        {/* Full-Screen Stacked Form (One by One Below - Balanced Width) */}
+        {/* Full-Screen Form (Side-by-Side Compact Text Fields Inside Sections) */}
         <form onSubmit={handleSubmit} className="space-y-6 max-w-5xl mx-auto w-full">
 
           {/* Section 1: Basic Information */}
@@ -789,7 +789,7 @@ export default function WorkOrdersPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block font-bold text-slate-700 text-xs mb-1.5">
                   Work Order Title <span className="text-rose-500">*</span>
@@ -985,32 +985,35 @@ export default function WorkOrdersPage() {
             </div>
 
             <div className="space-y-4">
-              <div>
-                <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center gap-1.5">
-                  <MapPin size={13} className="text-blue-500" />
-                  Loading Location (Origin / Start Point)
-                </label>
-                <input
-                  type="text"
-                  value={formData.loadingLocation}
-                  onChange={e => setFormData(prev => ({ ...prev, loadingLocation: e.target.value }))}
-                  placeholder="e.g. Talcher Coal Mines Siding #3, Angul, Odisha"
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium text-xs text-slate-800"
-                />
-              </div>
+              {/* Origin & Destination Side by Side */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center gap-1.5">
+                    <MapPin size={13} className="text-blue-500" />
+                    Loading Location (Origin / Start Point)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.loadingLocation}
+                    onChange={e => setFormData(prev => ({ ...prev, loadingLocation: e.target.value }))}
+                    placeholder="e.g. Talcher Coal Mines Siding #3, Angul, Odisha"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium text-xs text-slate-800"
+                  />
+                </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center gap-1.5">
-                  <MapPin size={13} className="text-rose-500" />
-                  Unloading Location (Destination / End Point)
-                </label>
-                <input
-                  type="text"
-                  value={formData.unloadingLocation}
-                  onChange={e => setFormData(prev => ({ ...prev, unloadingLocation: e.target.value }))}
-                  placeholder="e.g. NTPC Thermal Power Plant Bunker #2, Ramagundam"
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium text-xs text-slate-800"
-                />
+                <div>
+                  <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center gap-1.5">
+                    <MapPin size={13} className="text-rose-500" />
+                    Unloading Location (Destination / End Point)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.unloadingLocation}
+                    onChange={e => setFormData(prev => ({ ...prev, unloadingLocation: e.target.value }))}
+                    placeholder="e.g. NTPC Thermal Power Plant Bunker #2, Ramagundam"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium text-xs text-slate-800"
+                  />
+                </div>
               </div>
 
               <div>
@@ -1085,13 +1088,13 @@ export default function WorkOrdersPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
               {/* Circular Radio Buttons: Yes or No */}
               <div>
                 <label className="block font-bold text-slate-700 text-xs mb-2.5">
                   Loss Applicable?
                 </label>
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-6 pt-1">
                   {/* Yes Option with Circular Button */}
                   <label
                     onClick={() => setFormData(prev => ({ ...prev, isLossApplicable: true, allowedLossPercent: prev.allowedLossPercent || 0.5 }))}
@@ -1132,13 +1135,14 @@ export default function WorkOrdersPage() {
                 </div>
               </div>
 
-              {formData.isLossApplicable && (
-                <div className="pt-2 border-t border-slate-100 space-y-2">
+              {/* Allowed Loss % Side by Side */}
+              {formData.isLossApplicable ? (
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="block font-bold text-slate-700 text-xs">Allowed Loss %</label>
                     <span className="text-[10px] text-amber-700 font-semibold">Shrinkage threshold</span>
                   </div>
-                  <div className="relative w-full">
+                  <div className="relative">
                     <input
                       type="number"
                       min="0"
@@ -1151,7 +1155,7 @@ export default function WorkOrdersPage() {
                     />
                     <Percent size={13} className="absolute right-3 top-3 text-amber-500 pointer-events-none" />
                   </div>
-                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                  <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
                     {[0.25, 0.50, 1.0, 1.5, 2.0].map(pct => (
                       <button
                         key={pct}
@@ -1167,6 +1171,10 @@ export default function WorkOrdersPage() {
                       </button>
                     ))}
                   </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-500">
+                  Zero loss tolerance: 100% of material must be delivered without shrinkage allowance.
                 </div>
               )}
             </div>
@@ -1184,7 +1192,7 @@ export default function WorkOrdersPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Rate Type */}
               <div>
                 <label className="block font-bold text-slate-700 text-xs mb-1.5">Rate Type</label>
@@ -1203,19 +1211,6 @@ export default function WorkOrdersPage() {
                   <option value="Add Custom">Custom Rate Type...</option>
                 </select>
               </div>
-
-              {formData.rateType === 'Add Custom' && (
-                <div>
-                  <label className="block font-bold text-slate-700 text-xs mb-1.5">Specify Custom Rate Type</label>
-                  <input
-                    type="text"
-                    value={formData.customRateType}
-                    onChange={e => setFormData(prev => ({ ...prev, customRateType: e.target.value }))}
-                    placeholder="e.g. Per Container / Per Bag"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none text-xs font-medium"
-                  />
-                </div>
-              )}
 
               {/* Rate / Unit (₹) */}
               <div>
@@ -1236,6 +1231,19 @@ export default function WorkOrdersPage() {
                   <IndianRupee size={13} className="absolute left-2.5 top-3.5 text-slate-400 pointer-events-none" />
                 </div>
               </div>
+
+              {formData.rateType === 'Add Custom' && (
+                <div className="md:col-span-2">
+                  <label className="block font-bold text-slate-700 text-xs mb-1.5">Specify Custom Rate Type</label>
+                  <input
+                    type="text"
+                    value={formData.customRateType}
+                    onChange={e => setFormData(prev => ({ ...prev, customRateType: e.target.value }))}
+                    placeholder="e.g. Per Container / Per Bag"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none text-xs font-medium"
+                  />
+                </div>
+              )}
 
               {/* Commodity */}
               <div>
@@ -1258,20 +1266,6 @@ export default function WorkOrdersPage() {
                 </select>
               </div>
 
-              {formData.commodity === 'Add New' && (
-                <div>
-                  <label className="block font-bold text-amber-900 text-xs mb-1.5">Custom Commodity Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.customCommodity}
-                    onChange={e => setFormData(prev => ({ ...prev, customCommodity: e.target.value }))}
-                    placeholder="e.g. Bauxite"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-amber-50/50 border border-amber-300 text-xs font-medium"
-                  />
-                </div>
-              )}
-
               {/* Quantity Unit of Measurement */}
               <div>
                 <label className="block font-bold text-slate-700 text-xs mb-1.5">Quantity Unit of Measurement</label>
@@ -1291,6 +1285,21 @@ export default function WorkOrdersPage() {
                   <option value="Add New">Add Custom...</option>
                 </select>
               </div>
+
+              {/* Custom Commodity / Unit if selected */}
+              {formData.commodity === 'Add New' && (
+                <div>
+                  <label className="block font-bold text-amber-900 text-xs mb-1.5">Custom Commodity Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.customCommodity}
+                    onChange={e => setFormData(prev => ({ ...prev, customCommodity: e.target.value }))}
+                    placeholder="e.g. Bauxite"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-amber-50/50 border border-amber-300 text-xs font-medium"
+                  />
+                </div>
+              )}
 
               {formData.contractQuantityUnit === 'Add New' && (
                 <div>
@@ -1333,7 +1342,7 @@ export default function WorkOrdersPage() {
                       className="text-[10px] text-blue-600 hover:text-blue-800 font-bold inline-flex items-center gap-1 hover:underline cursor-pointer"
                     >
                       <Calculator size={11} />
-                      Auto-calculate: ₹{(parseFloat(formData.contractQuantity.replace(/,/g, '')) * Number(formData.ratePerUnit)).toLocaleString()}
+                      Auto: ₹{(parseFloat(formData.contractQuantity.replace(/,/g, '')) * Number(formData.ratePerUnit)).toLocaleString()}
                     </button>
                   )}
                 </div>
@@ -1352,7 +1361,7 @@ export default function WorkOrdersPage() {
               </div>
 
               {/* Payment Terms */}
-              <div>
+              <div className="md:col-span-2">
                 <label className="block font-bold text-slate-700 text-xs mb-1.5">Payment Terms</label>
                 <select
                   value={formData.paymentTerms}
@@ -1371,7 +1380,7 @@ export default function WorkOrdersPage() {
               </div>
 
               {formData.paymentTerms === 'Custom' && (
-                <div>
+                <div className="md:col-span-2">
                   <label className="block font-bold text-slate-700 text-xs mb-1.5">Custom Terms Details</label>
                   <input
                     type="text"
@@ -1397,7 +1406,7 @@ export default function WorkOrdersPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block font-bold text-slate-700 text-xs mb-1.5">Scope of Work & Objectives</label>
                 <textarea
@@ -1415,7 +1424,7 @@ export default function WorkOrdersPage() {
                   Safety & Compliance Protocol Notes
                 </label>
                 <textarea
-                  rows={2}
+                  rows={3}
                   value={formData.notes}
                   onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                   placeholder="e.g. Mandatory PPE at siding, tare weight calibration every 10 trips, lock-out tag-out on plant delivery point..."
@@ -1425,7 +1434,7 @@ export default function WorkOrdersPage() {
             </div>
           </div>
 
-          {/* Section 6: Timeline & Execution */}
+          {/* Section 6: Project Timeline */}
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
             <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
               <div className="h-8 w-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold">
@@ -1437,7 +1446,7 @@ export default function WorkOrdersPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block font-bold text-slate-700 text-xs mb-1.5">Start Date</label>
                 <input
