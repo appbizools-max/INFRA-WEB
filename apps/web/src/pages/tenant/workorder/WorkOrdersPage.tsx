@@ -779,706 +779,693 @@ export default function WorkOrdersPage() {
           </div>
         </div>
 
-        {/* Full-Screen Multi-Column Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Full-Screen Stacked Form (One by One Below) */}
+        <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl mx-auto">
 
-            {/* Left 2 Columns: Core Operational & Route Details */}
-            <div className="lg:col-span-2 space-y-6">
-
-              {/* Card 1: Basic Information */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
-                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
-                  <div className="h-8 w-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold">
-                    <ClipboardList size={16} className="text-[#46B351]" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-900">Basic Order Information</h3>
-                    <p className="text-[11px] text-slate-400">Order title, client assignment, division, and work sites</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">
-                      Work Order Title <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.title}
-                      onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="e.g., Coal Transport & Stacking Operations Phase 1"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium text-xs text-slate-800"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">
-                      Client Name or ID
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.clientName}
-                      onChange={e => setFormData(prev => ({ ...prev, clientName: e.target.value }))}
-                      placeholder="e.g., Tata Steel / CLI-1002"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium text-xs text-slate-800"
-                    />
-                  </div>
-
-                  {/* Division Multi-Select */}
-                  <div className="relative" ref={divisionDropdownRef}>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center justify-between">
-                      <span>Division(s)</span>
-                      {formData.selectedDivisions.length > 0 && (
-                        <span className="text-[10px] text-blue-600 font-bold">
-                          {formData.selectedDivisions.length} selected
-                        </span>
-                      )}
-                    </label>
-                    <div
-                      onClick={() => setIsDivisionDropdownOpen(prev => !prev)}
-                      className="min-h-[42px] w-full px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-[#46B351]/20 focus-within:border-[#46B351]"
-                    >
-                      {formData.selectedDivisions.length === 0 ? (
-                        <span className="text-slate-400 text-xs py-1">Select Division(s)...</span>
-                      ) : (
-                        formData.selectedDivisions.map(divName => (
-                          <span
-                            key={divName}
-                            className="inline-flex items-center gap-1 bg-white border border-slate-200 text-slate-800 text-[11px] font-semibold px-2 py-0.5 rounded-lg shadow-2xs"
-                          >
-                            <Network size={10} className="text-blue-500 shrink-0" />
-                            <span className="truncate max-w-[120px]">{divName}</span>
-                            <span
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleToggleDivision(divName);
-                              }}
-                              className="text-slate-400 hover:text-rose-500 rounded-full cursor-pointer ml-0.5"
-                            >
-                              <X size={12} />
-                            </span>
-                          </span>
-                        ))
-                      )}
-                      <ChevronDown size={14} className="ml-auto text-slate-400 shrink-0" />
-                    </div>
-
-                    {isDivisionDropdownOpen && (
-                      <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-2 max-h-56 overflow-y-auto space-y-1">
-                        {divisions.length === 0 ? (
-                          <div className="text-xs text-slate-400 p-2 text-center">No divisions available</div>
-                        ) : (
-                          divisions.map(d => {
-                            const isSelected = formData.selectedDivisions.includes(d.name);
-                            return (
-                              <div
-                                key={d.id}
-                                onClick={() => handleToggleDivision(d.name)}
-                                className={`flex items-center justify-between p-2 rounded-lg cursor-pointer text-xs transition-colors ${
-                                  isSelected ? 'bg-blue-50 text-blue-900 font-bold' : 'hover:bg-slate-50 text-slate-700'
-                                }`}
-                              >
-                                <div className="flex items-center gap-2 truncate pr-2">
-                                  <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-                                    isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 bg-white'
-                                  }`}>
-                                    {isSelected && <Check size={11} />}
-                                  </div>
-                                  <span className="truncate">{d.name}</span>
-                                </div>
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Work Site Multi-Select */}
-                  <div className="relative md:col-span-2" ref={worksiteDropdownRef}>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center justify-between">
-                      <span>Work Site(s)</span>
-                      {formData.selectedWorksiteIds.length > 0 && (
-                        <span className="text-[10px] text-[#46B351] font-bold">
-                          {formData.selectedWorksiteIds.length} selected
-                        </span>
-                      )}
-                    </label>
-                    <div
-                      onClick={() => setIsWorksiteDropdownOpen(prev => !prev)}
-                      className="min-h-[42px] w-full px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-[#46B351]/20 focus-within:border-[#46B351]"
-                    >
-                      {formData.selectedWorksiteIds.length === 0 ? (
-                        <span className="text-slate-400 text-xs py-1">Select Work Site(s)...</span>
-                      ) : (
-                        formData.selectedWorksiteIds.map(siteId => {
-                          const s = worksites.find(ws => String(ws.id) === siteId || ws.worksiteId === siteId);
-                          const label = s?.name || siteId;
-                          return (
-                            <span
-                              key={siteId}
-                              className="inline-flex items-center gap-1 bg-white border border-slate-200 text-slate-800 text-[11px] font-semibold px-2 py-0.5 rounded-lg shadow-2xs"
-                            >
-                              <MapPin size={10} className="text-[#46B351] shrink-0" />
-                              <span className="truncate max-w-[140px]">{label}</span>
-                              <span
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleToggleWorksite(siteId);
-                                }}
-                                className="text-slate-400 hover:text-rose-500 rounded-full cursor-pointer ml-0.5"
-                              >
-                                <X size={12} />
-                              </span>
-                            </span>
-                          );
-                        })
-                      )}
-                      <ChevronDown size={14} className="ml-auto text-slate-400 shrink-0" />
-                    </div>
-
-                    {isWorksiteDropdownOpen && (
-                      <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-2 max-h-56 overflow-y-auto space-y-1">
-                        {worksites.length === 0 ? (
-                          <div className="text-xs text-slate-400 p-2 text-center">No worksites available</div>
-                        ) : (
-                          worksites.map(site => {
-                            const siteId = String(site.worksiteId || site.id);
-                            const isSelected = formData.selectedWorksiteIds.includes(siteId);
-                            return (
-                              <div
-                                key={site.id}
-                                onClick={() => handleToggleWorksite(siteId)}
-                                className={`flex items-center justify-between p-2 rounded-lg cursor-pointer text-xs transition-colors ${
-                                  isSelected ? 'bg-emerald-50 text-emerald-900 font-bold' : 'hover:bg-slate-50 text-slate-700'
-                                }`}
-                              >
-                                <div className="flex items-center gap-2 truncate pr-2">
-                                  <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-                                    isSelected ? 'bg-[#46B351] border-[#46B351] text-white' : 'border-slate-300 bg-white'
-                                  }`}>
-                                    {isSelected && <Check size={11} />}
-                                  </div>
-                                  <span className="truncate">{site.name}</span>
-                                  {site.location && (
-                                    <span className="text-[10px] text-slate-400 truncate">({site.location})</span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
+          {/* Section 1: Basic Information */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
+            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
+              <div className="h-8 w-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold">
+                <ClipboardList size={16} className="text-[#46B351]" />
               </div>
-
-              {/* Card 2: Origin, Destination & Multi-Modal Transit Route */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-8 w-8 rounded-lg bg-emerald-50 text-[#46B351] flex items-center justify-center font-bold">
-                      <MapPin size={16} />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-sm text-slate-900">Origin, Destination & Multi-Modal Transit</h3>
-                      <p className="text-[11px] text-slate-400">Loading location, unloading point, project address, and multi-modal transport modes</p>
-                    </div>
-                  </div>
-                  <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
-                    Multi-Point Transit
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center gap-1.5">
-                      <MapPin size={13} className="text-blue-500" />
-                      Loading Location (Origin / Start Point)
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.loadingLocation}
-                      onChange={e => setFormData(prev => ({ ...prev, loadingLocation: e.target.value }))}
-                      placeholder="e.g. Talcher Coal Mines Siding #3, Angul, Odisha"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium text-xs text-slate-800"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center gap-1.5">
-                      <MapPin size={13} className="text-rose-500" />
-                      Unloading Location (Destination / End Point)
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.unloadingLocation}
-                      onChange={e => setFormData(prev => ({ ...prev, unloadingLocation: e.target.value }))}
-                      placeholder="e.g. NTPC Thermal Power Plant Bunker #2, Ramagundam"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium text-xs text-slate-800"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">
-                      Project Location Address <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.projectLocationAddress}
-                      onChange={e => setFormData(prev => ({ ...prev, projectLocationAddress: e.target.value }))}
-                      placeholder="e.g., North Expressway Sector 4, Terminal Dock A"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
-                    />
-                  </div>
-
-                  {/* Mode(s) of Transport */}
-                  <div className="md:col-span-2 pt-1">
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block font-bold text-slate-700 text-xs">
-                        Mode(s) of Transport <span className="text-slate-400 font-normal">(Select all that apply for multi-modal transit)</span>
-                      </label>
-                      <span className="text-xs text-emerald-600 font-bold">
-                        {formData.selectedTransportModes.join(', ') || 'Select mode'}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {[
-                        { id: 'Road', label: 'Road Transit', sub: 'Trucks / Trailers', icon: Truck },
-                        { id: 'Rail', label: 'Rail Transit', sub: 'Rakes / Freight Trains', icon: Train },
-                        { id: 'Ship', label: 'Ship / Water', sub: 'Barges / Coastal Vessel', icon: Ship },
-                        { id: 'Air', label: 'Air Cargo', sub: 'Airfreight Charter', icon: Plane }
-                      ].map(({ id, label, sub, icon: ModeIcon }) => {
-                        const isSelected = formData.selectedTransportModes.includes(id);
-                        return (
-                          <button
-                            key={id}
-                            type="button"
-                            onClick={() => handleToggleTransportMode(id)}
-                            className={`p-3 rounded-2xl border flex items-center gap-3 transition-all cursor-pointer text-left ${
-                              isSelected
-                                ? 'bg-emerald-50/80 border-[#46B351] text-emerald-950 font-bold shadow-xs ring-2 ring-[#46B351]/20'
-                                : 'bg-slate-50 border-slate-200 text-slate-600 font-medium hover:bg-slate-100 hover:text-slate-800'
-                            }`}
-                          >
-                            <div className={`p-2 rounded-xl shrink-0 ${isSelected ? 'bg-[#46B351] text-white shadow-xs' : 'bg-white border border-slate-200 text-slate-500'}`}>
-                              <ModeIcon size={18} />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-xs font-bold truncate">{label}</p>
-                              <p className="text-[10px] text-slate-400 truncate">{sub}</p>
-                            </div>
-                            {isSelected && <Check size={14} className="ml-auto text-[#46B351] shrink-0" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 3: Scope of Work & Safety Directives */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
-                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
-                  <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                    <FileText size={16} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-900">Scope of Work & Safety Guidelines</h3>
-                    <p className="text-[11px] text-slate-400">Detailed operational instructions, deliverables, and compliance directives</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Scope of Work & Objectives</label>
-                    <textarea
-                      rows={3}
-                      value={formData.description}
-                      onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Outline operational procedures, deliverables, loading handling protocols, machinery and manpower deployed..."
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800 leading-relaxed"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center gap-1.5 text-amber-900">
-                      <AlertTriangle size={13} className="text-amber-600" />
-                      Safety & Compliance Protocol Notes
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={formData.notes}
-                      onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                      placeholder="e.g. Mandatory PPE at siding, tare weight calibration every 10 trips, lock-out tag-out on plant delivery point..."
-                      className="w-full px-4 py-2.5 rounded-xl bg-amber-50/40 border border-amber-200 focus:outline-none focus:border-amber-400 font-medium text-xs text-amber-950 leading-relaxed"
-                    />
-                  </div>
-                </div>
+              <div>
+                <h3 className="font-bold text-sm text-slate-900">1. Basic Order Information</h3>
+                <p className="text-[11px] text-slate-400">Order title, client assignment, division, and work sites</p>
               </div>
             </div>
 
-            {/* Right Column: Commercial Valuation, Variance & Execution */}
-            <div className="space-y-6">
-
-              {/* Card 4: Commercial Terms & Valuation */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
-                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
-                  <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                    <IndianRupee size={16} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-900">Commercial & Valuation</h3>
-                    <p className="text-[11px] text-slate-400">Rate / Unit, billing terms & budget</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {/* Rate Type */}
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1">Rate Type</label>
-                    <select
-                      value={formData.rateType}
-                      onChange={e => setFormData(prev => ({ ...prev, rateType: e.target.value }))}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
-                    >
-                      <option>Per Ton</option>
-                      <option>Per Metric Ton</option>
-                      <option>Per Trip</option>
-                      <option>Per KM</option>
-                      <option>Per CUM</option>
-                      <option>Fixed / Lump Sum</option>
-                      <option>Hourly</option>
-                      <option value="Add Custom">Custom Rate Type...</option>
-                    </select>
-                  </div>
-
-                  {formData.rateType === 'Add Custom' && (
-                    <div>
-                      <label className="block font-bold text-slate-700 text-xs mb-1">Specify Custom Rate Type</label>
-                      <input
-                        type="text"
-                        value={formData.customRateType}
-                        onChange={e => setFormData(prev => ({ ...prev, customRateType: e.target.value }))}
-                        placeholder="e.g. Per Container / Per Bag"
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none text-xs font-medium"
-                      />
-                    </div>
-                  )}
-
-                  {/* Rate / Unit (₹) */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block font-bold text-slate-700 text-xs">Rate / Unit (₹)</label>
-                      <span className="text-[10px] text-slate-400">Base price</span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={formData.ratePerUnit || ''}
-                        onChange={e => handleRatePerUnitChange(parseFloat(e.target.value) || 0)}
-                        placeholder="0.00"
-                        className="w-full px-3.5 py-2 pl-8 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-black text-sm text-slate-900"
-                      />
-                      <IndianRupee size={13} className="absolute left-2.5 top-3 text-slate-400 pointer-events-none" />
-                    </div>
-                  </div>
-
-                  {/* Commodity & Quantity */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block font-bold text-slate-700 text-xs mb-1">Commodity</label>
-                      <select
-                        value={formData.commodity}
-                        onChange={e => setFormData(prev => ({ ...prev, commodity: e.target.value }))}
-                        className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
-                      >
-                        <option>Coal</option>
-                        <option>Iron Ore</option>
-                        <option>Sand</option>
-                        <option>Aggregates</option>
-                        <option>Limestone</option>
-                        <option>Steel</option>
-                        <option>Cement</option>
-                        <option>General Cargo</option>
-                        <option>Civil Materials</option>
-                        <option value="Add New">Add Custom...</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block font-bold text-slate-700 text-xs mb-1">Unit</label>
-                      <select
-                        value={formData.contractQuantityUnit}
-                        onChange={e => setFormData(prev => ({ ...prev, contractQuantityUnit: e.target.value }))}
-                        className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
-                      >
-                        <option>Tons</option>
-                        <option>Metric Tons</option>
-                        <option>KL (Kilo Liters)</option>
-                        <option>CUM (Cubic Meters)</option>
-                        <option>Pieces</option>
-                        <option>Units</option>
-                        <option>Hours</option>
-                        <option>Nos</option>
-                        <option value="Add New">Add Custom...</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Custom Commodity / Unit if selected */}
-                  {(formData.commodity === 'Add New' || formData.contractQuantityUnit === 'Add New') && (
-                    <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-200 space-y-2">
-                      {formData.commodity === 'Add New' && (
-                        <div>
-                          <label className="block font-bold text-amber-900 text-[11px] mb-1">Custom Commodity Name</label>
-                          <input
-                            type="text"
-                            required
-                            value={formData.customCommodity}
-                            onChange={e => setFormData(prev => ({ ...prev, customCommodity: e.target.value }))}
-                            placeholder="e.g. Bauxite"
-                            className="w-full px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-xs font-medium"
-                          />
-                        </div>
-                      )}
-                      {formData.contractQuantityUnit === 'Add New' && (
-                        <div>
-                          <label className="block font-bold text-amber-900 text-[11px] mb-1">Custom Unit</label>
-                          <input
-                            type="text"
-                            required
-                            value={formData.customQuantityUnit}
-                            onChange={e => setFormData(prev => ({ ...prev, customQuantityUnit: e.target.value }))}
-                            placeholder="e.g. Truckloads"
-                            className="w-full px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-xs font-medium"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Contract Quantity */}
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1">Contract Quantity</label>
-                    <input
-                      type="text"
-                      value={formData.contractQuantity}
-                      onChange={e => handleContractQuantityChange(e.target.value)}
-                      placeholder="e.g. 50,000"
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
-                    />
-                  </div>
-
-                  {/* Estimated Budget with auto-calculation */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block font-bold text-slate-700 text-xs">Estimated Budget (₹)</label>
-                      {Number(formData.ratePerUnit) > 0 && parseFloat(formData.contractQuantity.replace(/,/g, '')) > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const qty = parseFloat(formData.contractQuantity.replace(/,/g, '')) || 0;
-                            const rate = Number(formData.ratePerUnit) || 0;
-                            setFormData(prev => ({ ...prev, estimatedCost: Math.round(qty * rate) }));
-                          }}
-                          className="text-[10px] text-blue-600 hover:text-blue-800 font-bold inline-flex items-center gap-1 hover:underline cursor-pointer"
-                        >
-                          <Calculator size={11} />
-                          Auto: ₹{(parseFloat(formData.contractQuantity.replace(/,/g, '')) * Number(formData.ratePerUnit)).toLocaleString()}
-                        </button>
-                      )}
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="0"
-                        step="100"
-                        value={formData.estimatedCost || ''}
-                        onChange={e => setFormData(prev => ({ ...prev, estimatedCost: parseFloat(e.target.value) || 0 }))}
-                        placeholder="0.00"
-                        className="w-full px-3.5 py-2.5 pl-8 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-black text-sm text-slate-900"
-                      />
-                      <IndianRupee size={13} className="absolute left-2.5 top-3.5 text-slate-400 pointer-events-none" />
-                    </div>
-                  </div>
-
-                  {/* Payment Terms */}
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1">Payment Terms</label>
-                    <select
-                      value={formData.paymentTerms}
-                      onChange={e => setFormData(prev => ({ ...prev, paymentTerms: e.target.value }))}
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
-                    >
-                      <option>Net 15 Days</option>
-                      <option>Net 30 Days</option>
-                      <option>Net 45 Days</option>
-                      <option>Net 60 Days</option>
-                      <option>100% on Billing</option>
-                      <option>20% Advance, 80% on Delivery</option>
-                      <option>30% Advance, 70% on Completion</option>
-                      <option value="Custom">Custom Terms...</option>
-                    </select>
-                  </div>
-
-                  {formData.paymentTerms === 'Custom' && (
-                    <div>
-                      <label className="block font-bold text-slate-700 text-xs mb-1">Custom Terms Details</label>
-                      <input
-                        type="text"
-                        value={formData.customPaymentTerms}
-                        onChange={e => setFormData(prev => ({ ...prev, customPaymentTerms: e.target.value }))}
-                        placeholder="e.g. 50% mobilization advance, balance weekly RA bills"
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none text-xs font-medium"
-                      />
-                    </div>
-                  )}
-                </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block font-bold text-slate-700 text-xs mb-1.5">
+                  Work Order Title <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.title}
+                  onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="e.g., Coal Transport & Stacking Operations Phase 1"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium text-xs text-slate-800"
+                />
               </div>
 
-              {/* Card 5: Transit Loss & Variance */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-4">
-                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
-                  <div className="h-8 w-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-                    <Scale size={16} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-900">Loss & Variance Allowance</h3>
-                    <p className="text-[11px] text-slate-400">Acceptable transit shrinkage tolerance</p>
-                  </div>
-                </div>
+              <div>
+                <label className="block font-bold text-slate-700 text-xs mb-1.5">
+                  Client Name or ID
+                </label>
+                <input
+                  type="text"
+                  value={formData.clientName}
+                  onChange={e => setFormData(prev => ({ ...prev, clientName: e.target.value }))}
+                  placeholder="e.g., Tata Steel / CLI-1002"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium text-xs text-slate-800"
+                />
+              </div>
 
-                <div>
-                  <label className="block font-bold text-slate-700 text-xs mb-2">
-                    Loss Applicable?
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, isLossApplicable: false, allowedLossPercent: 0 }))}
-                      className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
-                        !formData.isLossApplicable
-                          ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                      }`}
-                    >
-                      No (Zero Loss)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, isLossApplicable: true, allowedLossPercent: prev.allowedLossPercent || 0.5 }))}
-                      className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
-                        formData.isLossApplicable
-                          ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
-                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                      }`}
-                    >
-                      Yes (Allowed)
-                    </button>
-                  </div>
-                </div>
-
-                {formData.isLossApplicable && (
-                  <div className="pt-2 border-t border-slate-100">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block font-bold text-slate-700 text-xs">Allowed Loss %</label>
-                      <span className="text-[10px] text-amber-700 font-semibold">Shrinkage threshold</span>
-                    </div>
-                    <div className="relative mb-2">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.05"
-                        value={formData.allowedLossPercent || ''}
-                        onChange={e => setFormData(prev => ({ ...prev, allowedLossPercent: parseFloat(e.target.value) || 0 }))}
-                        placeholder="0.50"
-                        className="w-full px-3.5 py-2 pr-8 rounded-xl bg-amber-50/50 border border-amber-300 focus:outline-none font-bold text-xs text-amber-900"
-                      />
-                      <Percent size={13} className="absolute right-3 top-2.5 text-amber-500 pointer-events-none" />
-                    </div>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {[0.25, 0.50, 1.0, 1.5, 2.0].map(pct => (
-                        <button
-                          key={pct}
-                          type="button"
-                          onClick={() => setFormData(prev => ({ ...prev, allowedLossPercent: pct }))}
-                          className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${
-                            formData.allowedLossPercent === pct
-                              ? 'bg-amber-600 text-white border-amber-600'
-                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-amber-50'
-                          }`}
+              {/* Division Multi-Select */}
+              <div className="relative" ref={divisionDropdownRef}>
+                <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center justify-between">
+                  <span>Division(s)</span>
+                  {formData.selectedDivisions.length > 0 && (
+                    <span className="text-[10px] text-blue-600 font-bold">
+                      {formData.selectedDivisions.length} selected
+                    </span>
+                  )}
+                </label>
+                <div
+                  onClick={() => setIsDivisionDropdownOpen(prev => !prev)}
+                  className="min-h-[42px] w-full px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-[#46B351]/20 focus-within:border-[#46B351]"
+                >
+                  {formData.selectedDivisions.length === 0 ? (
+                    <span className="text-slate-400 text-xs py-1">Select Division(s)...</span>
+                  ) : (
+                    formData.selectedDivisions.map(divName => (
+                      <span
+                        key={divName}
+                        className="inline-flex items-center gap-1 bg-white border border-slate-200 text-slate-800 text-[11px] font-semibold px-2 py-0.5 rounded-lg shadow-2xs"
+                      >
+                        <Network size={10} className="text-blue-500 shrink-0" />
+                        <span className="truncate max-w-[120px]">{divName}</span>
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleDivision(divName);
+                          }}
+                          className="text-slate-400 hover:text-rose-500 rounded-full cursor-pointer ml-0.5"
                         >
-                          {pct}%
-                        </button>
-                      ))}
-                    </div>
+                          <X size={12} />
+                        </span>
+                      </span>
+                    ))
+                  )}
+                  <ChevronDown size={14} className="ml-auto text-slate-400 shrink-0" />
+                </div>
+
+                {isDivisionDropdownOpen && (
+                  <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-2 max-h-56 overflow-y-auto space-y-1">
+                    {divisions.length === 0 ? (
+                      <div className="text-xs text-slate-400 p-2 text-center">No divisions available</div>
+                    ) : (
+                      divisions.map(d => {
+                        const isSelected = formData.selectedDivisions.includes(d.name);
+                        return (
+                          <div
+                            key={d.id}
+                            onClick={() => handleToggleDivision(d.name)}
+                            className={`flex items-center justify-between p-2 rounded-lg cursor-pointer text-xs transition-colors ${
+                              isSelected ? 'bg-blue-50 text-blue-900 font-bold' : 'hover:bg-slate-50 text-slate-700'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 truncate pr-2">
+                              <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                                isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 bg-white'
+                              }`}>
+                                {isSelected && <Check size={11} />}
+                              </div>
+                              <span className="truncate">{d.name}</span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 )}
               </div>
 
-              {/* Card 6: Contract Timeline & Status */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-4">
-                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
-                  <div className="h-8 w-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold">
-                    <Calendar size={16} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-900">Timeline & Execution</h3>
-                    <p className="text-[11px] text-slate-400">Project dates & operational status</p>
-                  </div>
+              {/* Work Site Multi-Select */}
+              <div className="relative" ref={worksiteDropdownRef}>
+                <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center justify-between">
+                  <span>Work Site(s)</span>
+                  {formData.selectedWorksiteIds.length > 0 && (
+                    <span className="text-[10px] text-[#46B351] font-bold">
+                      {formData.selectedWorksiteIds.length} selected
+                    </span>
+                  )}
+                </label>
+                <div
+                  onClick={() => setIsWorksiteDropdownOpen(prev => !prev)}
+                  className="min-h-[42px] w-full px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-[#46B351]/20 focus-within:border-[#46B351]"
+                >
+                  {formData.selectedWorksiteIds.length === 0 ? (
+                    <span className="text-slate-400 text-xs py-1">Select Work Site(s)...</span>
+                  ) : (
+                    formData.selectedWorksiteIds.map(siteId => {
+                      const s = worksites.find(ws => String(ws.id) === siteId || ws.worksiteId === siteId);
+                      const label = s?.name || siteId;
+                      return (
+                        <span
+                          key={siteId}
+                          className="inline-flex items-center gap-1 bg-white border border-slate-200 text-slate-800 text-[11px] font-semibold px-2 py-0.5 rounded-lg shadow-2xs"
+                        >
+                          <MapPin size={10} className="text-[#46B351] shrink-0" />
+                          <span className="truncate max-w-[140px]">{label}</span>
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleWorksite(siteId);
+                            }}
+                            className="text-slate-400 hover:text-rose-500 rounded-full cursor-pointer ml-0.5"
+                          >
+                            <X size={12} />
+                          </span>
+                        </span>
+                      );
+                    })
+                  )}
+                  <ChevronDown size={14} className="ml-auto text-slate-400 shrink-0" />
                 </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1">Start Date</label>
-                    <input
-                      type="date"
-                      value={formData.startDate}
-                      onChange={e => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
-                    />
+                {isWorksiteDropdownOpen && (
+                  <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-2 max-h-56 overflow-y-auto space-y-1">
+                    {worksites.length === 0 ? (
+                      <div className="text-xs text-slate-400 p-2 text-center">No worksites available</div>
+                    ) : (
+                      worksites.map(site => {
+                        const siteId = String(site.worksiteId || site.id);
+                        const isSelected = formData.selectedWorksiteIds.includes(siteId);
+                        return (
+                          <div
+                            key={site.id}
+                            onClick={() => handleToggleWorksite(siteId)}
+                            className={`flex items-center justify-between p-2 rounded-lg cursor-pointer text-xs transition-colors ${
+                              isSelected ? 'bg-emerald-50 text-emerald-900 font-bold' : 'hover:bg-slate-50 text-slate-700'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 truncate pr-2">
+                              <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                                isSelected ? 'bg-[#46B351] border-[#46B351] text-white' : 'border-slate-300 bg-white'
+                              }`}>
+                                {isSelected && <Check size={11} />}
+                              </div>
+                              <span className="truncate">{site.name}</span>
+                              {site.location && (
+                                <span className="text-[10px] text-slate-400 truncate">({site.location})</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
+                )}
+              </div>
+            </div>
+          </div>
 
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1">End Date / Due Date</label>
-                    <input
-                      type="date"
-                      value={formData.endDate}
-                      onChange={e => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
-                    />
-                  </div>
+          {/* Section 2: Origin, Destination & Multi-Modal Transit */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-emerald-50 text-[#46B351] flex items-center justify-center font-bold">
+                  <MapPin size={16} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900">2. Origin, Destination & Transit Logistics</h3>
+                  <p className="text-[11px] text-slate-400">Loading location, unloading point, project site address, and multi-modal transport</p>
+                </div>
+              </div>
+              <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
+                Logistics & Route
+              </span>
+            </div>
 
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1">Execution Status</label>
-                    <select
-                      value={formData.status}
-                      onChange={e => setFormData(prev => ({ ...prev, status: e.target.value as any }))}
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Completed">Completed</option>
-                      <option value="On Hold">On Hold</option>
-                      <option value="Cancelled">Cancelled</option>
-                    </select>
-                  </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center gap-1.5">
+                  <MapPin size={13} className="text-blue-500" />
+                  Loading Location (Origin / Start Point)
+                </label>
+                <input
+                  type="text"
+                  value={formData.loadingLocation}
+                  onChange={e => setFormData(prev => ({ ...prev, loadingLocation: e.target.value }))}
+                  placeholder="e.g. Talcher Coal Mines Siding #3, Angul, Odisha"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium text-xs text-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center gap-1.5">
+                  <MapPin size={13} className="text-rose-500" />
+                  Unloading Location (Destination / End Point)
+                </label>
+                <input
+                  type="text"
+                  value={formData.unloadingLocation}
+                  onChange={e => setFormData(prev => ({ ...prev, unloadingLocation: e.target.value }))}
+                  placeholder="e.g. NTPC Thermal Power Plant Bunker #2, Ramagundam"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium text-xs text-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 text-xs mb-1.5">
+                  Project Location Address <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.projectLocationAddress}
+                  onChange={e => setFormData(prev => ({ ...prev, projectLocationAddress: e.target.value }))}
+                  placeholder="e.g., North Expressway Sector 4, Terminal Dock A"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
+                />
+              </div>
+
+              {/* Mode(s) of Transport */}
+              <div className="pt-1">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block font-bold text-slate-700 text-xs">
+                    Mode(s) of Transport <span className="text-slate-400 font-normal">(Select all that apply for multi-modal transit)</span>
+                  </label>
+                  <span className="text-xs text-emerald-600 font-bold">
+                    {formData.selectedTransportModes.join(', ') || 'Select mode'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { id: 'Road', label: 'Road Transit', sub: 'Trucks / Trailers', icon: Truck },
+                    { id: 'Rail', label: 'Rail Transit', sub: 'Rakes / Freight Trains', icon: Train },
+                    { id: 'Ship', label: 'Ship / Water', sub: 'Barges / Coastal Vessel', icon: Ship },
+                    { id: 'Air', label: 'Air Cargo', sub: 'Airfreight Charter', icon: Plane }
+                  ].map(({ id, label, sub, icon: ModeIcon }) => {
+                    const isSelected = formData.selectedTransportModes.includes(id);
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => handleToggleTransportMode(id)}
+                        className={`p-3 rounded-2xl border flex items-center gap-3 transition-all cursor-pointer text-left ${
+                          isSelected
+                            ? 'bg-emerald-50/80 border-[#46B351] text-emerald-950 font-bold shadow-xs ring-2 ring-[#46B351]/20'
+                            : 'bg-slate-50 border-slate-200 text-slate-600 font-medium hover:bg-slate-100 hover:text-slate-800'
+                        }`}
+                      >
+                        <div className={`p-2 rounded-xl shrink-0 ${isSelected ? 'bg-[#46B351] text-white shadow-xs' : 'bg-white border border-slate-200 text-slate-500'}`}>
+                          <ModeIcon size={18} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold truncate">{label}</p>
+                          <p className="text-[10px] text-slate-400 truncate">{sub}</p>
+                        </div>
+                        {isSelected && <Check size={14} className="ml-auto text-[#46B351] shrink-0" />}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Section 3: Permitted Loss & Variance */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-4">
+            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
+              <div className="h-8 w-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                <Scale size={16} />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-slate-900">3. Loss & Variance Allowance</h3>
+                <p className="text-[11px] text-slate-400">Acceptable transit shrinkage or material loss tolerance</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block font-bold text-slate-700 text-xs mb-2">
+                  Loss Applicable?
+                </label>
+                <div className="grid grid-cols-2 gap-3 max-w-sm">
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, isLossApplicable: false, allowedLossPercent: 0 }))}
+                    className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
+                      !formData.isLossApplicable
+                        ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    No (Zero Loss)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, isLossApplicable: true, allowedLossPercent: prev.allowedLossPercent || 0.5 }))}
+                    className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
+                      formData.isLossApplicable
+                        ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    Yes (Allowed)
+                  </button>
+                </div>
+              </div>
+
+              {formData.isLossApplicable && (
+                <div className="pt-2 border-t border-slate-100 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block font-bold text-slate-700 text-xs">Allowed Loss %</label>
+                    <span className="text-[10px] text-amber-700 font-semibold">Shrinkage threshold</span>
+                  </div>
+                  <div className="relative max-w-sm">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.05"
+                      value={formData.allowedLossPercent || ''}
+                      onChange={e => setFormData(prev => ({ ...prev, allowedLossPercent: parseFloat(e.target.value) || 0 }))}
+                      placeholder="0.50"
+                      className="w-full px-3.5 py-2.5 pr-8 rounded-xl bg-amber-50/50 border border-amber-300 focus:outline-none font-bold text-xs text-amber-900"
+                    />
+                    <Percent size={13} className="absolute right-3 top-3 text-amber-500 pointer-events-none" />
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                    {[0.25, 0.50, 1.0, 1.5, 2.0].map(pct => (
+                      <button
+                        key={pct}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, allowedLossPercent: pct }))}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${
+                          formData.allowedLossPercent === pct
+                            ? 'bg-amber-600 text-white border-amber-600'
+                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-amber-50'
+                        }`}
+                      >
+                        {pct}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Section 4: Commercial Valuation & Terms */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
+            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
+              <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                <IndianRupee size={16} />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-slate-900">4. Commercial Terms & Valuation</h3>
+                <p className="text-[11px] text-slate-400">Rate / Unit, contract quantity, estimated budget, and payment terms</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* Rate Type */}
+              <div>
+                <label className="block font-bold text-slate-700 text-xs mb-1.5">Rate Type</label>
+                <select
+                  value={formData.rateType}
+                  onChange={e => setFormData(prev => ({ ...prev, rateType: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
+                >
+                  <option>Per Ton</option>
+                  <option>Per Metric Ton</option>
+                  <option>Per Trip</option>
+                  <option>Per KM</option>
+                  <option>Per CUM</option>
+                  <option>Fixed / Lump Sum</option>
+                  <option>Hourly</option>
+                  <option value="Add Custom">Custom Rate Type...</option>
+                </select>
+              </div>
+
+              {formData.rateType === 'Add Custom' && (
+                <div>
+                  <label className="block font-bold text-slate-700 text-xs mb-1.5">Specify Custom Rate Type</label>
+                  <input
+                    type="text"
+                    value={formData.customRateType}
+                    onChange={e => setFormData(prev => ({ ...prev, customRateType: e.target.value }))}
+                    placeholder="e.g. Per Container / Per Bag"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none text-xs font-medium"
+                  />
+                </div>
+              )}
+
+              {/* Rate / Unit (₹) */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block font-bold text-slate-700 text-xs">Rate / Unit (₹)</label>
+                  <span className="text-[10px] text-slate-400">Base billing rate</span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.ratePerUnit || ''}
+                    onChange={e => handleRatePerUnitChange(parseFloat(e.target.value) || 0)}
+                    placeholder="0.00"
+                    className="w-full px-3.5 py-2.5 pl-8 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-black text-sm text-slate-900"
+                  />
+                  <IndianRupee size={13} className="absolute left-2.5 top-3.5 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Commodity */}
+              <div>
+                <label className="block font-bold text-slate-700 text-xs mb-1.5">Commodity</label>
+                <select
+                  value={formData.commodity}
+                  onChange={e => setFormData(prev => ({ ...prev, commodity: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
+                >
+                  <option>Coal</option>
+                  <option>Iron Ore</option>
+                  <option>Sand</option>
+                  <option>Aggregates</option>
+                  <option>Limestone</option>
+                  <option>Steel</option>
+                  <option>Cement</option>
+                  <option>General Cargo</option>
+                  <option>Civil Materials</option>
+                  <option value="Add New">Add Custom...</option>
+                </select>
+              </div>
+
+              {formData.commodity === 'Add New' && (
+                <div>
+                  <label className="block font-bold text-amber-900 text-xs mb-1.5">Custom Commodity Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.customCommodity}
+                    onChange={e => setFormData(prev => ({ ...prev, customCommodity: e.target.value }))}
+                    placeholder="e.g. Bauxite"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-amber-50/50 border border-amber-300 text-xs font-medium"
+                  />
+                </div>
+              )}
+
+              {/* Quantity Unit of Measurement */}
+              <div>
+                <label className="block font-bold text-slate-700 text-xs mb-1.5">Quantity Unit of Measurement</label>
+                <select
+                  value={formData.contractQuantityUnit}
+                  onChange={e => setFormData(prev => ({ ...prev, contractQuantityUnit: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
+                >
+                  <option>Tons</option>
+                  <option>Metric Tons</option>
+                  <option>KL (Kilo Liters)</option>
+                  <option>CUM (Cubic Meters)</option>
+                  <option>Pieces</option>
+                  <option>Units</option>
+                  <option>Hours</option>
+                  <option>Nos</option>
+                  <option value="Add New">Add Custom...</option>
+                </select>
+              </div>
+
+              {formData.contractQuantityUnit === 'Add New' && (
+                <div>
+                  <label className="block font-bold text-amber-900 text-xs mb-1.5">Custom Unit</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.customQuantityUnit}
+                    onChange={e => setFormData(prev => ({ ...prev, customQuantityUnit: e.target.value }))}
+                    placeholder="e.g. Truckloads"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-amber-50/50 border border-amber-300 text-xs font-medium"
+                  />
+                </div>
+              )}
+
+              {/* Contract Quantity */}
+              <div>
+                <label className="block font-bold text-slate-700 text-xs mb-1.5">Contract Quantity</label>
+                <input
+                  type="text"
+                  value={formData.contractQuantity}
+                  onChange={e => handleContractQuantityChange(e.target.value)}
+                  placeholder="e.g. 50,000"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
+                />
+              </div>
+
+              {/* Estimated Budget with auto-calculation */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block font-bold text-slate-700 text-xs">Estimated Budget (₹)</label>
+                  {Number(formData.ratePerUnit) > 0 && parseFloat(formData.contractQuantity.replace(/,/g, '')) > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const qty = parseFloat(formData.contractQuantity.replace(/,/g, '')) || 0;
+                        const rate = Number(formData.ratePerUnit) || 0;
+                        setFormData(prev => ({ ...prev, estimatedCost: Math.round(qty * rate) }));
+                      }}
+                      className="text-[10px] text-blue-600 hover:text-blue-800 font-bold inline-flex items-center gap-1 hover:underline cursor-pointer"
+                    >
+                      <Calculator size={11} />
+                      Auto-calculate: ₹{(parseFloat(formData.contractQuantity.replace(/,/g, '')) * Number(formData.ratePerUnit)).toLocaleString()}
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={formData.estimatedCost || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, estimatedCost: parseFloat(e.target.value) || 0 }))}
+                    placeholder="0.00"
+                    className="w-full px-3.5 py-2.5 pl-8 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-black text-sm text-slate-900"
+                  />
+                  <IndianRupee size={13} className="absolute left-2.5 top-3.5 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Payment Terms */}
+              <div>
+                <label className="block font-bold text-slate-700 text-xs mb-1.5">Payment Terms</label>
+                <select
+                  value={formData.paymentTerms}
+                  onChange={e => setFormData(prev => ({ ...prev, paymentTerms: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
+                >
+                  <option>Net 15 Days</option>
+                  <option>Net 30 Days</option>
+                  <option>Net 45 Days</option>
+                  <option>Net 60 Days</option>
+                  <option>100% on Billing</option>
+                  <option>20% Advance, 80% on Delivery</option>
+                  <option>30% Advance, 70% on Completion</option>
+                  <option value="Custom">Custom Terms...</option>
+                </select>
+              </div>
+
+              {formData.paymentTerms === 'Custom' && (
+                <div>
+                  <label className="block font-bold text-slate-700 text-xs mb-1.5">Custom Terms Details</label>
+                  <input
+                    type="text"
+                    value={formData.customPaymentTerms}
+                    onChange={e => setFormData(prev => ({ ...prev, customPaymentTerms: e.target.value }))}
+                    placeholder="e.g. 50% mobilization advance, balance weekly RA bills"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none text-xs font-medium"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Section 5: Scope of Work & Guidelines */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
+            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
+              <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                <FileText size={16} />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-slate-900">5. Scope of Work & Safety Guidelines</h3>
+                <p className="text-[11px] text-slate-400">Detailed operational instructions, deliverables, and compliance directives</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block font-bold text-slate-700 text-xs mb-1.5">Scope of Work & Objectives</label>
+                <textarea
+                  rows={3}
+                  value={formData.description}
+                  onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Outline operational procedures, deliverables, loading handling protocols, machinery and manpower deployed..."
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800 leading-relaxed"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center gap-1.5 text-amber-900">
+                  <AlertTriangle size={13} className="text-amber-600" />
+                  Safety & Compliance Protocol Notes
+                </label>
+                <textarea
+                  rows={2}
+                  value={formData.notes}
+                  onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="e.g. Mandatory PPE at siding, tare weight calibration every 10 trips, lock-out tag-out on plant delivery point..."
+                  className="w-full px-4 py-2.5 rounded-xl bg-amber-50/40 border border-amber-200 focus:outline-none focus:border-amber-400 font-medium text-xs text-amber-950 leading-relaxed"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 6: Timeline & Execution */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
+            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
+              <div className="h-8 w-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold">
+                <Calendar size={16} />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-slate-900">6. Timeline & Execution</h3>
+                <p className="text-[11px] text-slate-400">Project dates and operational status</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block font-bold text-slate-700 text-xs mb-1.5">Start Date</label>
+                <input
+                  type="date"
+                  value={formData.startDate}
+                  onChange={e => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 text-xs mb-1.5">End Date / Due Date</label>
+                <input
+                  type="date"
+                  value={formData.endDate}
+                  onChange={e => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 text-xs mb-1.5">Execution Status</label>
+                <select
+                  value={formData.status}
+                  onChange={e => setFormData(prev => ({ ...prev, status: e.target.value as any }))}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                  <option value="On Hold">On Hold</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           {/* Bottom Action Footer Card */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 sticky bottom-4 z-40">
             <div className="text-xs text-slate-500 font-medium">
               Review all operational & commercial details carefully before saving.
             </div>
@@ -1604,170 +1591,171 @@ export default function WorkOrdersPage() {
           </div>
         </div>
 
-        {/* Dossier Body Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            
-            {/* Transit Route & Logistics Banner */}
-            {(viewingOrder.loadingLocation || viewingOrder.unloadingLocation || viewingOrder.transportModes) && (
-              <div className="bg-gradient-to-r from-blue-50/80 via-white to-slate-50 p-6 rounded-3xl border border-blue-200/80 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs uppercase font-black tracking-wider text-blue-900 flex items-center gap-2">
-                    <MapPin size={16} className="text-blue-600" />
-                    Multi-Modal Transit Route & Logistics
-                  </span>
-                  {viewingOrder.transportModes && (
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {viewingOrder.transportModes.split(',').map(m => m.trim()).filter(Boolean).map(mode => (
-                        <span key={mode} className="inline-flex items-center gap-1 text-xs font-bold bg-white text-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs">
-                          {mode.toLowerCase().includes('rail') ? <Train size={13} className="text-amber-600" /> :
-                           mode.toLowerCase().includes('ship') ? <Ship size={13} className="text-blue-600" /> :
-                           mode.toLowerCase().includes('air') ? <Plane size={13} className="text-indigo-600" /> :
-                           <Truck size={13} className="text-emerald-600" />}
-                          {mode}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                  <div className="bg-white p-4 rounded-2xl border border-blue-100 shadow-2xs">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Origin (Loading Location)</span>
-                    <p className="font-bold text-slate-800 text-sm">{viewingOrder.loadingLocation || 'Standard Depot / Siding'}</p>
-                  </div>
-                  <div className="bg-white p-4 rounded-2xl border border-blue-100 shadow-2xs">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Destination (Unloading Location)</span>
-                    <p className="font-bold text-slate-800 text-sm">{viewingOrder.unloadingLocation || 'Client Worksite'}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Scope of Work */}
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-3">
-              <h3 className="font-bold text-sm text-slate-900 uppercase tracking-wider">Scope of Work & Objectives</h3>
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-xs font-medium text-slate-700 leading-relaxed">
-                {viewingOrder.description || 'No detailed scope description provided.'}
-              </div>
-            </div>
-
-            {/* Safety & Compliance Directives */}
-            {viewingOrder.notes && (
-              <div className="bg-white rounded-3xl border border-amber-200/80 shadow-sm p-6 sm:p-7 space-y-3">
-                <h3 className="font-bold text-sm text-amber-950 uppercase tracking-wider flex items-center gap-2">
-                  <AlertTriangle size={16} className="text-amber-600" /> Safety & Compliance Protocol
-                </h3>
-                <div className="p-4 bg-amber-50/60 rounded-2xl border border-amber-200 text-xs font-semibold text-amber-950 leading-relaxed">
-                  {viewingOrder.notes}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-6">
-            {/* Commercial Terms & Valuation */}
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-4">
-              <h3 className="font-bold text-sm text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-                <IndianRupee size={16} className="text-blue-600" /> Commercial & Billing Terms
-              </h3>
-
-              <div className="space-y-3 text-xs">
-                <div className="p-3 bg-slate-50 rounded-xl flex items-center justify-between">
-                  <span className="text-slate-500 font-medium">Rate / Unit</span>
-                  <span className="font-bold text-slate-800">
-                    {Number(viewingOrder.ratePerUnit) > 0 ? `₹${Number(viewingOrder.ratePerUnit).toLocaleString()}` : '—'}
-                    <span className="text-slate-400 font-normal ml-1">({viewingOrder.rateType || 'Per Ton'})</span>
-                  </span>
-                </div>
-
-                <div className="p-3 bg-slate-50 rounded-xl flex items-center justify-between">
-                  <span className="text-slate-500 font-medium">Estimated Budget</span>
-                  <span className="font-black text-slate-900 text-sm">
-                    ₹{Number(viewingOrder.estimatedCost || 0).toLocaleString()}
-                  </span>
-                </div>
-
-                <div className="p-3 bg-slate-50 rounded-xl flex items-center justify-between">
-                  <span className="text-slate-500 font-medium">Commodity & Quantity</span>
-                  <span className="font-bold text-slate-800">
-                    {viewingOrder.commodity || 'General Cargo'} — {Number(viewingOrder.contractQuantity || 0).toLocaleString()} {viewingOrder.contractQuantityUnit || 'Units'}
-                  </span>
-                </div>
-
-                <div className="p-3 bg-slate-50 rounded-xl flex items-center justify-between">
-                  <span className="text-slate-500 font-medium">Payment Terms</span>
-                  <span className="font-bold text-slate-800">{viewingOrder.paymentTerms || 'Net 30 Days'}</span>
-                </div>
-
-                <div className="p-3 bg-slate-50 rounded-xl flex items-center justify-between">
-                  <span className="text-slate-500 font-medium">Permitted Loss</span>
-                  <span className={`font-bold ${viewingOrder.isLossApplicable ? 'text-amber-700' : 'text-slate-700'}`}>
-                    {viewingOrder.isLossApplicable ? `${viewingOrder.allowedLossPercent || 0}% Allowed` : 'Zero Loss Allowed'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* General Metadata */}
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-4">
-              <h3 className="font-bold text-sm text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-                <Building2 size={16} className="text-indigo-600" /> Project Assignment & Site
-              </h3>
-
-              <div className="space-y-3 text-xs">
-                <div className="p-3 bg-slate-50 rounded-xl">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Client Name / Code</span>
-                  <span className="font-bold text-slate-800">{viewingOrder.clientName || 'Unassigned'} {viewingOrder.clientCode ? `(${viewingOrder.clientCode})` : ''}</span>
-                </div>
-
-                <div className="p-3 bg-slate-50 rounded-xl">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Work Site & Address</span>
-                  <span className="font-bold text-slate-800 block">{viewingOrder.worksiteName || 'Unassigned Worksite'}</span>
-                  {viewingOrder.projectLocationAddress && (
-                    <span className="text-slate-500 text-[11px] block mt-0.5">{viewingOrder.projectLocationAddress}</span>
-                  )}
-                </div>
-
-                <div className="p-3 bg-slate-50 rounded-xl">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Operational Division</span>
-                  <span className="font-bold text-slate-800">{viewingOrder.divisionName || 'None'}</span>
-                </div>
-
-                <div className="p-3 bg-slate-50 rounded-xl">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Timeline</span>
-                  <span className="font-bold text-slate-800">
-                    {viewingOrder.startDate ? new Date(viewingOrder.startDate).toLocaleDateString() : 'Start'}
-                    {' → '}
-                    {(viewingOrder.endDate || viewingOrder.dueDate) ? new Date(viewingOrder.endDate || viewingOrder.dueDate!).toLocaleDateString() : 'End'}
-                  </span>
-                </div>
-
-                {/* Quick Status Updater */}
-                <div className="pt-2 border-t border-slate-100">
-                  <label className="block font-bold text-slate-700 mb-1 text-[11px] uppercase tracking-wider">
-                    Update Execution Status
-                  </label>
-                  <div className="grid grid-cols-3 gap-2 mt-1">
-                    {['In Progress', 'Completed', 'On Hold'].map(st => (
-                      <button
-                        key={st}
-                        type="button"
-                        onClick={() => handleStatusChange(viewingOrder.id, st)}
-                        className={`py-1.5 px-2 rounded-xl font-bold text-xs transition-all border cursor-pointer ${
-                          viewingOrder.status === st
-                            ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
-                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
-                        }`}
-                      >
-                        {st}
-                      </button>
+        {/* Dossier Body Layout (One by One Below) */}
+        <div className="space-y-6 max-w-4xl mx-auto">
+          
+          {/* Section 1: Transit Route & Logistics Banner */}
+          {(viewingOrder.loadingLocation || viewingOrder.unloadingLocation || viewingOrder.transportModes) && (
+            <div className="bg-gradient-to-r from-blue-50/80 via-white to-slate-50 p-6 rounded-3xl border border-blue-200/80 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs uppercase font-black tracking-wider text-blue-900 flex items-center gap-2">
+                  <MapPin size={16} className="text-blue-600" />
+                  Multi-Modal Transit Route & Logistics
+                </span>
+                {viewingOrder.transportModes && (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {viewingOrder.transportModes.split(',').map(m => m.trim()).filter(Boolean).map(mode => (
+                      <span key={mode} className="inline-flex items-center gap-1 text-xs font-bold bg-white text-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs">
+                        {mode.toLowerCase().includes('rail') ? <Train size={13} className="text-amber-600" /> :
+                         mode.toLowerCase().includes('ship') ? <Ship size={13} className="text-blue-600" /> :
+                         mode.toLowerCase().includes('air') ? <Plane size={13} className="text-indigo-600" /> :
+                         <Truck size={13} className="text-emerald-600" />}
+                        {mode}
+                      </span>
                     ))}
                   </div>
+                )}
+              </div>
+
+              {/* Origin & Destination stacked one by one below */}
+              <div className="space-y-3 pt-2">
+                <div className="bg-white p-4 rounded-2xl border border-blue-100 shadow-2xs">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1 flex items-center gap-1.5">
+                    <MapPin size={12} className="text-blue-500" /> Origin (Loading Location)
+                  </span>
+                  <p className="font-bold text-slate-800 text-sm">{viewingOrder.loadingLocation || 'Standard Depot / Siding'}</p>
+                </div>
+                <div className="bg-white p-4 rounded-2xl border border-blue-100 shadow-2xs">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1 flex items-center gap-1.5">
+                    <MapPin size={12} className="text-rose-500" /> Destination (Unloading Location)
+                  </span>
+                  <p className="font-bold text-slate-800 text-sm">{viewingOrder.unloadingLocation || 'Client Worksite'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Section 2: Commercial Terms & Valuation */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-4">
+            <h3 className="font-bold text-sm text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
+              <IndianRupee size={16} className="text-blue-600" /> Commercial & Billing Terms
+            </h3>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-3.5 bg-slate-50 rounded-xl flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Rate / Unit</span>
+                <span className="font-bold text-slate-800">
+                  {Number(viewingOrder.ratePerUnit) > 0 ? `₹${Number(viewingOrder.ratePerUnit).toLocaleString()}` : '—'}
+                  <span className="text-slate-400 font-normal ml-1">({viewingOrder.rateType || 'Per Ton'})</span>
+                </span>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 rounded-xl flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Estimated Budget</span>
+                <span className="font-black text-slate-900 text-sm">
+                  ₹{Number(viewingOrder.estimatedCost || 0).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 rounded-xl flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Commodity & Quantity</span>
+                <span className="font-bold text-slate-800">
+                  {viewingOrder.commodity || 'General Cargo'} — {Number(viewingOrder.contractQuantity || 0).toLocaleString()} {viewingOrder.contractQuantityUnit || 'Units'}
+                </span>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 rounded-xl flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Payment Terms</span>
+                <span className="font-bold text-slate-800">{viewingOrder.paymentTerms || 'Net 30 Days'}</span>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 rounded-xl flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Permitted Loss</span>
+                <span className={`font-bold ${viewingOrder.isLossApplicable ? 'text-amber-700' : 'text-slate-700'}`}>
+                  {viewingOrder.isLossApplicable ? `${viewingOrder.allowedLossPercent || 0}% Allowed` : 'Zero Loss Allowed'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Project Assignment & Site */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-4">
+            <h3 className="font-bold text-sm text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
+              <Building2 size={16} className="text-indigo-600" /> Project Assignment & Site
+            </h3>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-3.5 bg-slate-50 rounded-xl">
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">Client Name / Code</span>
+                <span className="font-bold text-slate-800">{viewingOrder.clientName || 'Unassigned'} {viewingOrder.clientCode ? `(${viewingOrder.clientCode})` : ''}</span>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 rounded-xl">
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">Work Site & Address</span>
+                <span className="font-bold text-slate-800 block">{viewingOrder.worksiteName || 'Unassigned Worksite'}</span>
+                {viewingOrder.projectLocationAddress && (
+                  <span className="text-slate-500 text-[11px] block mt-0.5">{viewingOrder.projectLocationAddress}</span>
+                )}
+              </div>
+
+              <div className="p-3.5 bg-slate-50 rounded-xl">
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">Operational Division</span>
+                <span className="font-bold text-slate-800">{viewingOrder.divisionName || 'None'}</span>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 rounded-xl">
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">Timeline</span>
+                <span className="font-bold text-slate-800">
+                  {viewingOrder.startDate ? new Date(viewingOrder.startDate).toLocaleDateString() : 'Start'}
+                  {' → '}
+                  {(viewingOrder.endDate || viewingOrder.dueDate) ? new Date(viewingOrder.endDate || viewingOrder.dueDate).toLocaleDateString() : 'End'}
+                </span>
+              </div>
+
+              {/* Quick Status Updater */}
+              <div className="pt-2 border-t border-slate-100">
+                <label className="block font-bold text-slate-700 mb-1 text-[11px] uppercase tracking-wider">
+                  Update Execution Status
+                </label>
+                <div className="grid grid-cols-3 gap-2 mt-1">
+                  {['In Progress', 'Completed', 'On Hold'].map(st => (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => handleStatusChange(viewingOrder.id, st)}
+                      className={`py-1.5 px-2 rounded-xl font-bold text-xs transition-all border cursor-pointer ${
+                        viewingOrder.status === st
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      {st}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Section 4: Scope of Work */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-3">
+            <h3 className="font-bold text-sm text-slate-900 uppercase tracking-wider">Scope of Work & Objectives</h3>
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-xs font-medium text-slate-700 leading-relaxed">
+              {viewingOrder.description || 'No detailed scope description provided.'}
+            </div>
+          </div>
+
+          {/* Section 5: Safety & Compliance Directives */}
+          {viewingOrder.notes && (
+            <div className="bg-white rounded-3xl border border-amber-200/80 shadow-sm p-6 sm:p-7 space-y-3">
+              <h3 className="font-bold text-sm text-amber-950 uppercase tracking-wider flex items-center gap-2">
+                <AlertTriangle size={16} className="text-amber-600" /> Safety & Compliance Protocol
+              </h3>
+              <div className="p-4 bg-amber-50/60 rounded-2xl border border-amber-200 text-xs font-semibold text-amber-950 leading-relaxed">
+                {viewingOrder.notes}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Modal for project conversion from Dossier */}
