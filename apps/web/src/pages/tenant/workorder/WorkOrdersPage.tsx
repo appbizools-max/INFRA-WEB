@@ -1076,118 +1076,14 @@ export default function WorkOrdersPage() {
             </div>
           </div>
 
-          {/* Section 3: Permitted Loss & Variance */}
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-4">
-            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
-              <div className="h-8 w-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-                <Scale size={16} />
-              </div>
-              <div>
-                <h3 className="font-bold text-sm text-slate-900">3. Loss & Variance Allowance</h3>
-                <p className="text-[11px] text-slate-400">Acceptable transit shrinkage or material loss tolerance</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-              {/* Circular Radio Buttons: Yes or No */}
-              <div>
-                <label className="block font-bold text-slate-700 text-xs mb-2.5">
-                  Loss Applicable?
-                </label>
-                <div className="flex items-center gap-6 pt-1">
-                  {/* Yes Option with Circular Button */}
-                  <label
-                    onClick={() => setFormData(prev => ({ ...prev, isLossApplicable: true, allowedLossPercent: prev.allowedLossPercent || 0.5 }))}
-                    className="flex items-center gap-2.5 cursor-pointer select-none group"
-                  >
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                      formData.isLossApplicable 
-                        ? 'border-[#46B351] bg-[#46B351]' 
-                        : 'border-slate-300 bg-white group-hover:border-slate-400'
-                    }`}>
-                      {formData.isLossApplicable && (
-                        <div className="w-2 h-2 rounded-full bg-white" />
-                      )}
-                    </div>
-                    <span className={`text-xs font-bold ${formData.isLossApplicable ? 'text-slate-900' : 'text-slate-600'}`}>
-                      Yes
-                    </span>
-                  </label>
-
-                  {/* No Option with Circular Button */}
-                  <label
-                    onClick={() => setFormData(prev => ({ ...prev, isLossApplicable: false, allowedLossPercent: 0 }))}
-                    className="flex items-center gap-2.5 cursor-pointer select-none group"
-                  >
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                      !formData.isLossApplicable 
-                        ? 'border-[#46B351] bg-[#46B351]' 
-                        : 'border-slate-300 bg-white group-hover:border-slate-400'
-                    }`}>
-                      {!formData.isLossApplicable && (
-                        <div className="w-2 h-2 rounded-full bg-white" />
-                      )}
-                    </div>
-                    <span className={`text-xs font-bold ${!formData.isLossApplicable ? 'text-slate-900' : 'text-slate-600'}`}>
-                      No
-                    </span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Allowed Loss % Side by Side */}
-              {formData.isLossApplicable ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="block font-bold text-slate-700 text-xs">Allowed Loss %</label>
-                    <span className="text-[10px] text-amber-700 font-semibold">Shrinkage threshold</span>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.05"
-                      value={formData.allowedLossPercent || ''}
-                      onChange={e => setFormData(prev => ({ ...prev, allowedLossPercent: parseFloat(e.target.value) || 0 }))}
-                      placeholder="0.50"
-                      className="w-full px-3.5 py-2.5 pr-8 rounded-xl bg-amber-50/50 border border-amber-300 focus:outline-none font-bold text-xs text-amber-900"
-                    />
-                    <Percent size={13} className="absolute right-3 top-3 text-amber-500 pointer-events-none" />
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                    {[0.25, 0.50, 1.0, 1.5, 2.0].map(pct => (
-                      <button
-                        key={pct}
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, allowedLossPercent: pct }))}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${
-                          formData.allowedLossPercent === pct
-                            ? 'bg-amber-600 text-white border-amber-600'
-                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-amber-50'
-                        }`}
-                      >
-                        {pct}%
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-500">
-                  Zero loss tolerance: 100% of material must be delivered without shrinkage allowance.
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Section 4: Commercial Valuation & Terms */}
+          {/* Section 3: Commercial Terms & Valuation */}
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
             <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
               <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
                 <IndianRupee size={16} />
               </div>
               <div>
-                <h3 className="font-bold text-sm text-slate-900">4. Commercial Terms & Valuation</h3>
+                <h3 className="font-bold text-sm text-slate-900">3. Commercial Terms & Valuation</h3>
                 <p className="text-[11px] text-slate-400">Rate / Unit, contract quantity, estimated budget, and payment terms</p>
               </div>
             </div>
@@ -1389,6 +1285,110 @@ export default function WorkOrdersPage() {
                     placeholder="e.g. 50% mobilization advance, balance weekly RA bills"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none text-xs font-medium"
                   />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Section 4: Permitted Loss & Variance */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-4">
+            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
+              <div className="h-8 w-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                <Scale size={16} />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-slate-900">4. Loss & Variance Allowance</h3>
+                <p className="text-[11px] text-slate-400">Acceptable transit shrinkage or material loss tolerance</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+              {/* Circular Radio Buttons: Yes or No */}
+              <div>
+                <label className="block font-bold text-slate-700 text-xs mb-2.5">
+                  Loss Applicable?
+                </label>
+                <div className="flex items-center gap-6 pt-1">
+                  {/* Yes Option with Circular Button */}
+                  <label
+                    onClick={() => setFormData(prev => ({ ...prev, isLossApplicable: true, allowedLossPercent: prev.allowedLossPercent || 0.5 }))}
+                    className="flex items-center gap-2.5 cursor-pointer select-none group"
+                  >
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                      formData.isLossApplicable 
+                        ? 'border-[#46B351] bg-[#46B351]' 
+                        : 'border-slate-300 bg-white group-hover:border-slate-400'
+                    }`}>
+                      {formData.isLossApplicable && (
+                        <div className="w-2 h-2 rounded-full bg-white" />
+                      )}
+                    </div>
+                    <span className={`text-xs font-bold ${formData.isLossApplicable ? 'text-slate-900' : 'text-slate-600'}`}>
+                      Yes
+                    </span>
+                  </label>
+
+                  {/* No Option with Circular Button */}
+                  <label
+                    onClick={() => setFormData(prev => ({ ...prev, isLossApplicable: false, allowedLossPercent: 0 }))}
+                    className="flex items-center gap-2.5 cursor-pointer select-none group"
+                  >
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                      !formData.isLossApplicable 
+                        ? 'border-[#46B351] bg-[#46B351]' 
+                        : 'border-slate-300 bg-white group-hover:border-slate-400'
+                    }`}>
+                      {!formData.isLossApplicable && (
+                        <div className="w-2 h-2 rounded-full bg-white" />
+                      )}
+                    </div>
+                    <span className={`text-xs font-bold ${!formData.isLossApplicable ? 'text-slate-900' : 'text-slate-600'}`}>
+                      No
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Allowed Loss % Side by Side */}
+              {formData.isLossApplicable ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block font-bold text-slate-700 text-xs">Allowed Loss %</label>
+                    <span className="text-[10px] text-amber-700 font-semibold">Shrinkage threshold</span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.05"
+                      value={formData.allowedLossPercent || ''}
+                      onChange={e => setFormData(prev => ({ ...prev, allowedLossPercent: parseFloat(e.target.value) || 0 }))}
+                      placeholder="0.50"
+                      className="w-full px-3.5 py-2.5 pr-8 rounded-xl bg-amber-50/50 border border-amber-300 focus:outline-none font-bold text-xs text-amber-900"
+                    />
+                    <Percent size={13} className="absolute right-3 top-3 text-amber-500 pointer-events-none" />
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                    {[0.25, 0.50, 1.0, 1.5, 2.0].map(pct => (
+                      <button
+                        key={pct}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, allowedLossPercent: pct }))}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${
+                          formData.allowedLossPercent === pct
+                            ? 'bg-amber-600 text-white border-amber-600'
+                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-amber-50'
+                        }`}
+                      >
+                        {pct}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-500">
+                  Zero loss tolerance: 100% of material must be delivered without shrinkage allowance.
                 </div>
               )}
             </div>
