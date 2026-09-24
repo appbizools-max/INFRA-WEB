@@ -723,46 +723,41 @@ export default function WorkOrdersPage() {
           </div>
         )}
 
-        {/* Top Header Card (Static, Non-Floating) */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-4 max-w-5xl mx-auto w-full">
-          <div className="flex items-center gap-3.5">
+        {/* Top Header Bar (Slim, Compact & Static) */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs px-4 py-3 sm:px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 max-w-5xl mx-auto w-full">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => {
                 setIsCreateModalOpen(false);
                 resetForm();
               }}
-              className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3.5 py-2 rounded-xl transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer shrink-0"
             >
-              <ArrowLeft size={15} />
-              <span>Back to Work Orders</span>
+              <ArrowLeft size={14} />
+              <span>Back</span>
             </button>
-            <div className="h-5 w-px bg-slate-200 hidden sm:block" />
-            <div>
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                  {editingOrder ? `Edit Work Order (${editingOrder.orderNumber})` : 'Create New Work Order'}
-                </h1>
-                {editingOrder && (
-                  <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    {editingOrder.status}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Configure origin & destination logistics, multi-modal transport, permitted loss, commercial valuation, and schedule
-              </p>
+            <div className="h-4 w-px bg-slate-200 hidden sm:block" />
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
+                {editingOrder ? `Edit Work Order (${editingOrder.orderNumber})` : 'Create New Work Order'}
+              </h1>
+              {editingOrder && (
+                <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  {editingOrder.status}
+                </span>
+              )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 self-end md:self-auto">
+          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
             <button
               type="button"
               onClick={() => {
                 setIsCreateModalOpen(false);
                 resetForm();
               }}
-              className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -770,11 +765,11 @@ export default function WorkOrdersPage() {
               type="button"
               onClick={handleSubmit}
               disabled={saving}
-              className="px-6 py-2.5 rounded-xl bg-[#0F172A] hover:bg-slate-800 text-white font-bold text-xs shadow-sm hover:shadow transition-all flex items-center gap-2 cursor-pointer active:scale-98"
+              className="px-4 py-1.5 rounded-lg bg-[#0F172A] hover:bg-slate-800 text-white font-bold text-xs shadow-xs hover:shadow transition-all flex items-center gap-1.5 cursor-pointer active:scale-98"
             >
-              {saving && <div className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-              <Check size={14} className="text-[#46B351]" />
-              <span>{editingOrder ? 'Update Work Order' : 'Save & Create Work Order'}</span>
+              {saving && <div className="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+              <Check size={13} className="text-[#46B351]" />
+              <span>{editingOrder ? 'Update' : 'Save & Create'}</span>
             </button>
           </div>
         </div>
@@ -1524,41 +1519,36 @@ export default function WorkOrdersPage() {
           </div>
         )}
 
-        {/* Top Header Card */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-4 max-w-5xl mx-auto w-full">
-          <div className="flex items-center gap-3.5">
+        {/* Top Header Bar (Slim & Compact) */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs px-4 py-3 sm:px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 max-w-5xl mx-auto w-full">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setViewingOrder(null)}
-              className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3.5 py-2 rounded-xl transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer shrink-0"
             >
-              <ArrowLeft size={15} />
-              <span>Back to Work Orders</span>
+              <ArrowLeft size={14} />
+              <span>Back</span>
             </button>
-            <div className="h-5 w-px bg-slate-200 hidden sm:block" />
-            <div>
-              <div className="flex items-center gap-2.5">
-                <span className="font-mono text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-lg">
-                  {viewingOrder.orderNumber}
-                </span>
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                  {viewingOrder.title}
-                </h1>
-                {getStatusBadge(viewingOrder)}
-              </div>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Created on {viewingOrder.createdAt ? new Date(viewingOrder.createdAt).toLocaleDateString() : 'N/A'} · Work Order Master Dossier
-              </p>
+            <div className="h-4 w-px bg-slate-200 hidden sm:block" />
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                {viewingOrder.orderNumber}
+              </span>
+              <h1 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight truncate max-w-sm sm:max-w-md">
+                {viewingOrder.title}
+              </h1>
+              {getStatusBadge(viewingOrder)}
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 self-end md:self-auto">
+          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
             {viewingOrder.projectId ? (
               <Link
                 to={`/tenant/project-management/${viewingOrder.projectId}`}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-4 py-2 rounded-xl transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-lg transition-colors"
               >
-                <Briefcase size={14} /> View Project ({viewingOrder.projectId})
+                <Briefcase size={13} /> Project ({viewingOrder.projectId})
               </Link>
             ) : (
               <button
@@ -1567,9 +1557,9 @@ export default function WorkOrdersPage() {
                   const toConvert = viewingOrder;
                   handleOpenProjectConversionModal(toConvert);
                 }}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#0F172A] hover:bg-slate-800 px-4 py-2 rounded-xl shadow-sm transition-all cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#0F172A] hover:bg-slate-800 px-3.5 py-1.5 rounded-lg shadow-xs transition-all cursor-pointer"
               >
-                <FolderPlus size={14} className="text-[#46B351]" /> Create Project
+                <FolderPlus size={13} className="text-[#46B351]" /> Create Project
               </button>
             )}
 
@@ -1580,9 +1570,9 @@ export default function WorkOrdersPage() {
                 setViewingOrder(null);
                 handleOpenEdit(toEdit);
               }}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-4 py-2 rounded-xl transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
             >
-              <Edit2 size={13} className="text-[#46B351]" /> Edit Order
+              <Edit2 size={12} className="text-[#46B351]" /> Edit
             </button>
           </div>
         </div>
