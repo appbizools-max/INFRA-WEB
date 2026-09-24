@@ -4,7 +4,8 @@ import { useAuth } from '../../../context/AuthContext';
 import { 
   ClipboardList, Plus, Search, AlertCircle, Clock, CheckCircle2, 
   PauseCircle, XCircle, Eye, Edit2, Trash2, 
-  Calendar, MapPin, Briefcase, X, AlertTriangle, Network, FolderPlus, Package, UserCheck, Shield, Building2, Check, ChevronDown
+  Calendar, MapPin, Briefcase, X, AlertTriangle, Network, FolderPlus, Package, UserCheck, Shield, Building2, Check, ChevronDown,
+  Truck, Train, Ship, Plane, Percent, IndianRupee, ArrowRight, Scale, Calculator
 } from 'lucide-react';
 
 interface WorkOrder {
@@ -20,6 +21,14 @@ interface WorkOrder {
   worksiteId?: string;
   worksiteName?: string;
   projectLocationAddress?: string;
+  loadingLocation?: string;
+  unloadingLocation?: string;
+  transportModes?: string;
+  isLossApplicable?: boolean;
+  allowedLossPercent?: number;
+  rateType?: string;
+  ratePerUnit?: number;
+  paymentTerms?: string;
   commodity?: string;
   contractQuantity?: string;
   contractQuantityUnit?: string;
@@ -94,6 +103,16 @@ export default function WorkOrdersPage() {
     worksiteName: '',
     selectedWorksiteIds: [] as string[],
     projectLocationAddress: '',
+    loadingLocation: '',
+    unloadingLocation: '',
+    selectedTransportModes: ['Road'] as string[],
+    isLossApplicable: false,
+    allowedLossPercent: 0,
+    rateType: 'Per Ton',
+    customRateType: '',
+    ratePerUnit: 0,
+    paymentTerms: 'Net 30 Days',
+    customPaymentTerms: '',
     commodity: 'Coal',
     customCommodity: '',
     contractQuantity: '',
@@ -113,6 +132,44 @@ export default function WorkOrdersPage() {
   const [isDivisionDropdownOpen, setIsDivisionDropdownOpen] = useState(false);
   const worksiteDropdownRef = useRef<HTMLDivElement>(null);
   const divisionDropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleToggleTransportMode = (mode: string) => {
+    setFormData(prev => {
+      const exists = prev.selectedTransportModes.includes(mode);
+      const nextModes = exists 
+        ? prev.selectedTransportModes.filter(m => m !== mode)
+        : [...prev.selectedTransportModes, mode];
+      return {
+        ...prev,
+        selectedTransportModes: nextModes.length > 0 ? nextModes : [mode]
+      };
+    });
+  };
+
+  const handleContractQuantityChange = (val: string) => {
+    setFormData(prev => {
+      const cleanNum = parseFloat(val.replace(/,/g, '')) || 0;
+      const rate = Number(prev.ratePerUnit) || 0;
+      const newEstimated = (cleanNum > 0 && rate > 0) ? Math.round(cleanNum * rate) : prev.estimatedCost;
+      return {
+        ...prev,
+        contractQuantity: val,
+        estimatedCost: newEstimated
+      };
+    });
+  };
+
+  const handleRatePerUnitChange = (val: number) => {
+    setFormData(prev => {
+      const cleanNum = parseFloat(String(prev.contractQuantity).replace(/,/g, '')) || 0;
+      const newEstimated = (cleanNum > 0 && val > 0) ? Math.round(cleanNum * val) : prev.estimatedCost;
+      return {
+        ...prev,
+        ratePerUnit: val,
+        estimatedCost: newEstimated
+      };
+    });
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -271,6 +328,16 @@ export default function WorkOrdersPage() {
       worksiteName: '',
       selectedWorksiteIds: [],
       projectLocationAddress: '',
+      loadingLocation: '',
+      unloadingLocation: '',
+      selectedTransportModes: ['Road'],
+      isLossApplicable: false,
+      allowedLossPercent: 0,
+      rateType: 'Per Ton',
+      customRateType: '',
+      ratePerUnit: 0,
+      paymentTerms: 'Net 30 Days',
+      customPaymentTerms: '',
       commodity: 'Coal',
       customCommodity: '',
       contractQuantity: '',
@@ -302,6 +369,16 @@ export default function WorkOrdersPage() {
     const standardUnits = ['Tons', 'Metric Tons', 'KL (Kilo Liters)', 'CUM (Cubic Meters)', 'Pieces', 'Units', 'Hours', 'Nos'];
     const isCustomUnit = order.contractQuantityUnit && !standardUnits.includes(order.contractQuantityUnit);
 
+    const transportModesList = order.transportModes 
+      ? order.transportModes.split(',').map(m => m.trim()).filter(Boolean)
+      : ['Road'];
+
+    const standardRateTypes = ['Per Ton', 'Per Metric Ton', 'Per Trip', 'Per KM', 'Per CUM', 'Fixed / Lump Sum', 'Hourly'];
+    const isCustomRateType = order.rateType && !standardRateTypes.includes(order.rateType);
+
+    const standardPaymentTerms = ['Net 15 Days', 'Net 30 Days', 'Net 45 Days', 'Net 60 Days', '100% on Billing', '20% Advance, 80% on Delivery', '30% Advance, 70% on Completion'];
+    const isCustomPaymentTerms = order.paymentTerms && !standardPaymentTerms.includes(order.paymentTerms);
+
     const existingWorksiteIds = order.worksiteId
       ? order.worksiteId.split(',').map(s => s.trim()).filter(Boolean)
       : [];
@@ -329,6 +406,16 @@ export default function WorkOrdersPage() {
       worksiteName: order.worksiteName || '',
       selectedWorksiteIds: existingWorksiteIds,
       projectLocationAddress: order.projectLocationAddress || '',
+      loadingLocation: order.loadingLocation || '',
+      unloadingLocation: order.unloadingLocation || '',
+      selectedTransportModes: transportModesList.length > 0 ? transportModesList : ['Road'],
+      isLossApplicable: Boolean(order.isLossApplicable),
+      allowedLossPercent: order.allowedLossPercent !== undefined && order.allowedLossPercent !== null ? Number(order.allowedLossPercent) : 0,
+      rateType: isCustomRateType ? 'Add Custom' : (order.rateType || 'Per Ton'),
+      customRateType: isCustomRateType ? (order.rateType || '') : '',
+      ratePerUnit: order.ratePerUnit !== undefined && order.ratePerUnit !== null ? Number(order.ratePerUnit) : 0,
+      paymentTerms: isCustomPaymentTerms ? 'Custom' : (order.paymentTerms || 'Net 30 Days'),
+      customPaymentTerms: isCustomPaymentTerms ? (order.paymentTerms || '') : '',
       commodity: isCustomCommodity ? 'Add New' : (order.commodity || 'Coal'),
       customCommodity: isCustomCommodity ? (order.commodity || '') : '',
       contractQuantity: order.contractQuantity || '',
@@ -367,6 +454,9 @@ export default function WorkOrdersPage() {
     const finalClientName = formData.clientName?.trim() || null;
     const finalClientCode = formData.clientCode?.trim() || null;
 
+    const finalRateType = formData.rateType === 'Add Custom' ? formData.customRateType : formData.rateType;
+    const finalPaymentTerms = formData.paymentTerms === 'Custom' ? formData.customPaymentTerms : formData.paymentTerms;
+
     const payload = {
       title: formData.title,
       description: formData.description,
@@ -376,6 +466,14 @@ export default function WorkOrdersPage() {
       worksiteId: formData.worksiteId,
       worksiteName: formData.worksiteName,
       projectLocationAddress: formData.projectLocationAddress,
+      loadingLocation: formData.loadingLocation?.trim() || null,
+      unloadingLocation: formData.unloadingLocation?.trim() || null,
+      transportModes: formData.selectedTransportModes.join(', ') || 'Road',
+      isLossApplicable: Boolean(formData.isLossApplicable),
+      allowedLossPercent: formData.isLossApplicable ? (Number(formData.allowedLossPercent) || 0) : 0,
+      rateType: finalRateType || 'Per Ton',
+      ratePerUnit: Number(formData.ratePerUnit) || 0,
+      paymentTerms: finalPaymentTerms || 'Net 30 Days',
       commodity: finalCommodity,
       contractQuantity: formData.contractQuantity,
       contractQuantityUnit: finalUnit,
@@ -739,7 +837,7 @@ export default function WorkOrdersPage() {
                       )}
                     </td>
 
-                    {/* Worksite & Location */}
+                    {/* Worksite & Location / Route */}
                     <td className="py-3.5 px-4 whitespace-nowrap">
                       <div className="flex items-center gap-1.5 font-semibold text-slate-700">
                         <MapPin size={12} className="text-[#46B351] shrink-0" />
@@ -747,9 +845,24 @@ export default function WorkOrdersPage() {
                           {order.worksiteName || 'Unassigned Site'}
                         </span>
                       </div>
-                      {order.projectLocationAddress && (
+                      {(order.loadingLocation || order.unloadingLocation) ? (
+                        <div className="flex items-center gap-1 text-[10px] text-blue-700 font-semibold bg-blue-50 border border-blue-100 rounded px-1.5 py-0.5 mt-1 max-w-[210px] truncate" title={`${order.loadingLocation || 'Origin'} ➔ ${order.unloadingLocation || 'Destination'}`}>
+                          <span className="truncate max-w-[90px]">{order.loadingLocation || 'Origin'}</span>
+                          <ArrowRight size={10} className="shrink-0 text-blue-500" />
+                          <span className="truncate max-w-[90px]">{order.unloadingLocation || 'Destination'}</span>
+                        </div>
+                      ) : order.projectLocationAddress ? (
                         <div className="text-[10px] text-slate-400 truncate max-w-[200px] mt-0.5" title={order.projectLocationAddress}>
                           {order.projectLocationAddress}
+                        </div>
+                      ) : null}
+                      {order.transportModes && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {order.transportModes.split(',').map(m => m.trim()).filter(Boolean).map(m => (
+                            <span key={m} className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-medium border border-slate-200/60">
+                              {m}
+                            </span>
+                          ))}
                         </div>
                       )}
                     </td>
@@ -783,11 +896,21 @@ export default function WorkOrdersPage() {
                       )}
                     </td>
 
-                    {/* Estimated Budget */}
+                    {/* Estimated Budget & Commercial */}
                     <td className="py-3.5 px-4 whitespace-nowrap">
                       <span className="font-bold text-slate-800">
                         ₹{Number(order.estimatedCost || 0).toLocaleString()}
                       </span>
+                      {Number(order.ratePerUnit) > 0 && (
+                        <div className="text-[10px] text-slate-500 font-medium mt-0.5">
+                          ₹{Number(order.ratePerUnit).toLocaleString()} / {order.rateType || 'Ton'}
+                        </div>
+                      )}
+                      {order.isLossApplicable && (
+                        <div className="text-[9px] text-amber-700 font-semibold bg-amber-50 px-1.5 py-0.2 rounded w-fit mt-0.5 border border-amber-200/60">
+                          Loss: {order.allowedLossPercent || 0}%
+                        </div>
+                      )}
                     </td>
 
                     {/* Status Badge: Created if project exists, else Pending */}
@@ -1361,111 +1484,402 @@ export default function WorkOrdersPage() {
                 </div>
               </div>
 
-              {/* Project Location Address * */}
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">
-                  Project Location Address <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.projectLocationAddress}
-                  onChange={e => setFormData(prev => ({ ...prev, projectLocationAddress: e.target.value }))}
-                  placeholder="e.g., North Expressway Sector 4, Terminal Dock A"
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium"
-                />
-              </div>
-
-              {/* Commodity / Cargo & Contract Quantity & Unit */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {/* Commodity / Cargo */}
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Commodity / Cargo</label>
-                  <select
-                    value={formData.commodity}
-                    onChange={e => setFormData(prev => ({ ...prev, commodity: e.target.value }))}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-slate-700"
-                  >
-                    <option>Coal</option>
-                    <option>Iron Ore</option>
-                    <option>Sand</option>
-                    <option>Aggregates</option>
-                    <option>Limestone</option>
-                    <option>Steel</option>
-                    <option>Cement</option>
-                    <option>General Cargo</option>
-                    <option>Civil Materials</option>
-                    <option value="Add New">Add Custom...</option>
-                  </select>
+              {/* ── Section: Origin, Destination & Transit Modes ── */}
+              <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
+                  <div className="flex items-center gap-1.5 font-bold text-slate-800 text-xs">
+                    <MapPin size={14} className="text-[#46B351]" />
+                    <span>Origin, Destination & Transit Route</span>
+                  </div>
+                  <span className="text-[10px] text-slate-500 font-medium">Multi-point transit support</span>
                 </div>
 
-                {/* Contract Quantity */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Loading Location (Origin / Start Point)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.loadingLocation}
+                      onChange={e => setFormData(prev => ({ ...prev, loadingLocation: e.target.value }))}
+                      placeholder="e.g. Talcher Coal Mines Siding #3, Angul, Odisha"
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Unloading Location (Destination / End Point)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.unloadingLocation}
+                      onChange={e => setFormData(prev => ({ ...prev, unloadingLocation: e.target.value }))}
+                      placeholder="e.g. NTPC Thermal Power Plant Bunker #2, Ramagundam"
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Contract Quantity</label>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Project Location Address <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
-                    value={formData.contractQuantity}
-                    onChange={e => setFormData(prev => ({ ...prev, contractQuantity: e.target.value }))}
-                    placeholder="e.g. 50,000"
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium"
+                    required
+                    value={formData.projectLocationAddress}
+                    onChange={e => setFormData(prev => ({ ...prev, projectLocationAddress: e.target.value }))}
+                    placeholder="e.g., North Expressway Sector 4, Terminal Dock A"
+                    className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium"
                   />
                 </div>
 
-                {/* Unit */}
+                {/* Mode of Transport (Multi-select) */}
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Unit</label>
-                  <select
-                    value={formData.contractQuantityUnit}
-                    onChange={e => setFormData(prev => ({ ...prev, contractQuantityUnit: e.target.value }))}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-slate-700"
-                  >
-                    <option>Tons</option>
-                    <option>Metric Tons</option>
-                    <option>KL (Kilo Liters)</option>
-                    <option>CUM (Cubic Meters)</option>
-                    <option>Pieces</option>
-                    <option>Units</option>
-                    <option>Hours</option>
-                    <option>Nos</option>
-                    <option value="Add New">Add Custom...</option>
-                  </select>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block font-bold text-slate-700 text-xs">
+                      Mode(s) of Transport <span className="text-slate-400 font-normal">(Multiple selectable)</span>
+                    </label>
+                    <span className="text-[10px] text-emerald-600 font-bold">
+                      {formData.selectedTransportModes.join(', ') || 'Select mode'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { id: 'Road', label: 'Road Transit', icon: Truck },
+                      { id: 'Rail', label: 'Rail Transit', icon: Train },
+                      { id: 'Ship', label: 'Ship / Water', icon: Ship },
+                      { id: 'Air', label: 'Air Cargo', icon: Plane }
+                    ].map(({ id, label, icon: ModeIcon }) => {
+                      const isSelected = formData.selectedTransportModes.includes(id);
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => handleToggleTransportMode(id)}
+                          className={`p-2 rounded-xl border flex items-center gap-2 transition-all cursor-pointer text-left ${
+                            isSelected
+                              ? 'bg-emerald-50 border-[#46B351] text-emerald-950 font-bold shadow-2xs ring-1 ring-[#46B351]'
+                              : 'bg-white border-slate-200 text-slate-600 font-medium hover:bg-slate-100 hover:text-slate-800'
+                          }`}
+                        >
+                          <div className={`p-1 rounded-lg ${isSelected ? 'bg-[#46B351] text-white' : 'bg-slate-100 text-slate-500'}`}>
+                            <ModeIcon size={14} />
+                          </div>
+                          <span className="text-xs truncate">{label}</span>
+                          {isSelected && <Check size={12} className="ml-auto text-[#46B351] shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
-              {/* Custom Commodity or Unit when "Add New" is selected */}
-              {(formData.commodity === 'Add New' || formData.contractQuantityUnit === 'Add New') && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-amber-50/50 p-3 rounded-2xl border border-amber-200/60">
-                  {formData.commodity === 'Add New' && (
-                    <div>
-                      <label className="block font-bold text-amber-900 mb-1">Specify Custom Commodity <span className="text-rose-500">*</span></label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.customCommodity}
-                        onChange={e => setFormData(prev => ({ ...prev, customCommodity: e.target.value }))}
-                        placeholder="e.g. Bauxite"
-                        className="w-full px-3 py-1.5 rounded-xl bg-white border border-amber-300 focus:outline-none font-medium"
-                      />
+              {/* ── Section: Loss & Permitted Variance ── */}
+              <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
+                  <div className="flex items-center gap-1.5 font-bold text-slate-800 text-xs">
+                    <Scale size={14} className="text-amber-600" />
+                    <span>Transit Loss & Variance Allowance</span>
+                  </div>
+                  <span className="text-[10px] text-slate-500 font-medium">Permitted tolerance / shrinkage</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Loss Applicable?
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, isLossApplicable: false, allowedLossPercent: 0 }))}
+                        className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                          !formData.isLossApplicable
+                            ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        No (Zero Tolerance)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, isLossApplicable: true, allowedLossPercent: prev.allowedLossPercent || 0.5 }))}
+                        className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                          formData.isLossApplicable
+                            ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        Yes (Permitted Loss)
+                      </button>
                     </div>
-                  )}
-                  {formData.contractQuantityUnit === 'Add New' && (
+                  </div>
+
+                  {formData.isLossApplicable && (
                     <div>
-                      <label className="block font-bold text-amber-900 mb-1">Specify Custom Unit <span className="text-rose-500">*</span></label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.customQuantityUnit}
-                        onChange={e => setFormData(prev => ({ ...prev, customQuantityUnit: e.target.value }))}
-                        placeholder="e.g. Truckloads"
-                        className="w-full px-3 py-1.5 rounded-xl bg-white border border-amber-300 focus:outline-none font-medium"
-                      />
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block font-bold text-slate-700">Allowed Loss %</label>
+                        <span className="text-[10px] text-amber-700 font-semibold">Max acceptable variance</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.05"
+                            value={formData.allowedLossPercent || ''}
+                            onChange={e => setFormData(prev => ({ ...prev, allowedLossPercent: parseFloat(e.target.value) || 0 }))}
+                            placeholder="0.50"
+                            className="w-full px-3 py-1.5 pr-8 rounded-xl bg-white border border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-bold text-amber-900"
+                          />
+                          <Percent size={13} className="absolute right-2.5 top-2 text-amber-500 pointer-events-none" />
+                        </div>
+                        {/* Quick presets */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {[0.25, 0.50, 1.0, 2.0].map(pct => (
+                            <button
+                              key={pct}
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, allowedLossPercent: pct }))}
+                              className={`px-1.5 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
+                                formData.allowedLossPercent === pct
+                                  ? 'bg-amber-600 text-white border-amber-600'
+                                  : 'bg-white text-slate-600 border-slate-200 hover:bg-amber-50'
+                              }`}
+                            >
+                              {pct}%
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
-              )}
+              </div>
 
-              {/* Start Date, End Date, and Estimated Budget */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {/* ── Section: Commercial, Rate & Payment Terms ── */}
+              <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
+                  <div className="flex items-center gap-1.5 font-bold text-slate-800 text-xs">
+                    <IndianRupee size={14} className="text-blue-600" />
+                    <span>Commercial, Rate & Payment Terms</span>
+                  </div>
+                  <span className="text-[10px] text-slate-500 font-medium">Billing & contract valuation</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {/* Rate Type */}
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Rate Type</label>
+                    <select
+                      value={formData.rateType}
+                      onChange={e => setFormData(prev => ({ ...prev, rateType: e.target.value }))}
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-slate-700"
+                    >
+                      <option>Per Ton</option>
+                      <option>Per Metric Ton</option>
+                      <option>Per Trip</option>
+                      <option>Per KM</option>
+                      <option>Per CUM</option>
+                      <option>Fixed / Lump Sum</option>
+                      <option>Hourly</option>
+                      <option value="Add Custom">Custom Rate Type...</option>
+                    </select>
+                  </div>
+
+                  {/* Rate / Unit (₹) */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block font-bold text-slate-700">Rate / Unit (₹)</label>
+                      <span className="text-[10px] text-slate-400 font-normal">Base unit price</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formData.ratePerUnit || ''}
+                        onChange={e => handleRatePerUnitChange(parseFloat(e.target.value) || 0)}
+                        placeholder="0.00"
+                        className="w-full px-3 py-1.5 pl-7 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-slate-800"
+                      />
+                      <IndianRupee size={12} className="absolute left-2.5 top-2.5 text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {/* Payment Terms */}
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Payment Terms</label>
+                    <select
+                      value={formData.paymentTerms}
+                      onChange={e => setFormData(prev => ({ ...prev, paymentTerms: e.target.value }))}
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-slate-700"
+                    >
+                      <option>Net 15 Days</option>
+                      <option>Net 30 Days</option>
+                      <option>Net 45 Days</option>
+                      <option>Net 60 Days</option>
+                      <option>100% on Billing</option>
+                      <option>20% Advance, 80% on Delivery</option>
+                      <option>30% Advance, 70% on Completion</option>
+                      <option value="Custom">Custom Terms...</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Custom Rate Type */}
+                {formData.rateType === 'Add Custom' && (
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Specify Custom Rate Type</label>
+                    <input
+                      type="text"
+                      value={formData.customRateType}
+                      onChange={e => setFormData(prev => ({ ...prev, customRateType: e.target.value }))}
+                      placeholder="e.g. Per Bag / Per Container"
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-200 focus:outline-none font-medium"
+                    />
+                  </div>
+                )}
+
+                {/* Custom Payment Terms */}
+                {formData.paymentTerms === 'Custom' && (
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Enter Custom Payment Terms</label>
+                    <input
+                      type="text"
+                      value={formData.customPaymentTerms}
+                      onChange={e => setFormData(prev => ({ ...prev, customPaymentTerms: e.target.value }))}
+                      placeholder="e.g. 50% Mobilization Advance, Balance against weekly measured RA Bills"
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-200 focus:outline-none font-medium"
+                    />
+                  </div>
+                )}
+
+                {/* Commodity, Quantity & Unit */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Commodity / Cargo</label>
+                    <select
+                      value={formData.commodity}
+                      onChange={e => setFormData(prev => ({ ...prev, commodity: e.target.value }))}
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-slate-700"
+                    >
+                      <option>Coal</option>
+                      <option>Iron Ore</option>
+                      <option>Sand</option>
+                      <option>Aggregates</option>
+                      <option>Limestone</option>
+                      <option>Steel</option>
+                      <option>Cement</option>
+                      <option>General Cargo</option>
+                      <option>Civil Materials</option>
+                      <option value="Add New">Add Custom...</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Contract Quantity</label>
+                    <input
+                      type="text"
+                      value={formData.contractQuantity}
+                      onChange={e => handleContractQuantityChange(e.target.value)}
+                      placeholder="e.g. 50,000"
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Unit</label>
+                    <select
+                      value={formData.contractQuantityUnit}
+                      onChange={e => setFormData(prev => ({ ...prev, contractQuantityUnit: e.target.value }))}
+                      className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-slate-700"
+                    >
+                      <option>Tons</option>
+                      <option>Metric Tons</option>
+                      <option>KL (Kilo Liters)</option>
+                      <option>CUM (Cubic Meters)</option>
+                      <option>Pieces</option>
+                      <option>Units</option>
+                      <option>Hours</option>
+                      <option>Nos</option>
+                      <option value="Add New">Add Custom...</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Custom Commodity or Unit when "Add New" is selected */}
+                {(formData.commodity === 'Add New' || formData.contractQuantityUnit === 'Add New') && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-amber-50/50 p-2.5 rounded-xl border border-amber-200/60">
+                    {formData.commodity === 'Add New' && (
+                      <div>
+                        <label className="block font-bold text-amber-900 mb-1">Specify Custom Commodity <span className="text-rose-500">*</span></label>
+                        <input
+                          type="text"
+                          required
+                          value={formData.customCommodity}
+                          onChange={e => setFormData(prev => ({ ...prev, customCommodity: e.target.value }))}
+                          placeholder="e.g. Bauxite"
+                          className="w-full px-3 py-1.5 rounded-xl bg-white border border-amber-300 focus:outline-none font-medium"
+                        />
+                      </div>
+                    )}
+                    {formData.contractQuantityUnit === 'Add New' && (
+                      <div>
+                        <label className="block font-bold text-amber-900 mb-1">Specify Custom Unit <span className="text-rose-500">*</span></label>
+                        <input
+                          type="text"
+                          required
+                          value={formData.customQuantityUnit}
+                          onChange={e => setFormData(prev => ({ ...prev, customQuantityUnit: e.target.value }))}
+                          placeholder="e.g. Truckloads"
+                          className="w-full px-3 py-1.5 rounded-xl bg-white border border-amber-300 focus:outline-none font-medium"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Estimated Budget with auto-calculation helper */}
+                <div className="pt-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-bold text-slate-700">Estimated Budget (₹)</label>
+                    {Number(formData.ratePerUnit) > 0 && parseFloat(formData.contractQuantity.replace(/,/g, '')) > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const qty = parseFloat(formData.contractQuantity.replace(/,/g, '')) || 0;
+                          const rate = Number(formData.ratePerUnit) || 0;
+                          setFormData(prev => ({ ...prev, estimatedCost: Math.round(qty * rate) }));
+                        }}
+                        className="text-[10px] text-blue-600 hover:text-blue-800 font-bold inline-flex items-center gap-1 hover:underline cursor-pointer"
+                      >
+                        <Calculator size={11} />
+                        Auto-Sync: {formData.contractQuantity} × ₹{formData.ratePerUnit} = ₹{(parseFloat(formData.contractQuantity.replace(/,/g, '')) * Number(formData.ratePerUnit)).toLocaleString()}
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={formData.estimatedCost || ''}
+                      onChange={e => setFormData(prev => ({ ...prev, estimatedCost: parseFloat(e.target.value) || 0 }))}
+                      placeholder="0.00"
+                      className="w-full px-3.5 py-2 pl-7 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#46B351] font-black text-slate-900 text-sm"
+                    />
+                    <IndianRupee size={13} className="absolute left-2.5 top-3 text-slate-400 pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Start Date & End Date */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Start Date</label>
                   <input
@@ -1482,19 +1896,6 @@ export default function WorkOrdersPage() {
                     type="date"
                     value={formData.endDate}
                     onChange={e => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Estimated Budget (₹)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="100"
-                    value={formData.estimatedCost || ''}
-                    onChange={e => setFormData(prev => ({ ...prev, estimatedCost: parseFloat(e.target.value) || 0 }))}
-                    placeholder="0.00"
                     className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium"
                   />
                 </div>
@@ -1606,6 +2007,42 @@ export default function WorkOrdersPage() {
                 )}
               </div>
 
+              {/* Origin, Destination & Multi-Modal Transit Route */}
+              {(viewingOrder.loadingLocation || viewingOrder.unloadingLocation || viewingOrder.transportModes) && (
+                <div className="bg-gradient-to-r from-blue-50/70 to-slate-50 p-3.5 rounded-2xl border border-blue-200/60 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-blue-800 flex items-center gap-1">
+                      <MapPin size={12} className="text-blue-600" /> Transit Route & Logistics
+                    </span>
+                    {viewingOrder.transportModes && (
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {viewingOrder.transportModes.split(',').map(m => m.trim()).filter(Boolean).map(mode => (
+                          <span key={mode} className="inline-flex items-center gap-1 text-[10px] font-bold bg-white text-slate-700 px-2 py-0.5 rounded-md border border-slate-200 shadow-2xs">
+                            {mode.toLowerCase().includes('rail') ? <Train size={11} className="text-amber-600" /> :
+                             mode.toLowerCase().includes('ship') ? <Ship size={11} className="text-blue-600" /> :
+                             mode.toLowerCase().includes('air') ? <Plane size={11} className="text-indigo-600" /> :
+                             <Truck size={11} className="text-[#46B351]" />}
+                            {mode}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1 text-xs">
+                    <div className="flex-1 bg-white p-2 rounded-xl border border-blue-100">
+                      <span className="text-[9px] font-bold text-slate-400 block uppercase">Loading Location (Origin)</span>
+                      <span className="font-bold text-slate-800">{viewingOrder.loadingLocation || 'Standard Depot / Siding'}</span>
+                    </div>
+                    <ArrowRight size={16} className="text-blue-500 shrink-0" />
+                    <div className="flex-1 bg-white p-2 rounded-xl border border-blue-100">
+                      <span className="text-[9px] font-bold text-slate-400 block uppercase">Unloading Location (Destination)</span>
+                      <span className="font-bold text-slate-800">{viewingOrder.unloadingLocation || 'Delivery Site'}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Client, Site, Location Address & Division Section */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/70">
                 <div>
@@ -1643,8 +2080,37 @@ export default function WorkOrdersPage() {
                 )}
               </div>
 
-              {/* Commodity & Contract Quantity & Budget */}
-              <div className="grid grid-cols-3 gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/70">
+              {/* Commercial Terms & Valuation (Rate, Budget, Payment, Loss) */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/70">
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-slate-400">Rate / Unit</p>
+                  <p className="font-bold text-slate-800 text-xs mt-0.5">
+                    {Number(viewingOrder.ratePerUnit) > 0 ? `₹${Number(viewingOrder.ratePerUnit).toLocaleString()}` : '—'}
+                  </p>
+                  <span className="text-[10px] text-slate-500 font-medium block truncate">{viewingOrder.rateType || 'Per Ton'}</span>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-slate-400">Estimated Budget</p>
+                  <p className="font-black text-slate-900 text-xs mt-0.5">
+                    ₹{Number(viewingOrder.estimatedCost || 0).toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-slate-400">Payment Terms</p>
+                  <p className="font-bold text-slate-800 text-xs mt-0.5 truncate" title={viewingOrder.paymentTerms || undefined}>
+                    {viewingOrder.paymentTerms || 'Net 30 Days'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-slate-400">Permitted Loss</p>
+                  <p className={`font-bold text-xs mt-0.5 ${viewingOrder.isLossApplicable ? 'text-amber-700' : 'text-slate-600'}`}>
+                    {viewingOrder.isLossApplicable ? `${viewingOrder.allowedLossPercent || 0}% Allowed` : 'Zero Tolerance'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Commodity & Contract Quantity */}
+              <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/70">
                 <div>
                   <p className="text-[10px] uppercase font-bold text-slate-400">Commodity / Cargo</p>
                   <p className="font-bold text-slate-800 text-xs mt-0.5 flex items-center gap-1">
@@ -1657,12 +2123,6 @@ export default function WorkOrdersPage() {
                     {viewingOrder.contractQuantity
                       ? `${Number(viewingOrder.contractQuantity).toLocaleString()} ${viewingOrder.contractQuantityUnit || 'Units'}`
                       : 'Not specified'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase font-bold text-slate-400">Estimated Budget</p>
-                  <p className="font-black text-slate-900 text-xs mt-0.5">
-                    ₹{Number(viewingOrder.estimatedCost || 0).toLocaleString()}
                   </p>
                 </div>
               </div>

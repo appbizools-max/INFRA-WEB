@@ -2517,7 +2517,16 @@ app.get(['/api/tenant/project/:id', '/api/tenant/projects/detail/:id'], async (r
               actual_cost as "actualCost", client_name as "clientName", 
               client_code as "clientCode", project_location_address as "projectLocationAddress",
               commodity, contract_quantity as "contractQuantity", 
-              contract_quantity_unit as "contractQuantityUnit", created_at as "createdAt"
+              contract_quantity_unit as "contractQuantityUnit", 
+              loading_location as "loadingLocation",
+              unloading_location as "unloadingLocation",
+              transport_modes as "transportModes",
+              is_loss_applicable as "isLossApplicable",
+              allowed_loss_percent as "allowedLossPercent",
+              rate_type as "rateType",
+              rate_per_unit as "ratePerUnit",
+              payment_terms as "paymentTerms",
+              created_at as "createdAt"
        FROM tenant_work_orders 
        WHERE project_id = $1 
           OR ($2::text != '' AND order_number = $2)
@@ -3088,6 +3097,14 @@ app.get(['/api/tenant/work-orders/:firebaseUid', '/api/tenant/work-orders'], asy
          commodity,
          contract_quantity as "contractQuantity",
          contract_quantity_unit as "contractQuantityUnit",
+         loading_location as "loadingLocation",
+         unloading_location as "unloadingLocation",
+         transport_modes as "transportModes",
+         is_loss_applicable as "isLossApplicable",
+         allowed_loss_percent as "allowedLossPercent",
+         rate_type as "rateType",
+         rate_per_unit as "ratePerUnit",
+         payment_terms as "paymentTerms",
          estimated_cost as "estimatedCost",
          actual_cost as "actualCost",
          notes,
@@ -3131,6 +3148,14 @@ app.post('/api/tenant/work-orders', async (req, res) => {
     commodity,
     contractQuantity,
     contractQuantityUnit,
+    loadingLocation,
+    unloadingLocation,
+    transportModes,
+    isLossApplicable,
+    allowedLossPercent,
+    rateType,
+    ratePerUnit,
+    paymentTerms,
     estimatedCost,
     actualCost,
     notes
@@ -3166,6 +3191,7 @@ app.post('/api/tenant/work-orders', async (req, res) => {
     }
 
     const effectiveEndDate = endDate || dueDate || null;
+    const finalTransportModes = Array.isArray(transportModes) ? transportModes.join(', ') : (transportModes || '');
 
     const insertRes = await pool.query(
       `INSERT INTO tenant_work_orders 
@@ -3174,8 +3200,11 @@ app.post('/api/tenant/work-orders', async (req, res) => {
         worksite_id, worksite_name, assigned_staff_id, assigned_staff_name, 
         division_name, department_name, priority, status, 
         start_date, due_date, end_date, project_location_address, commodity, 
-        contract_quantity, contract_quantity_unit, estimated_cost, actual_cost, notes) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
+        contract_quantity, contract_quantity_unit, 
+        loading_location, unloading_location, transport_modes,
+        is_loss_applicable, allowed_loss_percent, rate_type, rate_per_unit, payment_terms,
+        estimated_cost, actual_cost, notes) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35)
        RETURNING 
          id,
          order_number as "orderNumber",
@@ -3201,6 +3230,14 @@ app.post('/api/tenant/work-orders', async (req, res) => {
          commodity,
          contract_quantity as "contractQuantity",
          contract_quantity_unit as "contractQuantityUnit",
+         loading_location as "loadingLocation",
+         unloading_location as "unloadingLocation",
+         transport_modes as "transportModes",
+         is_loss_applicable as "isLossApplicable",
+         allowed_loss_percent as "allowedLossPercent",
+         rate_type as "rateType",
+         rate_per_unit as "ratePerUnit",
+         payment_terms as "paymentTerms",
          estimated_cost as "estimatedCost",
          actual_cost as "actualCost",
          notes,
@@ -3231,6 +3268,14 @@ app.post('/api/tenant/work-orders', async (req, res) => {
         commodity || 'General Cargo',
         contractQuantity || null,
         contractQuantityUnit || 'Tons',
+        loadingLocation || null,
+        unloadingLocation || null,
+        finalTransportModes || null,
+        Boolean(isLossApplicable),
+        Number(allowedLossPercent) || 0,
+        rateType || 'Per Ton',
+        Number(ratePerUnit) || 0,
+        paymentTerms || 'Net 30 Days',
         Number(estimatedCost) || 0,
         Number(actualCost) || 0,
         notes || ''
@@ -3270,12 +3315,21 @@ app.put('/api/tenant/work-orders/:id', async (req, res) => {
     commodity,
     contractQuantity,
     contractQuantityUnit,
+    loadingLocation,
+    unloadingLocation,
+    transportModes,
+    isLossApplicable,
+    allowedLossPercent,
+    rateType,
+    ratePerUnit,
+    paymentTerms,
     estimatedCost,
     actualCost,
     notes
   } = req.body;
 
   const effectiveEndDate = endDate !== undefined ? endDate : dueDate;
+  const finalTransportModes = transportModes !== undefined ? (Array.isArray(transportModes) ? transportModes.join(', ') : transportModes) : undefined;
 
   try {
     const updateRes = await pool.query(
@@ -3302,11 +3356,19 @@ app.put('/api/tenant/work-orders/:id', async (req, res) => {
            commodity = COALESCE($20, commodity),
            contract_quantity = COALESCE($21, contract_quantity),
            contract_quantity_unit = COALESCE($22, contract_quantity_unit),
-           estimated_cost = COALESCE($23, estimated_cost),
-           actual_cost = COALESCE($24, actual_cost),
-           notes = COALESCE($25, notes),
+           loading_location = COALESCE($23, loading_location),
+           unloading_location = COALESCE($24, unloading_location),
+           transport_modes = COALESCE($25, transport_modes),
+           is_loss_applicable = COALESCE($26, is_loss_applicable),
+           allowed_loss_percent = COALESCE($27, allowed_loss_percent),
+           rate_type = COALESCE($28, rate_type),
+           rate_per_unit = COALESCE($29, rate_per_unit),
+           payment_terms = COALESCE($30, payment_terms),
+           estimated_cost = COALESCE($31, estimated_cost),
+           actual_cost = COALESCE($32, actual_cost),
+           notes = COALESCE($33, notes),
            updated_at = CURRENT_TIMESTAMP
-       WHERE id::text = $26 OR order_number = $26
+       WHERE id::text = $34 OR order_number = $34
        RETURNING 
          id,
          order_number as "orderNumber",
@@ -3332,6 +3394,14 @@ app.put('/api/tenant/work-orders/:id', async (req, res) => {
          commodity,
          contract_quantity as "contractQuantity",
          contract_quantity_unit as "contractQuantityUnit",
+         loading_location as "loadingLocation",
+         unloading_location as "unloadingLocation",
+         transport_modes as "transportModes",
+         is_loss_applicable as "isLossApplicable",
+         allowed_loss_percent as "allowedLossPercent",
+         rate_type as "rateType",
+         rate_per_unit as "ratePerUnit",
+         payment_terms as "paymentTerms",
          estimated_cost as "estimatedCost",
          actual_cost as "actualCost",
          notes,
@@ -3360,6 +3430,14 @@ app.put('/api/tenant/work-orders/:id', async (req, res) => {
         commodity,
         contractQuantity,
         contractQuantityUnit,
+        loadingLocation,
+        unloadingLocation,
+        finalTransportModes,
+        isLossApplicable !== undefined ? Boolean(isLossApplicable) : null,
+        allowedLossPercent !== undefined ? Number(allowedLossPercent) : null,
+        rateType,
+        ratePerUnit !== undefined ? Number(ratePerUnit) : null,
+        paymentTerms,
         estimatedCost !== undefined ? Number(estimatedCost) : null,
         actualCost !== undefined ? Number(actualCost) : null,
         notes,
@@ -3527,7 +3605,15 @@ app.post('/api/tenant/work-orders/:id/convert-to-project', async (req, res) => {
           clientCode: wo.client_code || null,
           division: effectiveDivision,
           notes: wo.notes,
-          description: wo.description
+          description: wo.description,
+          loadingLocation: wo.loading_location || null,
+          unloadingLocation: wo.unloading_location || null,
+          transportModes: wo.transport_modes || null,
+          isLossApplicable: wo.is_loss_applicable || false,
+          allowedLossPercent: wo.allowed_loss_percent || 0,
+          rateType: wo.rate_type || null,
+          ratePerUnit: wo.rate_per_unit || 0,
+          paymentTerms: wo.payment_terms || null
         }),
         customFieldsObj ? JSON.stringify(customFieldsObj) : null
       ]
@@ -3569,6 +3655,14 @@ app.post('/api/tenant/work-orders/:id/convert-to-project', async (req, res) => {
          commodity,
          contract_quantity as "contractQuantity",
          contract_quantity_unit as "contractQuantityUnit",
+         loading_location as "loadingLocation",
+         unloading_location as "unloadingLocation",
+         transport_modes as "transportModes",
+         is_loss_applicable as "isLossApplicable",
+         allowed_loss_percent as "allowedLossPercent",
+         rate_type as "rateType",
+         rate_per_unit as "ratePerUnit",
+         payment_terms as "paymentTerms",
          estimated_cost as "estimatedCost",
          actual_cost as "actualCost",
          notes,
@@ -6222,8 +6316,16 @@ app.listen(Number(port), '0.0.0.0', async () => {
     ALTER TABLE tenant_work_orders ADD COLUMN IF NOT EXISTS client_id TEXT;
     ALTER TABLE tenant_work_orders ADD COLUMN IF NOT EXISTS client_name TEXT;
     ALTER TABLE tenant_work_orders ADD COLUMN IF NOT EXISTS client_code TEXT;
+    ALTER TABLE tenant_work_orders ADD COLUMN IF NOT EXISTS loading_location TEXT;
+    ALTER TABLE tenant_work_orders ADD COLUMN IF NOT EXISTS unloading_location TEXT;
+    ALTER TABLE tenant_work_orders ADD COLUMN IF NOT EXISTS transport_modes TEXT;
+    ALTER TABLE tenant_work_orders ADD COLUMN IF NOT EXISTS is_loss_applicable BOOLEAN DEFAULT false;
+    ALTER TABLE tenant_work_orders ADD COLUMN IF NOT EXISTS allowed_loss_percent NUMERIC(5,2) DEFAULT 0.00;
+    ALTER TABLE tenant_work_orders ADD COLUMN IF NOT EXISTS rate_type VARCHAR(100) DEFAULT 'Per Ton';
+    ALTER TABLE tenant_work_orders ADD COLUMN IF NOT EXISTS rate_per_unit NUMERIC(15,2) DEFAULT 0.00;
+    ALTER TABLE tenant_work_orders ADD COLUMN IF NOT EXISTS payment_terms VARCHAR(255) DEFAULT 'Net 30 Days';
   `);
-  console.log('✅ Auto-created/verified tenant_work_orders table on server startup');
+  console.log('✅ Auto-created/verified tenant_work_orders table and extended commercial/location columns on server startup');
 
   // Auto-create tenant_project_transactions table
   await pool.query(`

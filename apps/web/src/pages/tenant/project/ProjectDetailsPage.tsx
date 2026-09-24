@@ -5,7 +5,8 @@ import {
   FileText, CheckCircle2, AlertCircle,
   TrendingUp, TrendingDown, Wallet, ShieldCheck,
   Building2, Search, ArrowUpRight, ArrowDownLeft,
-  Copy, Check, HardHat, RefreshCw
+  Copy, Check, HardHat, RefreshCw,
+  Truck, Train, Ship, Plane, ArrowRight, Scale
 } from 'lucide-react';
 
 interface WorkOrderDossier {
@@ -28,6 +29,14 @@ interface WorkOrderDossier {
   clientName: string;
   clientCode: string;
   projectLocationAddress: string;
+  loadingLocation?: string;
+  unloadingLocation?: string;
+  transportModes?: string;
+  isLossApplicable?: boolean;
+  allowedLossPercent?: number;
+  rateType?: string;
+  ratePerUnit?: number;
+  paymentTerms?: string;
   commodity: string;
   contractQuantity: string;
   contractQuantityUnit: string;
@@ -440,8 +449,45 @@ export default function ProjectDetailsPage() {
                 )}
               </div>
 
-              {/* Basic Fields */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              {/* Transit Route & Multi-Modal Transport */}
+              {wo && (wo.loadingLocation || wo.unloadingLocation || wo.transportModes) && (
+                <div className="bg-gradient-to-r from-blue-50/70 to-slate-50 p-4 rounded-2xl border border-blue-200/60 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-black tracking-wider text-blue-900 flex items-center gap-1.5">
+                      <MapPin size={13} className="text-blue-600" />
+                      Approved Transit Route & Logistics
+                    </span>
+                    {wo.transportModes && (
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {wo.transportModes.split(',').map(m => m.trim()).filter(Boolean).map(mode => (
+                          <span key={mode} className="inline-flex items-center gap-1 text-[10px] font-bold bg-white text-slate-700 px-2 py-0.5 rounded-md border border-slate-200 shadow-2xs">
+                            {mode.toLowerCase().includes('rail') ? <Train size={11} className="text-amber-600" /> :
+                             mode.toLowerCase().includes('ship') ? <Ship size={11} className="text-blue-600" /> :
+                             mode.toLowerCase().includes('air') ? <Plane size={11} className="text-indigo-600" /> :
+                             <Truck size={11} className="text-emerald-600" />}
+                            {mode}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1 text-xs">
+                    <div className="flex-1 bg-white p-2.5 rounded-xl border border-blue-100">
+                      <span className="text-[9px] font-bold text-slate-400 block uppercase">Origin (Loading Location)</span>
+                      <span className="font-bold text-slate-800">{wo.loadingLocation || 'Designated Loading Depot'}</span>
+                    </div>
+                    <ArrowRight size={16} className="text-blue-500 shrink-0" />
+                    <div className="flex-1 bg-white p-2.5 rounded-xl border border-blue-100">
+                      <span className="text-[9px] font-bold text-slate-400 block uppercase">Destination (Unloading Location)</span>
+                      <span className="font-bold text-slate-800">{wo.unloadingLocation || project.location || 'Project Delivery Site'}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Basic Fields & Commercials */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 text-xs">
                 <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-0.5">Client Name / ID</span>
                   <span className="font-bold text-slate-800">{wo?.clientName || project.customer || '—'}</span>
@@ -472,6 +518,22 @@ export default function ProjectDetailsPage() {
                     {project.contractStartDate || 'TBD'} to {project.contractEndDate || 'TBD'}
                   </span>
                   <span className="block text-[10px] text-indigo-600 font-bold mt-0.5">{durationDays} Days Duration</span>
+                </div>
+
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-0.5">Commercial Rate & Terms</span>
+                  <span className="font-bold text-slate-800">
+                    {wo && Number(wo.ratePerUnit) > 0 ? `₹${Number(wo.ratePerUnit).toLocaleString()} / ${wo.rateType || 'Ton'}` : 'As per Milestones'}
+                  </span>
+                  <span className="block text-[10px] text-slate-500 mt-0.5">Terms: {wo?.paymentTerms || 'Net 30 Days'}</span>
+                </div>
+
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-0.5">Permitted Loss / Variance</span>
+                  <span className={`font-bold ${wo?.isLossApplicable ? 'text-amber-700' : 'text-slate-700'}`}>
+                    {wo?.isLossApplicable ? `${wo.allowedLossPercent || 0}% Allowed Tolerance` : 'Zero Tolerance (No Loss Allowed)'}
+                  </span>
+                  <span className="block text-[10px] text-slate-400 mt-0.5">Operational Shrinkage Policy</span>
                 </div>
               </div>
 
