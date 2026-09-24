@@ -5,7 +5,7 @@ import {
   ClipboardList, Plus, Search, AlertCircle, Clock, CheckCircle2, 
   PauseCircle, XCircle, Eye, Edit2, Trash2, 
   Calendar, MapPin, Briefcase, X, AlertTriangle, Network, FolderPlus, Package, UserCheck, Shield, Building2, Check, ChevronDown,
-  Truck, Train, Ship, Plane, Percent, IndianRupee, ArrowRight, ArrowLeft, Scale, Calculator
+  Truck, Train, Ship, Plane, Percent, IndianRupee, ArrowRight, ArrowLeft, Scale, Calculator, FileText
 } from 'lucide-react';
 
 interface WorkOrder {
@@ -662,7 +662,7 @@ export default function WorkOrdersPage() {
       }
 
       if (statusFilter !== 'All') {
-        const isCreated = Boolean(order.projectId) || order.status === 'Created';
+        const isCreated = Boolean(order.projectId) || (order.status as string) === 'Created';
         if (statusFilter === 'Created' && !isCreated) return false;
         if (statusFilter === 'Pending' && isCreated) return false;
       }
