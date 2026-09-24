@@ -723,101 +723,59 @@ export default function WorkOrdersPage() {
           </div>
         )}
 
-        {/* Sticky Top Header & Key Fields Summary Bar */}
-        <div className="sticky top-2 z-30 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200 shadow-md p-4 sm:p-5 space-y-3 transition-all max-w-5xl mx-auto w-full">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsCreateModalOpen(false);
-                  resetForm();
-                }}
-                className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
-              >
-                <ArrowLeft size={14} />
-                <span>Back</span>
-              </button>
-              <div className="h-5 w-px bg-slate-200 hidden sm:block" />
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight truncate">
-                    {editingOrder ? `Edit Work Order (${editingOrder.orderNumber})` : (formData.title || 'New Work Order')}
-                  </h1>
-                  {editingOrder && (
-                    <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-                      {editingOrder.status}
-                    </span>
-                  )}
-                </div>
+        {/* Top Header Card (Static, Non-Floating) */}
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-4 max-w-5xl mx-auto w-full">
+          <div className="flex items-center gap-3.5">
+            <button
+              type="button"
+              onClick={() => {
+                setIsCreateModalOpen(false);
+                resetForm();
+              }}
+              className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3.5 py-2 rounded-xl transition-colors cursor-pointer"
+            >
+              <ArrowLeft size={15} />
+              <span>Back to Work Orders</span>
+            </button>
+            <div className="h-5 w-px bg-slate-200 hidden sm:block" />
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  {editingOrder ? `Edit Work Order (${editingOrder.orderNumber})` : 'Create New Work Order'}
+                </h1>
+                {editingOrder && (
+                  <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    {editingOrder.status}
+                  </span>
+                )}
               </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 self-end md:self-auto shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsCreateModalOpen(false);
-                  resetForm();
-                }}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={saving}
-                className="px-5 py-2 rounded-xl bg-[#0F172A] hover:bg-slate-800 text-white font-bold text-xs shadow-sm hover:shadow transition-all flex items-center gap-2 cursor-pointer active:scale-98"
-              >
-                {saving && <div className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-                <Check size={14} className="text-[#46B351]" />
-                <span>{editingOrder ? 'Update Work Order' : 'Save & Create Work Order'}</span>
-              </button>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Configure origin & destination logistics, multi-modal transport, permitted loss, commercial valuation, and schedule
+              </p>
             </div>
           </div>
 
-          {/* Key Important Fields Summary Strip (Always visible while scrolling) */}
-          <div className="pt-2 border-t border-slate-100 flex items-center gap-2 sm:gap-3 flex-wrap text-xs">
-            {/* Client */}
-            <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/80">
-              <span className="text-[10px] text-slate-400 font-bold uppercase">Client:</span>
-              <span className="font-bold text-slate-800 truncate max-w-[120px]">
-                {formData.clientName || 'Not Set'}
-              </span>
-            </div>
-
-            {/* Quantity */}
-            <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/80">
-              <span className="text-[10px] text-slate-400 font-bold uppercase">Qty:</span>
-              <span className="font-bold text-slate-800">
-                {formData.contractQuantity ? `${formData.contractQuantity} ${formData.contractQuantityUnit}` : '—'}
-              </span>
-            </div>
-
-            {/* Rate / Unit */}
-            <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/80">
-              <span className="text-[10px] text-slate-400 font-bold uppercase">Rate:</span>
-              <span className="font-bold text-slate-800">
-                {Number(formData.ratePerUnit) > 0 ? `₹${Number(formData.ratePerUnit).toLocaleString()} / ${formData.rateType}` : '—'}
-              </span>
-            </div>
-
-            {/* Estimated Budget */}
-            <div className="flex items-center gap-1.5 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
-              <span className="text-[10px] text-emerald-700 font-bold uppercase">Budget:</span>
-              <span className="font-black text-emerald-800">
-                ₹{Number(formData.estimatedCost || 0).toLocaleString()}
-              </span>
-            </div>
-
-            {/* Loss Tolerance */}
-            <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/80 sm:ml-auto">
-              <span className="text-[10px] text-slate-400 font-bold uppercase">Loss:</span>
-              <span className={`font-bold ${formData.isLossApplicable ? 'text-amber-700' : 'text-slate-700'}`}>
-                {formData.isLossApplicable ? `${formData.allowedLossPercent || 0}% Allowed` : '0% (Zero Loss)'}
-              </span>
-            </div>
+          <div className="flex items-center gap-2.5 self-end md:self-auto">
+            <button
+              type="button"
+              onClick={() => {
+                setIsCreateModalOpen(false);
+                resetForm();
+              }}
+              className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={saving}
+              className="px-6 py-2.5 rounded-xl bg-[#0F172A] hover:bg-slate-800 text-white font-bold text-xs shadow-sm hover:shadow transition-all flex items-center gap-2 cursor-pointer active:scale-98"
+            >
+              {saving && <div className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+              <Check size={14} className="text-[#46B351]" />
+              <span>{editingOrder ? 'Update Work Order' : 'Save & Create Work Order'}</span>
+            </button>
           </div>
         </div>
 
