@@ -1091,32 +1091,39 @@ export default function WorkOrdersPage() {
             </div>
 
             <div className="space-y-4">
-              <div>
-                <label className="block font-bold text-slate-700 text-xs mb-2">
-                  Loss Applicable?
-                </label>
-                <div className="flex items-center gap-3 w-full">
+              {/* Toggle Switch */}
+              <div className="flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100/70 rounded-2xl border border-slate-200/80 transition-colors">
+                <div className="space-y-0.5">
+                  <span className="text-xs font-bold text-slate-800 block">Loss Applicable?</span>
+                  <span className="text-[11px] text-slate-500 block">
+                    {formData.isLossApplicable 
+                      ? 'Transit loss / shrinkage tolerance is permitted' 
+                      : 'Zero loss tolerance (Strict 0% loss policy)'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs font-black transition-colors ${formData.isLossApplicable ? 'text-amber-600' : 'text-slate-400'}`}>
+                    {formData.isLossApplicable ? 'Yes' : 'No'}
+                  </span>
                   <button
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, isLossApplicable: false, allowedLossPercent: 0 }))}
-                    className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
-                      !formData.isLossApplicable
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    role="switch"
+                    aria-checked={formData.isLossApplicable}
+                    onClick={() => setFormData(prev => ({
+                      ...prev,
+                      isLossApplicable: !prev.isLossApplicable,
+                      allowedLossPercent: !prev.isLossApplicable ? (prev.allowedLossPercent || 0.5) : 0
+                    }))}
+                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500/20 ${
+                      formData.isLossApplicable ? 'bg-amber-600' : 'bg-slate-300'
                     }`}
                   >
-                    No (Zero Loss)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, isLossApplicable: true, allowedLossPercent: prev.allowedLossPercent || 0.5 }))}
-                    className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
-                      formData.isLossApplicable
-                        ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
-                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    Yes (Allowed)
+                    <span
+                      aria-hidden="true"
+                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                        formData.isLossApplicable ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
                   </button>
                 </div>
               </div>
