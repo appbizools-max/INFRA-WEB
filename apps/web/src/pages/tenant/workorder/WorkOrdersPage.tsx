@@ -779,8 +779,8 @@ export default function WorkOrdersPage() {
           </div>
         </div>
 
-        {/* Full-Screen Stacked Form (One by One Below) */}
-        <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl mx-auto">
+        {/* Full-Screen Stacked Form (One by One Below - Full Width) */}
+        <form onSubmit={handleSubmit} className="space-y-6 w-full">
 
           {/* Section 1: Basic Information */}
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
@@ -1095,11 +1095,11 @@ export default function WorkOrdersPage() {
                 <label className="block font-bold text-slate-700 text-xs mb-2">
                   Loss Applicable?
                 </label>
-                <div className="grid grid-cols-2 gap-3 max-w-sm">
+                <div className="flex items-center gap-3 w-full">
                   <button
                     type="button"
                     onClick={() => setFormData(prev => ({ ...prev, isLossApplicable: false, allowedLossPercent: 0 }))}
-                    className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
+                    className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
                       !formData.isLossApplicable
                         ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                         : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
@@ -1110,7 +1110,7 @@ export default function WorkOrdersPage() {
                   <button
                     type="button"
                     onClick={() => setFormData(prev => ({ ...prev, isLossApplicable: true, allowedLossPercent: prev.allowedLossPercent || 0.5 }))}
-                    className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
+                    className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
                       formData.isLossApplicable
                         ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
                         : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
@@ -1127,7 +1127,7 @@ export default function WorkOrdersPage() {
                     <label className="block font-bold text-slate-700 text-xs">Allowed Loss %</label>
                     <span className="text-[10px] text-amber-700 font-semibold">Shrinkage threshold</span>
                   </div>
-                  <div className="relative max-w-sm">
+                  <div className="relative w-full">
                     <input
                       type="number"
                       min="0"
@@ -1591,8 +1591,8 @@ export default function WorkOrdersPage() {
           </div>
         </div>
 
-        {/* Dossier Body Layout (One by One Below) */}
-        <div className="space-y-6 max-w-4xl mx-auto">
+        {/* Dossier Body Layout (One by One Below - Full Width) */}
+        <div className="space-y-6 w-full">
           
           {/* Section 1: Transit Route & Logistics Banner */}
           {(viewingOrder.loadingLocation || viewingOrder.unloadingLocation || viewingOrder.transportModes) && (
