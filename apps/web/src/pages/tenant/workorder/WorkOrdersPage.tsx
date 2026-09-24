@@ -5,7 +5,7 @@ import {
   ClipboardList, Plus, Search, AlertCircle, Clock, CheckCircle2, 
   PauseCircle, XCircle, Eye, Edit2, Trash2, 
   Calendar, MapPin, Briefcase, X, AlertTriangle, Network, FolderPlus, Package, UserCheck, Shield, Building2, Check, ChevronDown,
-  Truck, Train, Ship, Plane, Percent, IndianRupee, ArrowRight, ArrowLeft, Scale, Calculator, FileText
+  Truck, Train, Ship, Plane, Percent, IndianRupee, ArrowRight, ArrowLeft, Scale, Calculator, FileText, Link2
 } from 'lucide-react';
 
 interface WorkOrder {
@@ -45,6 +45,48 @@ interface WorkOrder {
   createdAt: string;
   updatedAt?: string;
 }
+
+const RATE_TYPE_TO_UNIT: Record<string, string> = {
+  'Per Metric Ton': 'Metric Tons',
+  'Per Ton': 'Tons',
+  'Per Trip': 'Trips',
+  'Per KM': 'KM',
+  'Per CUM': 'CUM (Cubic Meters)',
+  'Hourly': 'Hours',
+  'Fixed / Lump Sum': 'Lump Sum',
+  'Per Bag': 'Bags',
+  'Per Piece': 'Pieces',
+  'Per KL': 'KL (Kilo Liters)',
+};
+
+const UNIT_TO_RATE_TYPE: Record<string, string> = {
+  'Metric Tons': 'Per Metric Ton',
+  'Tons': 'Per Ton',
+  'Trips': 'Per Trip',
+  'KM': 'Per KM',
+  'CUM (Cubic Meters)': 'Per CUM',
+  'Hours': 'Hourly',
+  'Lump Sum': 'Fixed / Lump Sum',
+  'Bags': 'Per Bag',
+  'Pieces': 'Per Piece',
+  'KL (Kilo Liters)': 'Per KL',
+};
+
+const getUnitShortLabel = (unit?: string) => {
+  switch (unit) {
+    case 'Metric Tons': return 'MT';
+    case 'Tons': return 'Ton';
+    case 'Trips': return 'Trip';
+    case 'KM': return 'KM';
+    case 'CUM (Cubic Meters)': return 'CUM';
+    case 'Hours': return 'Hr';
+    case 'Lump Sum': return 'LS';
+    case 'Bags': return 'Bag';
+    case 'Pieces': return 'Pc';
+    case 'KL (Kilo Liters)': return 'KL';
+    default: return unit || 'Unit';
+  }
+};
 
 export default function WorkOrdersPage() {
   const { currentUser } = useAuth();
@@ -142,6 +184,28 @@ export default function WorkOrdersPage() {
       return {
         ...prev,
         selectedTransportModes: nextModes.length > 0 ? nextModes : [mode]
+      };
+    });
+  };
+
+    const handleRateTypeChange = (newRateType: string) => {
+    setFormData(prev => {
+      const matchedUnit = RATE_TYPE_TO_UNIT[newRateType];
+      return {
+        ...prev,
+        rateType: newRateType,
+        ...(matchedUnit && prev.contractQuantityUnit !== 'Add New' ? { contractQuantityUnit: matchedUnit } : {})
+      };
+    });
+  };
+
+  const handleQuantityUnitChange = (newUnit: string) => {
+    setFormData(prev => {
+      const matchedRateType = UNIT_TO_RATE_TYPE[newUnit];
+      return {
+        ...prev,
+        contractQuantityUnit: newUnit,
+        ...(matchedRateType && prev.rateType !== 'Add Custom' ? { rateType: matchedRateType } : {})
       };
     });
   };
@@ -363,17 +427,17 @@ export default function WorkOrdersPage() {
   // Open Edit Modal
   const handleOpenEdit = (order: WorkOrder) => {
     setEditingOrder(order);
-    const standardCommodities = ['Coal', 'Iron Ore', 'Sand', 'Aggregates', 'Limestone', 'Steel', 'Cement', 'General Cargo', 'Civil Materials'];
+    const standardCommodities = ['Coal', 'Iron Ore', 'Sand', 'Aggregates', 'Limestone', 'Steel', 'Cement', 'Fly Ash', 'Gypsum', 'Bauxite', 'General Cargo', 'Civil Materials'];
     const isCustomCommodity = order.commodity && !standardCommodities.includes(order.commodity);
 
-    const standardUnits = ['Tons', 'Metric Tons', 'KL (Kilo Liters)', 'CUM (Cubic Meters)', 'Pieces', 'Units', 'Hours', 'Nos'];
+    const standardUnits = ['Metric Tons', 'Tons', 'Trips', 'KM', 'CUM (Cubic Meters)', 'Hours', 'Lump Sum', 'Bags', 'Pieces', 'KL (Kilo Liters)'];
     const isCustomUnit = order.contractQuantityUnit && !standardUnits.includes(order.contractQuantityUnit);
 
     const transportModesList = order.transportModes 
       ? order.transportModes.split(',').map(m => m.trim()).filter(Boolean)
       : ['Road'];
 
-    const standardRateTypes = ['Per Ton', 'Per Metric Ton', 'Per Trip', 'Per KM', 'Per CUM', 'Fixed / Lump Sum', 'Hourly'];
+    const standardRateTypes = ['Per Metric Ton', 'Per Ton', 'Per Trip', 'Per KM', 'Per CUM', 'Fixed / Lump Sum', 'Hourly', 'Per Bag', 'Per Piece', 'Per KL'];
     const isCustomRateType = order.rateType && !standardRateTypes.includes(order.rateType);
 
     const standardPaymentTerms = ['Net 15 Days', 'Net 30 Days', 'Net 45 Days', 'Net 60 Days', '100% on Billing', '20% Advance, 80% on Delivery', '30% Advance, 70% on Completion'];
@@ -1087,34 +1151,150 @@ export default function WorkOrdersPage() {
               </div>
               <div>
                 <h3 className="font-bold text-sm text-slate-900">3. Commercial Terms & Valuation</h3>
-                <p className="text-[11px] text-slate-400">Rate / Unit, contract quantity, estimated budget, and payment terms</p>
+                <p className="text-[11px] text-slate-400">Commodity, rate type, contract volume, unit pricing, and payment terms</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Rate Type */}
+              {/* Row 1: Commodity (Left) */}
               <div>
-                <label className="block font-bold text-slate-700 text-xs mb-1.5">Rate Type</label>
+                <label className="block font-bold text-slate-700 text-xs mb-1.5">Commodity</label>
                 <select
-                  value={formData.rateType}
-                  onChange={e => setFormData(prev => ({ ...prev, rateType: e.target.value }))}
+                  value={formData.commodity}
+                  onChange={e => setFormData(prev => ({ ...prev, commodity: e.target.value }))}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
                 >
-                  <option>Per Ton</option>
+                  <option>Coal</option>
+                  <option>Iron Ore</option>
+                  <option>Sand</option>
+                  <option>Aggregates</option>
+                  <option>Limestone</option>
+                  <option>Steel</option>
+                  <option>Cement</option>
+                  <option>Fly Ash</option>
+                  <option>Gypsum</option>
+                  <option>Bauxite</option>
+                  <option>General Cargo</option>
+                  <option>Civil Materials</option>
+                  <option value="Add New">Add Custom Commodity...</option>
+                </select>
+              </div>
+
+              {/* Row 1: Rate Type (Right) */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block font-bold text-slate-700 text-xs">Rate Type</label>
+                  <span className="text-[10px] text-slate-400">Pricing structure</span>
+                </div>
+                <select
+                  value={formData.rateType}
+                  onChange={e => handleRateTypeChange(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
+                >
                   <option>Per Metric Ton</option>
+                  <option>Per Ton</option>
                   <option>Per Trip</option>
                   <option>Per KM</option>
                   <option>Per CUM</option>
                   <option>Fixed / Lump Sum</option>
                   <option>Hourly</option>
+                  <option>Per Bag</option>
+                  <option>Per Piece</option>
+                  <option>Per KL</option>
                   <option value="Add Custom">Custom Rate Type...</option>
                 </select>
               </div>
 
-              {/* Rate / Unit (₹) */}
+              {/* Custom inputs if selected for Row 1 */}
+              {formData.commodity === 'Add New' && (
+                <div className={formData.rateType === 'Add Custom' ? 'col-span-1' : 'md:col-span-2'}>
+                  <label className="block font-bold text-amber-900 text-xs mb-1.5">Specify Custom Commodity Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.customCommodity}
+                    onChange={e => setFormData(prev => ({ ...prev, customCommodity: e.target.value }))}
+                    placeholder="e.g. Bauxite Ore / Zinc Concentrate"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-amber-50/50 border border-amber-300 text-xs font-medium"
+                  />
+                </div>
+              )}
+
+              {formData.rateType === 'Add Custom' && (
+                <div className={formData.commodity === 'Add New' ? 'col-span-1' : 'md:col-span-2'}>
+                  <label className="block font-bold text-amber-900 text-xs mb-1.5">Specify Custom Rate Type</label>
+                  <input
+                    type="text"
+                    value={formData.customRateType}
+                    onChange={e => setFormData(prev => ({ ...prev, customRateType: e.target.value }))}
+                    placeholder="e.g. Per 40ft Container / Per Pallet"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-amber-50/50 border border-amber-300 text-xs font-medium"
+                  />
+                </div>
+              )}
+
+              {/* Row 2: Contract Quantity (Left) */}
+              <div>
+                <label className="block font-bold text-slate-700 text-xs mb-1.5">
+                  Contract Quantity ({getUnitShortLabel(formData.contractQuantityUnit)})
+                </label>
+                <input
+                  type="text"
+                  value={formData.contractQuantity}
+                  onChange={e => handleContractQuantityChange(e.target.value)}
+                  placeholder={`e.g. 50,000 ${getUnitShortLabel(formData.contractQuantityUnit)}`}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
+                />
+              </div>
+
+              {/* Row 2: Quantity Unit of Measurement (Right - Linked to Rate Type) */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block font-bold text-slate-700 text-xs">Rate / Unit (₹)</label>
+                  <label className="block font-bold text-slate-700 text-xs">Quantity Unit of Measurement</label>
+                  <span className="text-[10px] text-blue-600 font-semibold flex items-center gap-1">
+                    <Link2 size={11} className="text-blue-500" />
+                    Linked to Rate Type
+                  </span>
+                </div>
+                <select
+                  value={formData.contractQuantityUnit}
+                  onChange={e => handleQuantityUnitChange(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-blue-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
+                >
+                  <option>Metric Tons</option>
+                  <option>Tons</option>
+                  <option>Trips</option>
+                  <option>KM</option>
+                  <option>CUM (Cubic Meters)</option>
+                  <option>Hours</option>
+                  <option>Lump Sum</option>
+                  <option>Bags</option>
+                  <option>Pieces</option>
+                  <option>KL (Kilo Liters)</option>
+                  <option value="Add New">Add Custom Unit...</option>
+                </select>
+              </div>
+
+              {formData.contractQuantityUnit === 'Add New' && (
+                <div className="md:col-span-2">
+                  <label className="block font-bold text-amber-900 text-xs mb-1.5">Specify Custom Unit</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.customQuantityUnit}
+                    onChange={e => setFormData(prev => ({ ...prev, customQuantityUnit: e.target.value }))}
+                    placeholder="e.g. Truckloads / Containers"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-amber-50/50 border border-amber-300 text-xs font-medium"
+                  />
+                </div>
+              )}
+
+              {/* Row 3: Rate / Unit (Left) */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block font-bold text-slate-700 text-xs">
+                    Rate / Unit (₹ / {getUnitShortLabel(formData.contractQuantityUnit)})
+                  </label>
                   <span className="text-[10px] text-slate-400">Base billing rate</span>
                 </div>
                 <div className="relative">
@@ -1131,117 +1311,22 @@ export default function WorkOrdersPage() {
                 </div>
               </div>
 
-              {formData.rateType === 'Add Custom' && (
-                <div className="md:col-span-2">
-                  <label className="block font-bold text-slate-700 text-xs mb-1.5">Specify Custom Rate Type</label>
-                  <input
-                    type="text"
-                    value={formData.customRateType}
-                    onChange={e => setFormData(prev => ({ ...prev, customRateType: e.target.value }))}
-                    placeholder="e.g. Per Container / Per Bag"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none text-xs font-medium"
-                  />
-                </div>
-              )}
-
-              {/* Commodity */}
-              <div>
-                <label className="block font-bold text-slate-700 text-xs mb-1.5">Commodity</label>
-                <select
-                  value={formData.commodity}
-                  onChange={e => setFormData(prev => ({ ...prev, commodity: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
-                >
-                  <option>Coal</option>
-                  <option>Iron Ore</option>
-                  <option>Sand</option>
-                  <option>Aggregates</option>
-                  <option>Limestone</option>
-                  <option>Steel</option>
-                  <option>Cement</option>
-                  <option>General Cargo</option>
-                  <option>Civil Materials</option>
-                  <option value="Add New">Add Custom...</option>
-                </select>
-              </div>
-
-              {/* Quantity Unit of Measurement */}
-              <div>
-                <label className="block font-bold text-slate-700 text-xs mb-1.5">Quantity Unit of Measurement</label>
-                <select
-                  value={formData.contractQuantityUnit}
-                  onChange={e => setFormData(prev => ({ ...prev, contractQuantityUnit: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
-                >
-                  <option>Tons</option>
-                  <option>Metric Tons</option>
-                  <option>KL (Kilo Liters)</option>
-                  <option>CUM (Cubic Meters)</option>
-                  <option>Pieces</option>
-                  <option>Units</option>
-                  <option>Hours</option>
-                  <option>Nos</option>
-                  <option value="Add New">Add Custom...</option>
-                </select>
-              </div>
-
-              {/* Custom Commodity / Unit if selected */}
-              {formData.commodity === 'Add New' && (
-                <div>
-                  <label className="block font-bold text-amber-900 text-xs mb-1.5">Custom Commodity Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.customCommodity}
-                    onChange={e => setFormData(prev => ({ ...prev, customCommodity: e.target.value }))}
-                    placeholder="e.g. Bauxite"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-amber-50/50 border border-amber-300 text-xs font-medium"
-                  />
-                </div>
-              )}
-
-              {formData.contractQuantityUnit === 'Add New' && (
-                <div>
-                  <label className="block font-bold text-amber-900 text-xs mb-1.5">Custom Unit</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.customQuantityUnit}
-                    onChange={e => setFormData(prev => ({ ...prev, customQuantityUnit: e.target.value }))}
-                    placeholder="e.g. Truckloads"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-amber-50/50 border border-amber-300 text-xs font-medium"
-                  />
-                </div>
-              )}
-
-              {/* Contract Quantity */}
-              <div>
-                <label className="block font-bold text-slate-700 text-xs mb-1.5">Contract Quantity</label>
-                <input
-                  type="text"
-                  value={formData.contractQuantity}
-                  onChange={e => handleContractQuantityChange(e.target.value)}
-                  placeholder="e.g. 50,000"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
-                />
-              </div>
-
-              {/* Estimated Budget with auto-calculation */}
+              {/* Row 3: Estimated Budget (Right) */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block font-bold text-slate-700 text-xs">Estimated Budget (₹)</label>
-                  {Number(formData.ratePerUnit) > 0 && parseFloat(formData.contractQuantity.replace(/,/g, '')) > 0 && (
+                  {Number(formData.ratePerUnit) > 0 && parseFloat(String(formData.contractQuantity).replace(/,/g, '')) > 0 && (
                     <button
                       type="button"
                       onClick={() => {
-                        const qty = parseFloat(formData.contractQuantity.replace(/,/g, '')) || 0;
+                        const qty = parseFloat(String(formData.contractQuantity).replace(/,/g, '')) || 0;
                         const rate = Number(formData.ratePerUnit) || 0;
                         setFormData(prev => ({ ...prev, estimatedCost: Math.round(qty * rate) }));
                       }}
                       className="text-[10px] text-blue-600 hover:text-blue-800 font-bold inline-flex items-center gap-1 hover:underline cursor-pointer"
                     >
                       <Calculator size={11} />
-                      Auto: ₹{(parseFloat(formData.contractQuantity.replace(/,/g, '')) * Number(formData.ratePerUnit)).toLocaleString()}
+                      Auto: ₹{(parseFloat(String(formData.contractQuantity).replace(/,/g, '')) * Number(formData.ratePerUnit)).toLocaleString('en-IN')}
                     </button>
                   )}
                 </div>
@@ -1259,7 +1344,7 @@ export default function WorkOrdersPage() {
                 </div>
               </div>
 
-              {/* Payment Terms */}
+              {/* Row 4: Payment Terms (Full Width) */}
               <div className="md:col-span-2">
                 <label className="block font-bold text-slate-700 text-xs mb-1.5">Payment Terms</label>
                 <select
