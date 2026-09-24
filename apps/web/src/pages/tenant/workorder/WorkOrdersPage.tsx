@@ -1091,40 +1091,49 @@ export default function WorkOrdersPage() {
             </div>
 
             <div className="space-y-4">
-              {/* Toggle Switch */}
-              <div className="flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100/70 rounded-2xl border border-slate-200/80 transition-colors">
-                <div className="space-y-0.5">
-                  <span className="text-xs font-bold text-slate-800 block">Loss Applicable?</span>
-                  <span className="text-[11px] text-slate-500 block">
-                    {formData.isLossApplicable 
-                      ? 'Transit loss / shrinkage tolerance is permitted' 
-                      : 'Zero loss tolerance (Strict 0% loss policy)'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs font-black transition-colors ${formData.isLossApplicable ? 'text-amber-600' : 'text-slate-400'}`}>
-                    {formData.isLossApplicable ? 'Yes' : 'No'}
-                  </span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={formData.isLossApplicable}
-                    onClick={() => setFormData(prev => ({
-                      ...prev,
-                      isLossApplicable: !prev.isLossApplicable,
-                      allowedLossPercent: !prev.isLossApplicable ? (prev.allowedLossPercent || 0.5) : 0
-                    }))}
-                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500/20 ${
-                      formData.isLossApplicable ? 'bg-amber-600' : 'bg-slate-300'
-                    }`}
+              {/* Circular Radio Buttons: Yes or No */}
+              <div>
+                <label className="block font-bold text-slate-700 text-xs mb-2.5">
+                  Loss Applicable?
+                </label>
+                <div className="flex items-center gap-6">
+                  {/* Yes Option with Circular Button */}
+                  <label
+                    onClick={() => setFormData(prev => ({ ...prev, isLossApplicable: true, allowedLossPercent: prev.allowedLossPercent || 0.5 }))}
+                    className="flex items-center gap-2.5 cursor-pointer select-none group"
                   >
-                    <span
-                      aria-hidden="true"
-                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                        formData.isLossApplicable ? 'translate-x-5' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                      formData.isLossApplicable 
+                        ? 'border-[#46B351] bg-[#46B351]' 
+                        : 'border-slate-300 bg-white group-hover:border-slate-400'
+                    }`}>
+                      {formData.isLossApplicable && (
+                        <div className="w-2 h-2 rounded-full bg-white" />
+                      )}
+                    </div>
+                    <span className={`text-xs font-bold ${formData.isLossApplicable ? 'text-slate-900' : 'text-slate-600'}`}>
+                      Yes
+                    </span>
+                  </label>
+
+                  {/* No Option with Circular Button */}
+                  <label
+                    onClick={() => setFormData(prev => ({ ...prev, isLossApplicable: false, allowedLossPercent: 0 }))}
+                    className="flex items-center gap-2.5 cursor-pointer select-none group"
+                  >
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                      !formData.isLossApplicable 
+                        ? 'border-[#46B351] bg-[#46B351]' 
+                        : 'border-slate-300 bg-white group-hover:border-slate-400'
+                    }`}>
+                      {!formData.isLossApplicable && (
+                        <div className="w-2 h-2 rounded-full bg-white" />
+                      )}
+                    </div>
+                    <span className={`text-xs font-bold ${!formData.isLossApplicable ? 'text-slate-900' : 'text-slate-600'}`}>
+                      No
+                    </span>
+                  </label>
                 </div>
               </div>
 
