@@ -694,7 +694,7 @@ export default function WorkOrdersPage() {
   // ── View 1: Full-Screen Create / Edit Work Order Form ────────────────────
   if (isCreateModalOpen) {
     return (
-      <div className="space-y-6 animate-in fade-in duration-200 pb-20">
+      <div className="space-y-6 animate-in fade-in duration-200 pb-10">
         {/* Toast */}
         {toast && (
           <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-top-4 fade-in duration-200">
@@ -1464,8 +1464,8 @@ export default function WorkOrdersPage() {
             </div>
           </div>
 
-          {/* Bottom Action Footer Card */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 sticky bottom-4 z-40">
+          {/* Bottom Action Footer Card (Static in-flow, not floating) */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="text-xs text-slate-500 font-medium">
               Review all operational & commercial details carefully before saving.
             </div>
