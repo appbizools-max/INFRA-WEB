@@ -1494,8 +1494,8 @@ export default function VehicleMasterPage() {
               <Truck size={20} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-900">Fleet & Equipment Master</h1>
-              <p className="text-xs text-slate-500">Centralized asset registry for logistics transport fleet and heavy earthmoving machinery</p>
+              <h1 className="text-xl font-bold text-slate-900">Vehicle & Equipment Master</h1>
+              <p className="text-xs text-slate-500">Centralized asset registry for vehicles and heavy equipment machinery</p>
             </div>
           </div>
         </div>
