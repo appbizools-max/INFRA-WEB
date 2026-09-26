@@ -837,25 +837,10 @@ export default function VehicleMasterPage() {
                       <IndianRupee size={13} className="absolute left-2.5 top-3.5 text-slate-400 pointer-events-none" />
                     </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Section 4: Operational Status & Driver Assignment */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
-                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
-                  <div className="h-8 w-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold">
-                    <User size={16} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-900">4. Operational Assignment & Status</h3>
-                    <p className="text-[11px] text-slate-400">Current operational status, designated driver and deployment site</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Status */}
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Current Status</label>
+                  <div className="md:col-span-2">
+                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Status</label>
                     <select
                       value={vehicleForm.status}
                       onChange={e => setVehicleForm(prev => ({ ...prev, status: e.target.value }))}
@@ -867,63 +852,6 @@ export default function VehicleMasterPage() {
                       <option value="Idle">Idle</option>
                       <option value="Decommissioned">Decommissioned</option>
                     </select>
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Assigned Project</label>
-                    <input
-                      type="text"
-                      value={vehicleForm.assignedProjectName}
-                      onChange={e => setVehicleForm(prev => ({ ...prev, assignedProjectName: e.target.value }))}
-                      placeholder="e.g. Talcher Coal Rail Corridor"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
-                    />
-                  </div>
-
-                  {/* Driver Name & Phone */}
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Assigned Driver Name</label>
-                    <input
-                      type="text"
-                      value={vehicleForm.assignedDriverName}
-                      onChange={e => setVehicleForm(prev => ({ ...prev, assignedDriverName: e.target.value }))}
-                      placeholder="e.g. Rajesh Kumar Swain"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Driver Contact Phone</label>
-                    <input
-                      type="tel"
-                      value={vehicleForm.assignedDriverPhone}
-                      onChange={e => setVehicleForm(prev => ({ ...prev, assignedDriverPhone: e.target.value }))}
-                      placeholder="e.g. +91 98765 43210"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
-                    />
-                  </div>
-
-                  {/* Current Location & Notes */}
-                  <div className="md:col-span-2">
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Current Location / Base Depot</label>
-                    <input
-                      type="text"
-                      value={vehicleForm.currentLocation}
-                      onChange={e => setVehicleForm(prev => ({ ...prev, currentLocation: e.target.value }))}
-                      placeholder="e.g. Angul Central Yard / Siding #2"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Operational Notes & Directives</label>
-                    <textarea
-                      rows={3}
-                      value={vehicleForm.notes}
-                      onChange={e => setVehicleForm(prev => ({ ...prev, notes: e.target.value }))}
-                      placeholder="Add any specific route compliance, tire maintenance schedules, or fitness renewal remarks..."
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800 leading-relaxed"
-                    />
                   </div>
                 </div>
               </div>
@@ -1578,7 +1506,7 @@ export default function VehicleMasterPage() {
                     <th className="py-3 px-4">Type & Make</th>
                     <th className="py-3 px-4">Capacity Specs</th>
                     <th className="py-3 px-4">Registration & Chassis</th>
-                    <th className="py-3 px-4">Assigned Driver / Site</th>
+                    <th className="py-3 px-4">Financial & Valuation</th>
                     <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
@@ -1639,12 +1567,12 @@ export default function VehicleMasterPage() {
                         )}
                       </td>
 
-                      {/* Driver & Project */}
+                      {/* Financial Info */}
                       <td className="py-3.5 px-4">
-                        <span className="font-bold text-slate-800">{v.assignedDriverName || 'Unassigned'}</span>
-                        {v.assignedProjectName && (
-                          <span className="block text-[11px] text-slate-400 truncate max-w-[150px]">
-                            {v.assignedProjectName}
+                        <span className="font-bold text-emerald-700">₹{Number(v.purchaseCost || 0).toLocaleString()}</span>
+                        {v.vendor && (
+                          <span className="block text-[11px] text-slate-400 truncate max-w-[140px]" title={v.vendor}>
+                            {v.vendor}
                           </span>
                         )}
                       </td>
@@ -1723,8 +1651,8 @@ export default function VehicleMasterPage() {
                   </div>
 
                   <div className="flex items-center justify-between pt-1">
-                    <span className="text-[11px] text-slate-500 truncate max-w-[180px]">
-                      {v.assignedDriverName ? `👤 ${v.assignedDriverName}` : 'No driver assigned'}
+                    <span className="text-[11px] font-bold text-emerald-700 truncate max-w-[180px]">
+                      ₹{Number(v.purchaseCost || 0).toLocaleString()}
                     </span>
                     <div className="flex items-center gap-1">
                       <button
@@ -2014,22 +1942,14 @@ export default function VehicleMasterPage() {
                 <span className="font-bold text-emerald-700">₹{Number(viewingVehicle.purchaseCost || 0).toLocaleString()}</span>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Assigned Driver</span>
-                <span className="font-bold text-slate-800">{viewingVehicle.assignedDriverName || 'Unassigned'}</span>
-                {viewingVehicle.assignedDriverPhone && <span className="block text-[10px] text-slate-500">{viewingVehicle.assignedDriverPhone}</span>}
+                <span className="text-[10px] text-slate-400 block font-semibold">Vendor / Dealer</span>
+                <span className="font-bold text-slate-800">{viewingVehicle.vendor || '—'}</span>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Current Location</span>
-                <span className="font-bold text-slate-800">{viewingVehicle.currentLocation || 'Base Depot'}</span>
+                <span className="text-[10px] text-slate-400 block font-semibold">Insurance Value</span>
+                <span className="font-bold text-slate-800">₹{Number(viewingVehicle.insuranceValue || 0).toLocaleString()}</span>
               </div>
             </div>
-
-            {viewingVehicle.notes && (
-              <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-200/50 text-[11px] text-amber-950">
-                <span className="font-bold block mb-0.5">Notes:</span>
-                {viewingVehicle.notes}
-              </div>
-            )}
 
             <div className="flex justify-end pt-2">
               <button
