@@ -3681,6 +3681,718 @@ app.post('/api/tenant/work-orders/:id/convert-to-project', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// ─── VEHICLE MASTER & HEAVY EQUIPMENT MASTER ENDPOINTS ───────────────────────
+
+// GET Vehicles
+app.get(['/api/tenant/vehicles/:firebaseUid', '/api/tenant/vehicles'], async (req, res) => {
+  const firebaseUid = req.params.firebaseUid || req.query.firebaseUid || req.query.uid;
+  try {
+    let tenantId = null;
+    if (firebaseUid) {
+      const tenantRes = await pool.query(
+        `SELECT tenant_id FROM tenant_admins WHERE firebase_uid = $1
+         UNION
+         SELECT tenant_id FROM tenant_users WHERE firebase_uid = $1`,
+        [firebaseUid]
+      );
+      if (tenantRes.rows.length > 0) tenantId = tenantRes.rows[0].tenant_id;
+    }
+    if (!tenantId) {
+      const firstTenant = await pool.query('SELECT tenant_id FROM tenant_admins ORDER BY id ASC LIMIT 1');
+      if (firstTenant.rows.length > 0) tenantId = firstTenant.rows[0].tenant_id;
+    }
+    if (!tenantId) {
+      tenantId = '1';
+    }
+
+    const vRes = await pool.query(
+      `SELECT 
+         id,
+         tenant_id as "tenantId",
+         vehicle_number as "vehicleNumber",
+         fleet_code as "fleetCode",
+         vehicle_type as "vehicleType",
+         make,
+         model,
+         year,
+         registration_number as "registrationNumber",
+         chassis_number as "chassisNumber",
+         engine_number as "engineNumber",
+         ton_capacity as "tonCapacity",
+         volume_capacity as "volumeCapacity",
+         volume_unit as "volumeUnit",
+         purchase_date as "purchaseDate",
+         purchase_cost as "purchaseCost",
+         vendor,
+         insurance_value as "insuranceValue",
+         insurance_expiry_date as "insuranceExpiryDate",
+         fitness_expiry_date as "fitnessExpiryDate",
+         assigned_driver_name as "assignedDriverName",
+         assigned_driver_phone as "assignedDriverPhone",
+         assigned_project_id as "assignedProjectId",
+         assigned_project_name as "assignedProjectName",
+         current_location as "currentLocation",
+         status,
+         notes,
+         created_at as "createdAt",
+         updated_at as "updatedAt"
+       FROM tenant_vehicles
+       WHERE tenant_id::text = $1::text
+       ORDER BY created_at DESC`,
+      [tenantId]
+    );
+    res.json(vRes.rows);
+  } catch (err: any) {
+    console.error(`[GET /api/tenant/vehicles] Error:`, err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST Vehicle
+app.post('/api/tenant/vehicles', async (req, res) => {
+  const {
+    firebaseUid,
+    vehicleNumber,
+    fleetCode,
+    vehicleType,
+    make,
+    model,
+    year,
+    registrationNumber,
+    chassisNumber,
+    engineNumber,
+    tonCapacity,
+    volumeCapacity,
+    volumeUnit,
+    purchaseDate,
+    purchaseCost,
+    vendor,
+    insuranceValue,
+    insuranceExpiryDate,
+    fitnessExpiryDate,
+    assignedDriverName,
+    assignedDriverPhone,
+    assignedProjectId,
+    assignedProjectName,
+    currentLocation,
+    status,
+    notes
+  } = req.body;
+
+  if (!vehicleNumber || !vehicleType) {
+    return res.status(400).json({ error: 'Vehicle number and vehicle type are required' });
+  }
+
+  try {
+    let tenantId = null;
+    if (firebaseUid) {
+      const tenantRes = await pool.query(
+        `SELECT tenant_id FROM tenant_admins WHERE firebase_uid = $1
+         UNION
+         SELECT tenant_id FROM tenant_users WHERE firebase_uid = $1`,
+        [firebaseUid]
+      );
+      if (tenantRes.rows.length > 0) tenantId = tenantRes.rows[0].tenant_id;
+    }
+    if (!tenantId) {
+      const firstTenant = await pool.query('SELECT tenant_id FROM tenant_admins ORDER BY id ASC LIMIT 1');
+      if (firstTenant.rows.length > 0) tenantId = firstTenant.rows[0].tenant_id;
+    }
+    if (!tenantId) {
+      tenantId = '1';
+    }
+
+    const insertRes = await pool.query(
+      `INSERT INTO tenant_vehicles (
+         tenant_id, vehicle_number, fleet_code, vehicle_type, make, model, year,
+         registration_number, chassis_number, engine_number, ton_capacity, volume_capacity,
+         volume_unit, purchase_date, purchase_cost, vendor, insurance_value, insurance_expiry_date,
+         fitness_expiry_date, assigned_driver_name, assigned_driver_phone, assigned_project_id,
+         assigned_project_name, current_location, status, notes
+       ) VALUES (
+         $1, $2, $3, $4, $5, $6, $7,
+         $8, $9, $10, $11, $12,
+         $13, $14, $15, $16, $17, $18,
+         $19, $20, $21, $22,
+         $23, $24, $25, $26
+       ) RETURNING 
+         id,
+         tenant_id as "tenantId",
+         vehicle_number as "vehicleNumber",
+         fleet_code as "fleetCode",
+         vehicle_type as "vehicleType",
+         make,
+         model,
+         year,
+         registration_number as "registrationNumber",
+         chassis_number as "chassisNumber",
+         engine_number as "engineNumber",
+         ton_capacity as "tonCapacity",
+         volume_capacity as "volumeCapacity",
+         volume_unit as "volumeUnit",
+         purchase_date as "purchaseDate",
+         purchase_cost as "purchaseCost",
+         vendor,
+         insurance_value as "insuranceValue",
+         insurance_expiry_date as "insuranceExpiryDate",
+         fitness_expiry_date as "fitnessExpiryDate",
+         assigned_driver_name as "assignedDriverName",
+         assigned_driver_phone as "assignedDriverPhone",
+         assigned_project_id as "assignedProjectId",
+         assigned_project_name as "assignedProjectName",
+         current_location as "currentLocation",
+         status,
+         notes,
+         created_at as "createdAt",
+         updated_at as "updatedAt"`,
+      [
+        tenantId,
+        vehicleNumber.trim(),
+        fleetCode?.trim() || null,
+        vehicleType.trim(),
+        make?.trim() || null,
+        model?.trim() || null,
+        year ? parseInt(year, 10) : null,
+        registrationNumber?.trim() || null,
+        chassisNumber?.trim() || null,
+        engineNumber?.trim() || null,
+        tonCapacity ? parseFloat(tonCapacity) : 0,
+        volumeCapacity ? parseFloat(volumeCapacity) : 0,
+        volumeUnit || 'CUM',
+        purchaseDate || null,
+        purchaseCost ? parseFloat(purchaseCost) : 0,
+        vendor?.trim() || null,
+        insuranceValue ? parseFloat(insuranceValue) : 0,
+        insuranceExpiryDate || null,
+        fitnessExpiryDate || null,
+        assignedDriverName?.trim() || null,
+        assignedDriverPhone?.trim() || null,
+        assignedProjectId || null,
+        assignedProjectName?.trim() || null,
+        currentLocation?.trim() || null,
+        status || 'Active',
+        notes?.trim() || null
+      ]
+    );
+
+    res.status(201).json(insertRes.rows[0]);
+  } catch (err: any) {
+    console.error(`[POST /api/tenant/vehicles] Error:`, err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT Vehicle
+app.put('/api/tenant/vehicles/:id', async (req, res) => {
+  const { id } = req.params;
+  const {
+    vehicleNumber,
+    fleetCode,
+    vehicleType,
+    make,
+    model,
+    year,
+    registrationNumber,
+    chassisNumber,
+    engineNumber,
+    tonCapacity,
+    volumeCapacity,
+    volumeUnit,
+    purchaseDate,
+    purchaseCost,
+    vendor,
+    insuranceValue,
+    insuranceExpiryDate,
+    fitnessExpiryDate,
+    assignedDriverName,
+    assignedDriverPhone,
+    assignedProjectId,
+    assignedProjectName,
+    currentLocation,
+    status,
+    notes
+  } = req.body;
+
+  try {
+    const updateRes = await pool.query(
+      `UPDATE tenant_vehicles
+       SET vehicle_number = COALESCE($1, vehicle_number),
+           fleet_code = $2,
+           vehicle_type = COALESCE($3, vehicle_type),
+           make = $4,
+           model = $5,
+           year = $6,
+           registration_number = $7,
+           chassis_number = $8,
+           engine_number = $9,
+           ton_capacity = $10,
+           volume_capacity = $11,
+           volume_unit = COALESCE($12, volume_unit),
+           purchase_date = $13,
+           purchase_cost = $14,
+           vendor = $15,
+           insurance_value = $16,
+           insurance_expiry_date = $17,
+           fitness_expiry_date = $18,
+           assigned_driver_name = $19,
+           assigned_driver_phone = $20,
+           assigned_project_id = $21,
+           assigned_project_name = $22,
+           current_location = $23,
+           status = COALESCE($24, status),
+           notes = $25,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $26
+       RETURNING 
+         id,
+         tenant_id as "tenantId",
+         vehicle_number as "vehicleNumber",
+         fleet_code as "fleetCode",
+         vehicle_type as "vehicleType",
+         make,
+         model,
+         year,
+         registration_number as "registrationNumber",
+         chassis_number as "chassisNumber",
+         engine_number as "engineNumber",
+         ton_capacity as "tonCapacity",
+         volume_capacity as "volumeCapacity",
+         volume_unit as "volumeUnit",
+         purchase_date as "purchaseDate",
+         purchase_cost as "purchaseCost",
+         vendor,
+         insurance_value as "insuranceValue",
+         insurance_expiry_date as "insuranceExpiryDate",
+         fitness_expiry_date as "fitnessExpiryDate",
+         assigned_driver_name as "assignedDriverName",
+         assigned_driver_phone as "assignedDriverPhone",
+         assigned_project_id as "assignedProjectId",
+         assigned_project_name as "assignedProjectName",
+         current_location as "currentLocation",
+         status,
+         notes,
+         created_at as "createdAt",
+         updated_at as "updatedAt"`,
+      [
+        vehicleNumber?.trim() || null,
+        fleetCode?.trim() || null,
+        vehicleType?.trim() || null,
+        make?.trim() || null,
+        model?.trim() || null,
+        year ? parseInt(year, 10) : null,
+        registrationNumber?.trim() || null,
+        chassisNumber?.trim() || null,
+        engineNumber?.trim() || null,
+        tonCapacity !== undefined ? parseFloat(tonCapacity) : 0,
+        volumeCapacity !== undefined ? parseFloat(volumeCapacity) : 0,
+        volumeUnit || 'CUM',
+        purchaseDate || null,
+        purchaseCost !== undefined ? parseFloat(purchaseCost) : 0,
+        vendor?.trim() || null,
+        insuranceValue !== undefined ? parseFloat(insuranceValue) : 0,
+        insuranceExpiryDate || null,
+        fitnessExpiryDate || null,
+        assignedDriverName?.trim() || null,
+        assignedDriverPhone?.trim() || null,
+        assignedProjectId || null,
+        assignedProjectName?.trim() || null,
+        currentLocation?.trim() || null,
+        status || null,
+        notes?.trim() || null,
+        id
+      ]
+    );
+
+    if (updateRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Vehicle not found' });
+    }
+    res.json(updateRes.rows[0]);
+  } catch (err: any) {
+    console.error(`[PUT /api/tenant/vehicles/:id] Error:`, err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE Vehicle
+app.delete('/api/tenant/vehicles/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const deleteRes = await pool.query('DELETE FROM tenant_vehicles WHERE id = $1 RETURNING *', [id]);
+    if (deleteRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Vehicle not found' });
+    }
+    res.json({ message: 'Vehicle deleted successfully', vehicle: deleteRes.rows[0] });
+  } catch (err: any) {
+    console.error(`[DELETE /api/tenant/vehicles/:id] Error:`, err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── HEAVY EQUIPMENT MASTER ENDPOINTS ────────────────────────────────────────
+
+// GET Heavy Equipment
+app.get(['/api/tenant/heavy-equipment/:firebaseUid', '/api/tenant/heavy-equipment'], async (req, res) => {
+  const firebaseUid = req.params.firebaseUid || req.query.firebaseUid || req.query.uid;
+  try {
+    let tenantId = null;
+    if (firebaseUid) {
+      const tenantRes = await pool.query(
+        `SELECT tenant_id FROM tenant_admins WHERE firebase_uid = $1
+         UNION
+         SELECT tenant_id FROM tenant_users WHERE firebase_uid = $1`,
+        [firebaseUid]
+      );
+      if (tenantRes.rows.length > 0) tenantId = tenantRes.rows[0].tenant_id;
+    }
+    if (!tenantId) {
+      const firstTenant = await pool.query('SELECT tenant_id FROM tenant_admins ORDER BY id ASC LIMIT 1');
+      if (firstTenant.rows.length > 0) tenantId = firstTenant.rows[0].tenant_id;
+    }
+    if (!tenantId) {
+      tenantId = '1';
+    }
+
+    const eqRes = await pool.query(
+      `SELECT 
+         id,
+         tenant_id as "tenantId",
+         equipment_id as "equipmentId",
+         equipment_number as "equipmentNumber",
+         equipment_type as "equipmentType",
+         make,
+         model,
+         serial_number as "serialNumber",
+         manufacturing_year as "manufacturingYear",
+         excavator_bucket_capacity as "excavatorBucketCapacity",
+         boom_length as "boomLength",
+         loader_bucket_capacity as "loaderBucketCapacity",
+         crane_lifting_capacity as "craneLiftingCapacity",
+         forklift_fork_capacity as "forkliftForkCapacity",
+         dumper_payload_capacity as "dumperPayloadCapacity",
+         operating_weight as "operatingWeight",
+         fuel_type as "fuelType",
+         hour_meter_reading as "hourMeterReading",
+         purchase_date as "purchaseDate",
+         purchase_cost as "purchaseCost",
+         vendor,
+         insurance_value as "insuranceValue",
+         assigned_operator_name as "assignedOperatorName",
+         assigned_operator_phone as "assignedOperatorPhone",
+         assigned_project_id as "assignedProjectId",
+         assigned_project_name as "assignedProjectName",
+         assigned_worksite_name as "assignedWorksiteName",
+         status,
+         notes,
+         created_at as "createdAt",
+         updated_at as "updatedAt"
+       FROM tenant_heavy_equipment
+       WHERE tenant_id::text = $1::text
+       ORDER BY created_at DESC`,
+      [tenantId]
+    );
+    res.json(eqRes.rows);
+  } catch (err: any) {
+    console.error(`[GET /api/tenant/heavy-equipment] Error:`, err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST Heavy Equipment
+app.post('/api/tenant/heavy-equipment', async (req, res) => {
+  const {
+    firebaseUid,
+    equipmentId,
+    equipmentNumber,
+    equipmentType,
+    make,
+    model,
+    serialNumber,
+    manufacturingYear,
+    excavatorBucketCapacity,
+    boomLength,
+    loaderBucketCapacity,
+    craneLiftingCapacity,
+    forkliftForkCapacity,
+    dumperPayloadCapacity,
+    operatingWeight,
+    fuelType,
+    hourMeterReading,
+    purchaseDate,
+    purchaseCost,
+    vendor,
+    insuranceValue,
+    assignedOperatorName,
+    assignedOperatorPhone,
+    assignedProjectId,
+    assignedProjectName,
+    assignedWorksiteName,
+    status,
+    notes
+  } = req.body;
+
+  if (!equipmentId || !equipmentNumber || !equipmentType) {
+    return res.status(400).json({ error: 'Equipment ID, equipment number, and equipment type are required' });
+  }
+
+  try {
+    let tenantId = null;
+    if (firebaseUid) {
+      const tenantRes = await pool.query(
+        `SELECT tenant_id FROM tenant_admins WHERE firebase_uid = $1
+         UNION
+         SELECT tenant_id FROM tenant_users WHERE firebase_uid = $1`,
+        [firebaseUid]
+      );
+      if (tenantRes.rows.length > 0) tenantId = tenantRes.rows[0].tenant_id;
+    }
+    if (!tenantId) {
+      const firstTenant = await pool.query('SELECT tenant_id FROM tenant_admins ORDER BY id ASC LIMIT 1');
+      if (firstTenant.rows.length > 0) tenantId = firstTenant.rows[0].tenant_id;
+    }
+    if (!tenantId) {
+      tenantId = '1';
+    }
+
+    const insertRes = await pool.query(
+      `INSERT INTO tenant_heavy_equipment (
+         tenant_id, equipment_id, equipment_number, equipment_type, make, model, serial_number,
+         manufacturing_year, excavator_bucket_capacity, boom_length, loader_bucket_capacity,
+         crane_lifting_capacity, forklift_fork_capacity, dumper_payload_capacity, operating_weight,
+         fuel_type, hour_meter_reading, purchase_date, purchase_cost, vendor, insurance_value,
+         assigned_operator_name, assigned_operator_phone, assigned_project_id, assigned_project_name,
+         assigned_worksite_name, status, notes
+       ) VALUES (
+         $1, $2, $3, $4, $5, $6, $7,
+         $8, $9, $10, $11,
+         $12, $13, $14, $15,
+         $16, $17, $18, $19, $20, $21,
+         $22, $23, $24, $25,
+         $26, $27, $28
+       ) RETURNING 
+         id,
+         tenant_id as "tenantId",
+         equipment_id as "equipmentId",
+         equipment_number as "equipmentNumber",
+         equipment_type as "equipmentType",
+         make,
+         model,
+         serial_number as "serialNumber",
+         manufacturing_year as "manufacturingYear",
+         excavator_bucket_capacity as "excavatorBucketCapacity",
+         boom_length as "boomLength",
+         loader_bucket_capacity as "loaderBucketCapacity",
+         crane_lifting_capacity as "craneLiftingCapacity",
+         forklift_fork_capacity as "forkliftForkCapacity",
+         dumper_payload_capacity as "dumperPayloadCapacity",
+         operating_weight as "operatingWeight",
+         fuel_type as "fuelType",
+         hour_meter_reading as "hourMeterReading",
+         purchase_date as "purchaseDate",
+         purchase_cost as "purchaseCost",
+         vendor,
+         insurance_value as "insuranceValue",
+         assigned_operator_name as "assignedOperatorName",
+         assigned_operator_phone as "assignedOperatorPhone",
+         assigned_project_id as "assignedProjectId",
+         assigned_project_name as "assignedProjectName",
+         assigned_worksite_name as "assignedWorksiteName",
+         status,
+         notes,
+         created_at as "createdAt",
+         updated_at as "updatedAt"`,
+      [
+        tenantId,
+        equipmentId.trim(),
+        equipmentNumber.trim(),
+        equipmentType.trim(),
+        make?.trim() || null,
+        model?.trim() || null,
+        serialNumber?.trim() || null,
+        manufacturingYear ? parseInt(manufacturingYear, 10) : null,
+        excavatorBucketCapacity ? parseFloat(excavatorBucketCapacity) : 0,
+        boomLength ? parseFloat(boomLength) : 0,
+        loaderBucketCapacity ? parseFloat(loaderBucketCapacity) : 0,
+        craneLiftingCapacity ? parseFloat(craneLiftingCapacity) : 0,
+        forkliftForkCapacity ? parseFloat(forkliftForkCapacity) : 0,
+        dumperPayloadCapacity ? parseFloat(dumperPayloadCapacity) : 0,
+        operatingWeight ? parseFloat(operatingWeight) : 0,
+        fuelType || 'Diesel',
+        hourMeterReading ? parseFloat(hourMeterReading) : 0,
+        purchaseDate || null,
+        purchaseCost ? parseFloat(purchaseCost) : 0,
+        vendor?.trim() || null,
+        insuranceValue ? parseFloat(insuranceValue) : 0,
+        assignedOperatorName?.trim() || null,
+        assignedOperatorPhone?.trim() || null,
+        assignedProjectId || null,
+        assignedProjectName?.trim() || null,
+        assignedWorksiteName?.trim() || null,
+        status || 'Active',
+        notes?.trim() || null
+      ]
+    );
+
+    res.status(201).json(insertRes.rows[0]);
+  } catch (err: any) {
+    console.error(`[POST /api/tenant/heavy-equipment] Error:`, err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT Heavy Equipment
+app.put('/api/tenant/heavy-equipment/:id', async (req, res) => {
+  const { id } = req.params;
+  const {
+    equipmentId,
+    equipmentNumber,
+    equipmentType,
+    make,
+    model,
+    serialNumber,
+    manufacturingYear,
+    excavatorBucketCapacity,
+    boomLength,
+    loaderBucketCapacity,
+    craneLiftingCapacity,
+    forkliftForkCapacity,
+    dumperPayloadCapacity,
+    operatingWeight,
+    fuelType,
+    hourMeterReading,
+    purchaseDate,
+    purchaseCost,
+    vendor,
+    insuranceValue,
+    assignedOperatorName,
+    assignedOperatorPhone,
+    assignedProjectId,
+    assignedProjectName,
+    assignedWorksiteName,
+    status,
+    notes
+  } = req.body;
+
+  try {
+    const updateRes = await pool.query(
+      `UPDATE tenant_heavy_equipment
+       SET equipment_id = COALESCE($1, equipment_id),
+           equipment_number = COALESCE($2, equipment_number),
+           equipment_type = COALESCE($3, equipment_type),
+           make = $4,
+           model = $5,
+           serial_number = $6,
+           manufacturing_year = $7,
+           excavator_bucket_capacity = $8,
+           boom_length = $9,
+           loader_bucket_capacity = $10,
+           crane_lifting_capacity = $11,
+           forklift_fork_capacity = $12,
+           dumper_payload_capacity = $13,
+           operating_weight = $14,
+           fuel_type = COALESCE($15, fuel_type),
+           hour_meter_reading = $16,
+           purchase_date = $17,
+           purchase_cost = $18,
+           vendor = $19,
+           insurance_value = $20,
+           assigned_operator_name = $21,
+           assigned_operator_phone = $22,
+           assigned_project_id = $23,
+           assigned_project_name = $24,
+           assigned_worksite_name = $25,
+           status = COALESCE($26, status),
+           notes = $27,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $28
+       RETURNING 
+         id,
+         tenant_id as "tenantId",
+         equipment_id as "equipmentId",
+         equipment_number as "equipmentNumber",
+         equipment_type as "equipmentType",
+         make,
+         model,
+         serial_number as "serialNumber",
+         manufacturing_year as "manufacturingYear",
+         excavator_bucket_capacity as "excavatorBucketCapacity",
+         boom_length as "boomLength",
+         loader_bucket_capacity as "loaderBucketCapacity",
+         crane_lifting_capacity as "craneLiftingCapacity",
+         forklift_fork_capacity as "forkliftForkCapacity",
+         dumper_payload_capacity as "dumperPayloadCapacity",
+         operating_weight as "operatingWeight",
+         fuel_type as "fuelType",
+         hour_meter_reading as "hourMeterReading",
+         purchase_date as "purchaseDate",
+         purchase_cost as "purchaseCost",
+         vendor,
+         insurance_value as "insuranceValue",
+         assigned_operator_name as "assignedOperatorName",
+         assigned_operator_phone as "assignedOperatorPhone",
+         assigned_project_id as "assignedProjectId",
+         assigned_project_name as "assignedProjectName",
+         assigned_worksite_name as "assignedWorksiteName",
+         status,
+         notes,
+         created_at as "createdAt",
+         updated_at as "updatedAt"`,
+      [
+        equipmentId?.trim() || null,
+        equipmentNumber?.trim() || null,
+        equipmentType?.trim() || null,
+        make?.trim() || null,
+        model?.trim() || null,
+        serialNumber?.trim() || null,
+        manufacturingYear ? parseInt(manufacturingYear, 10) : null,
+        excavatorBucketCapacity !== undefined ? parseFloat(excavatorBucketCapacity) : 0,
+        boomLength !== undefined ? parseFloat(boomLength) : 0,
+        loaderBucketCapacity !== undefined ? parseFloat(loaderBucketCapacity) : 0,
+        craneLiftingCapacity !== undefined ? parseFloat(craneLiftingCapacity) : 0,
+        forkliftForkCapacity !== undefined ? parseFloat(forkliftForkCapacity) : 0,
+        dumperPayloadCapacity !== undefined ? parseFloat(dumperPayloadCapacity) : 0,
+        operatingWeight !== undefined ? parseFloat(operatingWeight) : 0,
+        fuelType || 'Diesel',
+        hourMeterReading !== undefined ? parseFloat(hourMeterReading) : 0,
+        purchaseDate || null,
+        purchaseCost !== undefined ? parseFloat(purchaseCost) : 0,
+        vendor?.trim() || null,
+        insuranceValue !== undefined ? parseFloat(insuranceValue) : 0,
+        assignedOperatorName?.trim() || null,
+        assignedOperatorPhone?.trim() || null,
+        assignedProjectId || null,
+        assignedProjectName?.trim() || null,
+        assignedWorksiteName?.trim() || null,
+        status || null,
+        notes?.trim() || null,
+        id
+      ]
+    );
+
+    if (updateRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Heavy equipment not found' });
+    }
+    res.json(updateRes.rows[0]);
+  } catch (err: any) {
+    console.error(`[PUT /api/tenant/heavy-equipment/:id] Error:`, err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE Heavy Equipment
+app.delete('/api/tenant/heavy-equipment/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const deleteRes = await pool.query('DELETE FROM tenant_heavy_equipment WHERE id = $1 RETURNING *', [id]);
+    if (deleteRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Heavy equipment not found' });
+    }
+    res.json({ message: 'Heavy equipment deleted successfully', equipment: deleteRes.rows[0] });
+  } catch (err: any) {
+    console.error(`[DELETE /api/tenant/heavy-equipment/:id] Error:`, err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── DIVISIONS HELPERS & ENDPOINTS ──────────────────────────────────────────
 async function getTenantIdForUser(userUid: string): Promise<number | null> {
   const adminRes = await pool.query('SELECT tenant_id FROM tenant_admins WHERE firebase_uid = $1', [userUid]);
@@ -6444,6 +7156,78 @@ app.listen(Number(port), '0.0.0.0', async () => {
       );
     `);
   console.log('✅ Form Fields Config table created/verified');
+
+  // Auto-create tenant_vehicles & tenant_heavy_equipment tables on server startup
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tenant_vehicles (
+      id SERIAL PRIMARY KEY,
+      tenant_id VARCHAR(100) NOT NULL,
+      vehicle_number VARCHAR(100) NOT NULL,
+      fleet_code VARCHAR(100),
+      vehicle_type VARCHAR(100) NOT NULL,
+      make VARCHAR(100),
+      model VARCHAR(100),
+      year INTEGER,
+      registration_number VARCHAR(100),
+      chassis_number VARCHAR(150),
+      engine_number VARCHAR(150),
+      ton_capacity NUMERIC(10,2),
+      volume_capacity NUMERIC(10,2),
+      volume_unit VARCHAR(50) DEFAULT 'CUM',
+      purchase_date DATE,
+      purchase_cost NUMERIC(15,2),
+      vendor VARCHAR(200),
+      insurance_value NUMERIC(15,2),
+      insurance_expiry_date DATE,
+      fitness_expiry_date DATE,
+      assigned_driver_name VARCHAR(150),
+      assigned_driver_phone VARCHAR(50),
+      assigned_project_id VARCHAR(100),
+      assigned_project_name VARCHAR(200),
+      current_location VARCHAR(200),
+      status VARCHAR(50) DEFAULT 'Active',
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tenant_heavy_equipment (
+      id SERIAL PRIMARY KEY,
+      tenant_id VARCHAR(100) NOT NULL,
+      equipment_id VARCHAR(100) NOT NULL,
+      equipment_number VARCHAR(100) NOT NULL,
+      equipment_type VARCHAR(100) NOT NULL,
+      make VARCHAR(100),
+      model VARCHAR(100),
+      serial_number VARCHAR(150),
+      manufacturing_year INTEGER,
+      excavator_bucket_capacity NUMERIC(10,2),
+      boom_length NUMERIC(10,2),
+      loader_bucket_capacity NUMERIC(10,2),
+      crane_lifting_capacity NUMERIC(10,2),
+      forklift_fork_capacity NUMERIC(10,2),
+      dumper_payload_capacity NUMERIC(10,2),
+      operating_weight NUMERIC(10,2),
+      fuel_type VARCHAR(50) DEFAULT 'Diesel',
+      hour_meter_reading NUMERIC(12,2) DEFAULT 0,
+      purchase_date DATE,
+      purchase_cost NUMERIC(15,2),
+      vendor VARCHAR(200),
+      insurance_value NUMERIC(15,2),
+      assigned_operator_name VARCHAR(150),
+      assigned_operator_phone VARCHAR(50),
+      assigned_project_id VARCHAR(100),
+      assigned_project_name VARCHAR(200),
+      assigned_worksite_name VARCHAR(200),
+      status VARCHAR(50) DEFAULT 'Active',
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  console.log('✅ Auto-created/verified tenant_vehicles & tenant_heavy_equipment tables on server startup');
+
 
   try {
     const vendorCheck = await pool.query('SELECT COUNT(*) as count FROM tenant_vendors');

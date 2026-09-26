@@ -21,6 +21,7 @@ import CreateProjectPage from './pages/tenant/project/CreateProjectPage';
 import ProjectDetailsPage from './pages/tenant/project/ProjectDetailsPage';
 import WorkSitesPage from './pages/tenant/worksite/WorkSitesPage';
 import WorkOrdersPage from './pages/tenant/workorder/WorkOrdersPage';
+import VehicleMasterPage from './pages/tenant/vehicle-master/VehicleMasterPage';
 import HRPage from './pages/tenant/hr/HRPage';
 import DivisionsPage from './pages/tenant/divisions/DivisionsPage';
 import DepartmentsPage from './pages/tenant/departments/DepartmentsPage';
@@ -185,6 +186,9 @@ function App() {
               </RoleGuard>
             } />
             <Route path="work-orders" element={<WorkOrdersPage />} />
+            <Route path="vehicle-master" element={<VehicleMasterPage />} />
+            <Route path="vehicles" element={<Navigate to="/tenant/vehicle-master" replace />} />
+            <Route path="heavy-equipment" element={<Navigate to="/tenant/vehicle-master" replace />} />
             <Route path="sub-contractors" element={<ComingSoon moduleName="Sub-Contractors" />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="settings" element={<ComingSoon moduleName="Settings" />} />

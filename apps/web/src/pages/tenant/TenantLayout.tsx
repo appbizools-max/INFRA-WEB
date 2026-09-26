@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Users, Building2, Box, Wrench, UserCheck, Briefcase, Network, Wallet, User, Settings, Search, Bell, Menu, X, LogOut, ChevronRight, ChevronLeft, MapPin, Shield, UserCog, Layers, DollarSign, ShoppingCart, Clipboard, ClipboardList, TrendingUp, Clock, Plus, FolderPlus } from 'lucide-react';
+import { Home, Users, Building2, Box, Wrench, UserCheck, Briefcase, Network, Wallet, User, Settings, Search, Bell, Menu, X, LogOut, ChevronRight, ChevronLeft, MapPin, Shield, UserCog, Layers, DollarSign, ShoppingCart, Clipboard, ClipboardList, TrendingUp, Clock, Plus, FolderPlus, Truck } from 'lucide-react';
 import sideIconImg from '../../assets/Side Icon.png';
 import { useAuth } from '../../context/AuthContext';
 import { signOut } from 'firebase/auth';
@@ -155,6 +155,7 @@ export default function TenantLayout() {
       }
     ] : []),
     { name: 'Work Orders', path: '/tenant/work-orders', icon: ClipboardList },
+    { name: 'Vehicle & Equipment Master', path: '/tenant/vehicle-master', icon: Truck },
   ];
   const preferenceNavItems = [
     { name: 'Profile', path: '/tenant/profile', icon: User },
