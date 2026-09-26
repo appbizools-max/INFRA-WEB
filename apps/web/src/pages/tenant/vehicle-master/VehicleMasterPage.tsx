@@ -749,9 +749,9 @@ export default function VehicleMasterPage() {
                     )}
                   </div>
 
-                  {/* Make / Manufacturer */}
+                  {/* Vehicle Brand Name */}
                   <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Make / Manufacturer</label>
+                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Vehicle Brand Name</label>
                     <input
                       type="text"
                       value={vehicleForm.make}
@@ -1113,9 +1113,9 @@ export default function VehicleMasterPage() {
                     )}
                   </div>
 
-                  {/* Make */}
+                  {/* Equipment Brand Name */}
                   <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Make / OEM Brand</label>
+                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Equipment Brand Name</label>
                     <input
                       type="text"
                       value={equipmentForm.make}
@@ -1653,8 +1653,8 @@ export default function VehicleMasterPage() {
             onChange={e => setSearchQuery(e.target.value)}
             placeholder={
               activeTab === 'vehicles'
-                ? 'Search vehicle number, fleet code, make...'
-                : 'Search equipment ID, number, model, type...'
+                ? 'Search vehicle number, fleet code, brand...'
+                : 'Search equipment ID, number, model, brand...'
             }
             className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:border-[#46B351] font-medium"
           />
@@ -1718,7 +1718,7 @@ export default function VehicleMasterPage() {
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     <th className="py-3 px-4">Vehicle & Fleet Code</th>
-                    <th className="py-3 px-4">Type & Make</th>
+                    <th className="py-3 px-4">Type & Brand</th>
                     <th className="py-3 px-4">Capacity Specs</th>
                     <th className="py-3 px-4">Fuel & Powertrain</th>
                     <th className="py-3 px-4">Registration & Chassis</th>
@@ -1868,7 +1868,7 @@ export default function VehicleMasterPage() {
                       <span className="font-mono font-bold text-slate-700">{v.fleetCode || '—'}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 block">Make & Model</span>
+                      <span className="text-[10px] text-slate-400 block">Brand & Model</span>
                       <span className="font-bold text-slate-700 truncate block">{v.make || '—'} {v.model || ''}</span>
                     </div>
                     <div>
@@ -1934,7 +1934,7 @@ export default function VehicleMasterPage() {
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     <th className="py-3 px-4">Equipment ID & Number</th>
-                    <th className="py-3 px-4">Equipment Type & Make</th>
+                    <th className="py-3 px-4">Type & Brand</th>
                     <th className="py-3 px-4">Technical Ratings & Specs</th>
                     <th className="py-3 px-4">Fuel & Powertrain</th>
                     <th className="py-3 px-4">Hour Meter</th>
@@ -2100,7 +2100,7 @@ export default function VehicleMasterPage() {
                       <span className="font-mono font-bold text-slate-700">{eq.equipmentNumber}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 block">Make & Model</span>
+                      <span className="text-[10px] text-slate-400 block">Brand & Model</span>
                       <span className="font-bold text-slate-700 truncate block">{eq.make || '—'} {eq.model || ''}</span>
                     </div>
                     <div>
@@ -2165,7 +2165,7 @@ export default function VehicleMasterPage() {
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Make & Model</span>
+                <span className="text-[10px] text-slate-400 block font-semibold">Brand & Model</span>
                 <span className="font-bold text-slate-800">{viewingVehicle.make || '—'} {viewingVehicle.model || ''} ({viewingVehicle.year || '—'})</span>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl">
@@ -2241,7 +2241,7 @@ export default function VehicleMasterPage() {
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Make & Model</span>
+                <span className="text-[10px] text-slate-400 block font-semibold">Brand & Model</span>
                 <span className="font-bold text-slate-800">{viewingEquipment.make || '—'} {viewingEquipment.model || ''}</span>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl">
