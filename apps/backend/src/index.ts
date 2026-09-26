@@ -3732,6 +3732,8 @@ app.get(['/api/tenant/vehicles/:firebaseUid', '/api/tenant/vehicles'], async (re
          assigned_project_id as "assignedProjectId",
          assigned_project_name as "assignedProjectName",
          current_location as "currentLocation",
+         fuel_power_type as "fuelPowerType",
+         fuel_consumption as "fuelConsumption",
          status,
          notes,
          created_at as "createdAt",
@@ -3775,6 +3777,8 @@ app.post('/api/tenant/vehicles', async (req, res) => {
     assignedProjectId,
     assignedProjectName,
     currentLocation,
+    fuelPowerType,
+    fuelConsumption,
     status,
     notes
   } = req.body;
@@ -3808,13 +3812,13 @@ app.post('/api/tenant/vehicles', async (req, res) => {
          registration_number, chassis_number, engine_number, ton_capacity, volume_capacity,
          volume_unit, purchase_date, purchase_cost, vendor, insurance_value, insurance_expiry_date,
          fitness_expiry_date, assigned_driver_name, assigned_driver_phone, assigned_project_id,
-         assigned_project_name, current_location, status, notes
+         assigned_project_name, current_location, fuel_power_type, fuel_consumption, status, notes
        ) VALUES (
          $1, $2, $3, $4, $5, $6, $7,
          $8, $9, $10, $11, $12,
          $13, $14, $15, $16, $17, $18,
          $19, $20, $21, $22,
-         $23, $24, $25, $26
+         $23, $24, $25, $26, $27, $28
        ) RETURNING 
          id,
          tenant_id as "tenantId",
@@ -3841,6 +3845,8 @@ app.post('/api/tenant/vehicles', async (req, res) => {
          assigned_project_id as "assignedProjectId",
          assigned_project_name as "assignedProjectName",
          current_location as "currentLocation",
+         fuel_power_type as "fuelPowerType",
+         fuel_consumption as "fuelConsumption",
          status,
          notes,
          created_at as "createdAt",
@@ -3870,6 +3876,8 @@ app.post('/api/tenant/vehicles', async (req, res) => {
         assignedProjectId || null,
         assignedProjectName?.trim() || null,
         currentLocation?.trim() || null,
+        fuelPowerType?.trim() || 'Diesel',
+        fuelConsumption?.trim() || null,
         status || 'Active',
         notes?.trim() || null
       ]
@@ -3909,6 +3917,8 @@ app.put('/api/tenant/vehicles/:id', async (req, res) => {
     assignedProjectId,
     assignedProjectName,
     currentLocation,
+    fuelPowerType,
+    fuelConsumption,
     status,
     notes
   } = req.body;
@@ -3939,10 +3949,12 @@ app.put('/api/tenant/vehicles/:id', async (req, res) => {
            assigned_project_id = $21,
            assigned_project_name = $22,
            current_location = $23,
-           status = COALESCE($24, status),
-           notes = $25,
+           fuel_power_type = COALESCE($24, fuel_power_type),
+           fuel_consumption = COALESCE($25, fuel_consumption),
+           status = COALESCE($26, status),
+           notes = $27,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $26
+       WHERE id = $28
        RETURNING 
          id,
          tenant_id as "tenantId",
@@ -3969,6 +3981,8 @@ app.put('/api/tenant/vehicles/:id', async (req, res) => {
          assigned_project_id as "assignedProjectId",
          assigned_project_name as "assignedProjectName",
          current_location as "currentLocation",
+         fuel_power_type as "fuelPowerType",
+         fuel_consumption as "fuelConsumption",
          status,
          notes,
          created_at as "createdAt",
@@ -3997,6 +4011,8 @@ app.put('/api/tenant/vehicles/:id', async (req, res) => {
         assignedProjectId || null,
         assignedProjectName?.trim() || null,
         currentLocation?.trim() || null,
+        fuelPowerType?.trim() || null,
+        fuelConsumption?.trim() || null,
         status || null,
         notes?.trim() || null,
         id
@@ -4071,6 +4087,8 @@ app.get(['/api/tenant/heavy-equipment/:firebaseUid', '/api/tenant/heavy-equipmen
          dumper_payload_capacity as "dumperPayloadCapacity",
          operating_weight as "operatingWeight",
          fuel_type as "fuelType",
+         fuel_power_type as "fuelPowerType",
+         fuel_consumption as "fuelConsumption",
          hour_meter_reading as "hourMeterReading",
          purchase_date as "purchaseDate",
          purchase_cost as "purchaseCost",
@@ -4116,6 +4134,8 @@ app.post('/api/tenant/heavy-equipment', async (req, res) => {
     dumperPayloadCapacity,
     operatingWeight,
     fuelType,
+    fuelPowerType,
+    fuelConsumption,
     hourMeterReading,
     purchaseDate,
     purchaseCost,
@@ -4158,16 +4178,16 @@ app.post('/api/tenant/heavy-equipment', async (req, res) => {
          tenant_id, equipment_id, equipment_number, equipment_type, make, model, serial_number,
          manufacturing_year, excavator_bucket_capacity, boom_length, loader_bucket_capacity,
          crane_lifting_capacity, forklift_fork_capacity, dumper_payload_capacity, operating_weight,
-         fuel_type, hour_meter_reading, purchase_date, purchase_cost, vendor, insurance_value,
+         fuel_type, fuel_power_type, fuel_consumption, hour_meter_reading, purchase_date, purchase_cost, vendor, insurance_value,
          assigned_operator_name, assigned_operator_phone, assigned_project_id, assigned_project_name,
          assigned_worksite_name, status, notes
        ) VALUES (
          $1, $2, $3, $4, $5, $6, $7,
          $8, $9, $10, $11,
          $12, $13, $14, $15,
-         $16, $17, $18, $19, $20, $21,
-         $22, $23, $24, $25,
-         $26, $27, $28
+         $16, $17, $18, $19, $20, $21, $22, $23,
+         $24, $25, $26, $27,
+         $28, $29, $30
        ) RETURNING 
          id,
          tenant_id as "tenantId",
@@ -4216,7 +4236,9 @@ app.post('/api/tenant/heavy-equipment', async (req, res) => {
         forkliftForkCapacity ? parseFloat(forkliftForkCapacity) : 0,
         dumperPayloadCapacity ? parseFloat(dumperPayloadCapacity) : 0,
         operatingWeight ? parseFloat(operatingWeight) : 0,
-        fuelType || 'Diesel',
+        fuelPowerType || fuelType || 'Diesel',
+        fuelPowerType || 'Diesel',
+        fuelConsumption?.trim() || null,
         hourMeterReading ? parseFloat(hourMeterReading) : 0,
         purchaseDate || null,
         purchaseCost ? parseFloat(purchaseCost) : 0,
@@ -4290,7 +4312,9 @@ app.put('/api/tenant/heavy-equipment/:id', async (req, res) => {
            dumper_payload_capacity = $13,
            operating_weight = $14,
            fuel_type = COALESCE($15, fuel_type),
-           hour_meter_reading = $16,
+           fuel_power_type = COALESCE($16, fuel_power_type),
+           fuel_consumption = COALESCE($17, fuel_consumption),
+           hour_meter_reading = $18,
            purchase_date = $17,
            purchase_cost = $18,
            vendor = $19,
@@ -7158,6 +7182,7 @@ app.listen(Number(port), '0.0.0.0', async () => {
   console.log('✅ Form Fields Config table created/verified');
 
   // Auto-create tenant_vehicles & tenant_heavy_equipment tables on server startup
+  await pool.query(`ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS fuel_power_type VARCHAR(100); ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS fuel_consumption VARCHAR(100); ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS fuel_power_type VARCHAR(100); ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS fuel_consumption VARCHAR(100);`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tenant_vehicles (
       id SERIAL PRIMARY KEY,

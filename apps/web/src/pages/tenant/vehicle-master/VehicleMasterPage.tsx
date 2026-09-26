@@ -31,7 +31,9 @@ import {
   SlidersHorizontal,
   ChevronDown,
   Building2,
-  Briefcase
+  Briefcase,
+  Zap,
+  Tag
 } from 'lucide-react';
 
 interface Vehicle {
@@ -49,6 +51,8 @@ interface Vehicle {
   tonCapacity?: number;
   volumeCapacity?: number;
   volumeUnit?: string;
+  fuelPowerType?: string;
+  fuelConsumption?: string;
   purchaseDate?: string;
   purchaseCost?: number;
   vendor?: string;
@@ -84,6 +88,8 @@ interface HeavyEquipment {
   dumperPayloadCapacity?: number;
   operatingWeight?: number;
   fuelType?: string;
+  fuelPowerType?: string;
+  fuelConsumption?: string;
   hourMeterReading?: number;
   purchaseDate?: string;
   purchaseCost?: number;
@@ -100,7 +106,7 @@ interface HeavyEquipment {
   updatedAt?: string;
 }
 
-const VEHICLE_TYPES = [
+const DEFAULT_VEHICLE_TYPES = [
   'Tipper',
   'Heavy Trailer',
   'Flatbed Trailer',
@@ -114,7 +120,7 @@ const VEHICLE_TYPES = [
   'Tractor'
 ];
 
-const EQUIPMENT_TYPES = [
+const DEFAULT_EQUIPMENT_TYPES = [
   'Excavator',
   'Wheel Loader',
   'Mobile Crane',
@@ -129,6 +135,17 @@ const EQUIPMENT_TYPES = [
   'Asphalt Paver'
 ];
 
+const FUEL_POWER_TYPES = [
+  'Diesel',
+  'Petrol',
+  'Electric (EV / Battery)',
+  'CNG',
+  'Hybrid',
+  'Hydraulic / Pneumatic',
+  'Bio-Diesel',
+  'Other'
+];
+
 export default function VehicleMasterPage() {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<'vehicles' | 'equipment'>('vehicles');
@@ -137,6 +154,14 @@ export default function VehicleMasterPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [equipmentList, setEquipmentList] = useState<HeavyEquipment[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Custom Types dynamic states
+  const [customVehicleTypes, setCustomVehicleTypes] = useState<string[]>([]);
+  const [customEquipmentTypes, setCustomEquipmentTypes] = useState<string[]>([]);
+  const [isAddingVehicleType, setIsAddingVehicleType] = useState(false);
+  const [newVehicleTypeInput, setNewVehicleTypeInput] = useState('');
+  const [isAddingEquipmentType, setIsAddingEquipmentType] = useState(false);
+  const [newEquipmentTypeInput, setNewEquipmentTypeInput] = useState('');
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
@@ -179,6 +204,8 @@ export default function VehicleMasterPage() {
     tonCapacity: 25,
     volumeCapacity: 16,
     volumeUnit: 'CUM',
+    fuelPowerType: 'Diesel',
+    fuelConsumption: '',
     purchaseDate: '',
     purchaseCost: 0,
     vendor: '',
@@ -212,6 +239,8 @@ export default function VehicleMasterPage() {
     dumperPayloadCapacity: 0,
     operatingWeight: 0,
     fuelType: 'Diesel',
+    fuelPowerType: 'Diesel',
+    fuelConsumption: '',
     hourMeterReading: 0,
     purchaseDate: '',
     purchaseCost: 0,
@@ -227,6 +256,17 @@ export default function VehicleMasterPage() {
   };
   const [equipmentForm, setEquipmentForm] = useState(initialEquipmentForm);
   const [saving, setSaving] = useState(false);
+
+  // Combined Dynamic Type Options
+  const allVehicleTypes = useMemo(() => {
+    const fromData = vehicles.map(v => v.vehicleType).filter(Boolean);
+    return Array.from(new Set([...DEFAULT_VEHICLE_TYPES, ...customVehicleTypes, ...fromData]));
+  }, [vehicles, customVehicleTypes]);
+
+  const allEquipmentTypes = useMemo(() => {
+    const fromData = equipmentList.map(e => e.equipmentType).filter(Boolean);
+    return Array.from(new Set([...DEFAULT_EQUIPMENT_TYPES, ...customEquipmentTypes, ...fromData]));
+  }, [equipmentList, customEquipmentTypes]);
 
   // Fetch initial data
   const fetchData = async () => {
@@ -265,9 +305,9 @@ export default function VehicleMasterPage() {
         v.fleetCode?.toLowerCase().includes(q) ||
         v.make?.toLowerCase().includes(q) ||
         v.model?.toLowerCase().includes(q) ||
-        v.assignedDriverName?.toLowerCase().includes(q) ||
-        v.registrationNumber?.toLowerCase().includes(q) ||
-        v.assignedProjectName?.toLowerCase().includes(q);
+        v.vehicleType?.toLowerCase().includes(q) ||
+        v.fuelPowerType?.toLowerCase().includes(q) ||
+        v.registrationNumber?.toLowerCase().includes(q);
 
       const matchesType = typeFilter === 'All' || v.vehicleType === typeFilter;
       const matchesStatus = statusFilter === 'All' || v.status === statusFilter;
@@ -284,9 +324,9 @@ export default function VehicleMasterPage() {
         eq.equipmentNumber?.toLowerCase().includes(q) ||
         eq.make?.toLowerCase().includes(q) ||
         eq.model?.toLowerCase().includes(q) ||
-        eq.serialNumber?.toLowerCase().includes(q) ||
-        eq.assignedOperatorName?.toLowerCase().includes(q) ||
-        eq.assignedProjectName?.toLowerCase().includes(q);
+        eq.equipmentType?.toLowerCase().includes(q) ||
+        eq.fuelPowerType?.toLowerCase().includes(q) ||
+        eq.serialNumber?.toLowerCase().includes(q);
 
       const matchesType = typeFilter === 'All' || eq.equipmentType === typeFilter;
       const matchesStatus = statusFilter === 'All' || eq.status === statusFilter;
@@ -318,6 +358,8 @@ export default function VehicleMasterPage() {
     }
     setFormMode('create');
     setEditingId(null);
+    setIsAddingVehicleType(false);
+    setIsAddingEquipmentType(false);
     setIsFormOpen(true);
   };
 
@@ -336,6 +378,8 @@ export default function VehicleMasterPage() {
       tonCapacity: v.tonCapacity || 0,
       volumeCapacity: v.volumeCapacity || 0,
       volumeUnit: v.volumeUnit || 'CUM',
+      fuelPowerType: v.fuelPowerType || 'Diesel',
+      fuelConsumption: v.fuelConsumption || '',
       purchaseDate: v.purchaseDate ? v.purchaseDate.split('T')[0] : '',
       purchaseCost: v.purchaseCost || 0,
       vendor: v.vendor || '',
@@ -352,6 +396,7 @@ export default function VehicleMasterPage() {
     });
     setEditingId(v.id);
     setFormMode('edit');
+    setIsAddingVehicleType(false);
     setIsFormOpen(true);
   };
 
@@ -371,7 +416,9 @@ export default function VehicleMasterPage() {
       forkliftForkCapacity: eq.forkliftForkCapacity || 0,
       dumperPayloadCapacity: eq.dumperPayloadCapacity || 0,
       operatingWeight: eq.operatingWeight || 0,
-      fuelType: eq.fuelType || 'Diesel',
+      fuelType: eq.fuelType || eq.fuelPowerType || 'Diesel',
+      fuelPowerType: eq.fuelPowerType || eq.fuelType || 'Diesel',
+      fuelConsumption: eq.fuelConsumption || '',
       hourMeterReading: eq.hourMeterReading || 0,
       purchaseDate: eq.purchaseDate ? eq.purchaseDate.split('T')[0] : '',
       purchaseCost: eq.purchaseCost || 0,
@@ -387,7 +434,34 @@ export default function VehicleMasterPage() {
     });
     setEditingId(eq.id);
     setFormMode('edit');
+    setIsAddingEquipmentType(false);
     setIsFormOpen(true);
+  };
+
+  // Add Custom Vehicle Type Handler
+  const handleAddCustomVehicleType = () => {
+    const trimmed = newVehicleTypeInput.trim();
+    if (!trimmed) return;
+    if (!allVehicleTypes.includes(trimmed)) {
+      setCustomVehicleTypes(prev => [...prev, trimmed]);
+    }
+    setVehicleForm(prev => ({ ...prev, vehicleType: trimmed }));
+    setNewVehicleTypeInput('');
+    setIsAddingVehicleType(false);
+    showToast(`Added vehicle type: "${trimmed}"`, 'success');
+  };
+
+  // Add Custom Equipment Type Handler
+  const handleAddCustomEquipmentType = () => {
+    const trimmed = newEquipmentTypeInput.trim();
+    if (!trimmed) return;
+    if (!allEquipmentTypes.includes(trimmed)) {
+      setCustomEquipmentTypes(prev => [...prev, trimmed]);
+    }
+    setEquipmentForm(prev => ({ ...prev, equipmentType: trimmed }));
+    setNewEquipmentTypeInput('');
+    setIsAddingEquipmentType(false);
+    showToast(`Added equipment type: "${trimmed}"`, 'success');
   };
 
   // Submit Handler
@@ -432,6 +506,7 @@ export default function VehicleMasterPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...equipmentForm,
+            fuelType: equipmentForm.fuelPowerType || equipmentForm.fuelType,
             firebaseUid: currentUser?.uid
           })
         });
@@ -453,16 +528,17 @@ export default function VehicleMasterPage() {
     }
   };
 
-  // Delete Handler
+  // Delete Handlers
   const handleDeleteVehicle = async (id: number | string) => {
-    if (!window.confirm('Are you sure you want to delete this vehicle from the registry?')) return;
+    if (!window.confirm('Are you sure you want to permanently delete this vehicle?')) return;
     try {
       const res = await fetch(`/api/tenant/vehicles/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete vehicle');
-      showToast('Vehicle deleted successfully', 'success');
+      showToast('Vehicle deleted successfully');
       setVehicles(prev => prev.filter(v => v.id !== id));
-    } catch (err: any) {
-      showToast(err.message || 'Error deleting vehicle', 'error');
+    } catch (err) {
+      console.error('Delete error:', err);
+      showToast('Error deleting vehicle', 'error');
     }
   };
 
@@ -470,22 +546,23 @@ export default function VehicleMasterPage() {
     if (!window.confirm('Are you sure you want to delete this heavy equipment asset?')) return;
     try {
       const res = await fetch(`/api/tenant/heavy-equipment/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete heavy equipment');
-      showToast('Heavy Equipment asset deleted successfully', 'success');
+      if (!res.ok) throw new Error('Failed to delete equipment');
+      showToast('Equipment deleted successfully');
       setEquipmentList(prev => prev.filter(eq => eq.id !== id));
-    } catch (err: any) {
-      showToast(err.message || 'Error deleting heavy equipment', 'error');
+    } catch (err) {
+      console.error('Delete error:', err);
+      showToast('Error deleting heavy equipment', 'error');
     }
   };
 
-  // Status Badge Helper
+  // Status Badge Component
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Active':
       case 'In Operation':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
             {status}
           </span>
         );
@@ -493,7 +570,7 @@ export default function VehicleMasterPage() {
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
             <Wrench size={10} className="text-amber-600" />
-            Maintenance
+            Under Maintenance
           </span>
         );
       case 'Breakdown':
@@ -520,14 +597,14 @@ export default function VehicleMasterPage() {
   };
 
   // ══════════════════════════════════════════════════════════════════════════════
-  // FULL-SCREEN CREATE / EDIT FORM VIEW
+  // FULL-SCREEN FULL-WIDTH CREATE / EDIT FORM VIEW (NOT BOXED)
   // ══════════════════════════════════════════════════════════════════════════════
   if (isFormOpen) {
     const isVehicle = activeTab === 'vehicles';
     return (
-      <div className="flex-1 overflow-y-auto bg-slate-50/60 p-4 sm:p-6 lg:p-8 space-y-6">
-        {/* Top Slim Header Bar */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-xs px-4 py-3 sm:px-5 flex items-center justify-between gap-4 max-w-5xl mx-auto w-full">
+      <div className="flex-1 overflow-y-auto bg-slate-50/70 p-4 sm:p-6 lg:p-8 space-y-6 w-full">
+        {/* Top Header Bar - Full Width */}
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-xs px-5 py-3.5 flex items-center justify-between gap-4 w-full">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -543,7 +620,7 @@ export default function VehicleMasterPage() {
                   : isVehicle ? `Edit Vehicle: ${vehicleForm.vehicleNumber}` : `Edit Equipment: ${equipmentForm.equipmentId}`}
               </h2>
               <p className="text-xs text-slate-500 hidden sm:block">
-                {isVehicle ? 'Fill in logistics, capacity specifications and financial data' : 'Enter machinery specifications, boom/bucket capacities and maintenance status'}
+                {isVehicle ? 'Fill in logistics, fuel specs, capacity specifications and financial data' : 'Enter machinery specifications, power type, consumption ratings and maintenance status'}
               </p>
             </div>
           </div>
@@ -552,7 +629,7 @@ export default function VehicleMasterPage() {
             <button
               type="button"
               onClick={() => setIsFormOpen(false)}
-              className="px-3.5 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -560,7 +637,7 @@ export default function VehicleMasterPage() {
               type="submit"
               form="master-fleet-form"
               disabled={saving}
-              className="px-4 py-1.5 rounded-xl bg-[#46B351] hover:bg-[#3ca046] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+              className="px-5 py-2 rounded-xl bg-[#46B351] hover:bg-[#3ca046] text-white text-xs font-bold shadow-xs flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
             >
               <Check size={14} />
               {saving ? 'Saving...' : formMode === 'create' ? 'Save & Register Asset' : 'Save Changes'}
@@ -568,19 +645,19 @@ export default function VehicleMasterPage() {
           </div>
         </div>
 
-        {/* Form Container */}
+        {/* Full-Width Form Layout */}
         <form
           id="master-fleet-form"
           onSubmit={handleSubmitForm}
-          className="space-y-6 max-w-5xl mx-auto w-full pb-12"
+          className="space-y-6 w-full pb-16"
         >
           {isVehicle ? (
             /* ─────────────────────────────────────────────────────────────
-               MODULE 1: VEHICLE MASTER FORM
+               MODULE 1: VEHICLE MASTER FORM (Full Width Grid)
                ───────────────────────────────────────────────────────────── */
             <>
-              {/* Section 1: Vehicle Information */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
+              {/* Section 1: Vehicle & Identification Information */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5 w-full">
                 <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
                   <div className="h-8 w-8 rounded-lg bg-emerald-50 text-[#46B351] flex items-center justify-center font-bold">
                     <Truck size={16} />
@@ -591,8 +668,8 @@ export default function VehicleMasterPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Vehicle Number & Fleet Code */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {/* Vehicle Number */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">
                       Vehicle Number <span className="text-rose-500">*</span>
@@ -607,6 +684,7 @@ export default function VehicleMasterPage() {
                     />
                   </div>
 
+                  {/* Fleet Code */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Fleet Code</label>
                     <input
@@ -618,20 +696,60 @@ export default function VehicleMasterPage() {
                     />
                   </div>
 
-                  {/* Vehicle Type & Make */}
+                  {/* Vehicle Type with Add Custom Type Option */}
                   <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Vehicle Type</label>
-                    <select
-                      value={vehicleForm.vehicleType}
-                      onChange={e => setVehicleForm(prev => ({ ...prev, vehicleType: e.target.value }))}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
-                    >
-                      {VEHICLE_TYPES.map(vt => (
-                        <option key={vt} value={vt}>{vt}</option>
-                      ))}
-                    </select>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block font-bold text-slate-700 text-xs">Vehicle Type</label>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingVehicleType(!isAddingVehicleType)}
+                        className="text-[11px] font-bold text-[#46B351] hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        {isAddingVehicleType ? 'Close' : '+ Add Custom'}
+                      </button>
+                    </div>
+
+                    {isAddingVehicleType ? (
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          value={newVehicleTypeInput}
+                          onChange={e => setNewVehicleTypeInput(e.target.value)}
+                          placeholder="Enter new vehicle type..."
+                          className="flex-1 px-3 py-2 text-xs rounded-xl bg-slate-50 border border-[#46B351] focus:outline-none font-semibold text-slate-800"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddCustomVehicleType}
+                          className="px-2.5 py-2 rounded-xl bg-[#46B351] text-white text-xs font-bold hover:bg-[#3ca046] cursor-pointer"
+                          title="Save Type"
+                        >
+                          <Check size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        value={vehicleForm.vehicleType}
+                        onChange={e => {
+                          if (e.target.value === '__ADD_NEW__') {
+                            setIsAddingVehicleType(true);
+                          } else {
+                            setVehicleForm(prev => ({ ...prev, vehicleType: e.target.value }));
+                          }
+                        }}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
+                      >
+                        {allVehicleTypes.map(vt => (
+                          <option key={vt} value={vt}>{vt}</option>
+                        ))}
+                        <option value="__ADD_NEW__" className="font-bold text-[#46B351]">
+                          + Add New Custom Type...
+                        </option>
+                      </select>
+                    )}
                   </div>
 
+                  {/* Make / Manufacturer */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Make / Manufacturer</label>
                     <input
@@ -643,7 +761,7 @@ export default function VehicleMasterPage() {
                     />
                   </div>
 
-                  {/* Model & Year */}
+                  {/* Model */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Model</label>
                     <input
@@ -655,6 +773,7 @@ export default function VehicleMasterPage() {
                     />
                   </div>
 
+                  {/* Year */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Year of Manufacture</label>
                     <input
@@ -668,7 +787,7 @@ export default function VehicleMasterPage() {
                     />
                   </div>
 
-                  {/* Registration Number & Chassis Number */}
+                  {/* Registration Number */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Registration Number (RC)</label>
                     <input
@@ -680,6 +799,7 @@ export default function VehicleMasterPage() {
                     />
                   </div>
 
+                  {/* Chassis Number */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Chassis Number</label>
                     <input
@@ -692,7 +812,7 @@ export default function VehicleMasterPage() {
                   </div>
 
                   {/* Engine Number */}
-                  <div className="md:col-span-2">
+                  <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Engine Number</label>
                     <input
                       type="text"
@@ -705,19 +825,53 @@ export default function VehicleMasterPage() {
                 </div>
               </div>
 
-              {/* Section 2: Capacity Specifications */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
+              {/* Section 2: Capacity, Power & Fuel Specifications */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5 w-full">
                 <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
                   <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                    <Layers size={16} />
+                    <Fuel size={16} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-sm text-slate-900">2. Capacity Specifications</h3>
-                    <p className="text-[11px] text-slate-400">Payload tonnage and volumetric carrying capacities</p>
+                    <h3 className="font-bold text-sm text-slate-900">2. Fuel, Power & Capacity Specifications</h3>
+                    <p className="text-[11px] text-slate-400">Fuel consumption rates, powertrain type, payload tonnage and volumetric limits</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {/* Fuel / Power Type */}
+                  <div>
+                    <label className="block font-bold text-slate-700 text-xs mb-1.5">
+                      Fuel / Power Type
+                    </label>
+                    <select
+                      value={vehicleForm.fuelPowerType || 'Diesel'}
+                      onChange={e => setVehicleForm(prev => ({ ...prev, fuelPowerType: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
+                    >
+                      {FUEL_POWER_TYPES.map(ft => (
+                        <option key={ft} value={ft}>{ft}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Fuel Consumption */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block font-bold text-slate-700 text-xs">Fuel Consumption</label>
+                      <span className="text-[10px] text-slate-400">km/L or L/100km</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={vehicleForm.fuelConsumption || ''}
+                        onChange={e => setVehicleForm(prev => ({ ...prev, fuelConsumption: e.target.value }))}
+                        placeholder="e.g. 3.8 km/L"
+                        className="w-full px-4 py-2.5 pr-8 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
+                      />
+                      <Fuel size={14} className="absolute right-3 top-3 text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
+
                   {/* Ton Capacity */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
@@ -771,7 +925,7 @@ export default function VehicleMasterPage() {
               </div>
 
               {/* Section 3: Financial & Procurement Information */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5 w-full">
                 <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
                   <div className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
                     <IndianRupee size={16} />
@@ -782,8 +936,8 @@ export default function VehicleMasterPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Purchase Date & Cost */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {/* Purchase Date */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Purchase Date</label>
                     <input
@@ -794,6 +948,7 @@ export default function VehicleMasterPage() {
                     />
                   </div>
 
+                  {/* Purchase Cost */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Purchase Cost (₹)</label>
                     <div className="relative">
@@ -810,7 +965,7 @@ export default function VehicleMasterPage() {
                     </div>
                   </div>
 
-                  {/* Vendor & Insurance Value */}
+                  {/* Vendor */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Vendor / Dealer</label>
                     <input
@@ -822,6 +977,7 @@ export default function VehicleMasterPage() {
                     />
                   </div>
 
+                  {/* Insurance Value */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Insurance Value (IDV in ₹)</label>
                     <div className="relative">
@@ -839,7 +995,7 @@ export default function VehicleMasterPage() {
                   </div>
 
                   {/* Status */}
-                  <div className="md:col-span-2">
+                  <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Status</label>
                     <select
                       value={vehicleForm.status}
@@ -858,23 +1014,23 @@ export default function VehicleMasterPage() {
             </>
           ) : (
             /* ─────────────────────────────────────────────────────────────
-               MODULE 2: HEAVY EQUIPMENT MASTER FORM
+               MODULE 2: HEAVY EQUIPMENT MASTER FORM (Full Width Grid)
                ───────────────────────────────────────────────────────────── */
             <>
-              {/* Section 1: Equipment Information */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
+              {/* Section 1: Equipment Identification & Power Specs */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5 w-full">
                 <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
                   <div className="h-8 w-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
                     <HardHat size={16} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-sm text-slate-900">1. Heavy Equipment Identification</h3>
-                    <p className="text-[11px] text-slate-400">Equipment code, classification, make, model and manufacturer serial number</p>
+                    <h3 className="font-bold text-sm text-slate-900">1. Heavy Equipment Identification & Power Specs</h3>
+                    <p className="text-[11px] text-slate-400">Equipment code, classification, make, model, power type and consumption rates</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Equipment ID & Equipment Number */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {/* Equipment ID */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">
                       Equipment ID <span className="text-rose-500">*</span>
@@ -889,6 +1045,7 @@ export default function VehicleMasterPage() {
                     />
                   </div>
 
+                  {/* Equipment Number */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">
                       Equipment Number (Asset Tag / Reg) <span className="text-rose-500">*</span>
@@ -903,20 +1060,60 @@ export default function VehicleMasterPage() {
                     />
                   </div>
 
-                  {/* Equipment Type & Make */}
+                  {/* Equipment Type with Dynamic Custom Type Option */}
                   <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Equipment Type</label>
-                    <select
-                      value={equipmentForm.equipmentType}
-                      onChange={e => setEquipmentForm(prev => ({ ...prev, equipmentType: e.target.value }))}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
-                    >
-                      {EQUIPMENT_TYPES.map(eqt => (
-                        <option key={eqt} value={eqt}>{eqt}</option>
-                      ))}
-                    </select>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block font-bold text-slate-700 text-xs">Equipment Type</label>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingEquipmentType(!isAddingEquipmentType)}
+                        className="text-[11px] font-bold text-[#46B351] hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        {isAddingEquipmentType ? 'Close' : '+ Add Custom'}
+                      </button>
+                    </div>
+
+                    {isAddingEquipmentType ? (
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          value={newEquipmentTypeInput}
+                          onChange={e => setNewEquipmentTypeInput(e.target.value)}
+                          placeholder="Enter equipment type..."
+                          className="flex-1 px-3 py-2 text-xs rounded-xl bg-slate-50 border border-[#46B351] focus:outline-none font-semibold text-slate-800"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddCustomEquipmentType}
+                          className="px-2.5 py-2 rounded-xl bg-[#46B351] text-white text-xs font-bold hover:bg-[#3ca046] cursor-pointer"
+                          title="Save Type"
+                        >
+                          <Check size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        value={equipmentForm.equipmentType}
+                        onChange={e => {
+                          if (e.target.value === '__ADD_NEW__') {
+                            setIsAddingEquipmentType(true);
+                          } else {
+                            setEquipmentForm(prev => ({ ...prev, equipmentType: e.target.value }));
+                          }
+                        }}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
+                      >
+                        {allEquipmentTypes.map(eqt => (
+                          <option key={eqt} value={eqt}>{eqt}</option>
+                        ))}
+                        <option value="__ADD_NEW__" className="font-bold text-[#46B351]">
+                          + Add New Custom Type...
+                        </option>
+                      </select>
+                    )}
                   </div>
 
+                  {/* Make */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Make / OEM Brand</label>
                     <input
@@ -928,7 +1125,7 @@ export default function VehicleMasterPage() {
                     />
                   </div>
 
-                  {/* Model & Serial Number */}
+                  {/* Model */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Model</label>
                     <input
@@ -940,6 +1137,7 @@ export default function VehicleMasterPage() {
                     />
                   </div>
 
+                  {/* Serial Number */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Serial Number</label>
                     <input
@@ -951,7 +1149,7 @@ export default function VehicleMasterPage() {
                     />
                   </div>
 
-                  {/* Manufacturing Year & Fuel Type */}
+                  {/* Manufacturing Year */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Manufacturing Year</label>
                     <input
@@ -965,165 +1163,39 @@ export default function VehicleMasterPage() {
                     />
                   </div>
 
+                  {/* Fuel / Power Type */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Fuel / Power Type</label>
                     <select
-                      value={equipmentForm.fuelType}
-                      onChange={e => setEquipmentForm(prev => ({ ...prev, fuelType: e.target.value }))}
+                      value={equipmentForm.fuelPowerType || equipmentForm.fuelType || 'Diesel'}
+                      onChange={e => setEquipmentForm(prev => ({ ...prev, fuelPowerType: e.target.value, fuelType: e.target.value }))}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
                     >
-                      <option value="Diesel">Diesel Powered</option>
-                      <option value="Electric">Electric / Battery</option>
-                      <option value="Hybrid">Hybrid</option>
-                      <option value="Petrol">Petrol</option>
+                      {FUEL_POWER_TYPES.map(ft => (
+                        <option key={ft} value={ft}>{ft}</option>
+                      ))}
                     </select>
                   </div>
-                </div>
-              </div>
 
-              {/* Section 2: Technical Specifications */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
-                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
-                  <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                    <SlidersHorizontal size={16} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-900">2. Technical Specifications</h3>
-                    <p className="text-[11px] text-slate-400">Excavator, Loader, Crane, Forklift and Dumper mechanical ratings</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Excavator Bucket Capacity & Boom Length */}
+                  {/* Fuel Consumption */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="block font-bold text-slate-700 text-xs">Excavator Bucket Capacity</label>
-                      <span className="text-[10px] text-slate-400">Cubic Meters (CUM)</span>
+                      <label className="block font-bold text-slate-700 text-xs">Fuel Consumption</label>
+                      <span className="text-[10px] text-slate-400">Liters/Hour or L/hr</span>
                     </div>
                     <div className="relative">
                       <input
-                        type="number"
-                        step="0.05"
-                        min="0"
-                        value={equipmentForm.excavatorBucketCapacity || ''}
-                        onChange={e => setEquipmentForm(prev => ({ ...prev, excavatorBucketCapacity: parseFloat(e.target.value) || 0 }))}
-                        placeholder="e.g. 1.20"
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
+                        type="text"
+                        value={equipmentForm.fuelConsumption || ''}
+                        onChange={e => setEquipmentForm(prev => ({ ...prev, fuelConsumption: e.target.value }))}
+                        placeholder="e.g. 18.5 L/hr"
+                        className="w-full px-4 py-2.5 pr-8 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800"
                       />
-                      <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
-                        CUM
-                      </span>
+                      <Fuel size={14} className="absolute right-3 top-3 text-slate-400 pointer-events-none" />
                     </div>
                   </div>
 
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block font-bold text-slate-700 text-xs">Boom Length</label>
-                      <span className="text-[10px] text-slate-400">Meters</span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        value={equipmentForm.boomLength || ''}
-                        onChange={e => setEquipmentForm(prev => ({ ...prev, boomLength: parseFloat(e.target.value) || 0 }))}
-                        placeholder="e.g. 5.7"
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
-                      />
-                      <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
-                        Meters
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Loader Bucket Capacity & Crane Lifting Capacity */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block font-bold text-slate-700 text-xs">Loader Bucket Capacity</label>
-                      <span className="text-[10px] text-slate-400">Cubic Meters (CUM)</span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.05"
-                        min="0"
-                        value={equipmentForm.loaderBucketCapacity || ''}
-                        onChange={e => setEquipmentForm(prev => ({ ...prev, loaderBucketCapacity: parseFloat(e.target.value) || 0 }))}
-                        placeholder="e.g. 3.50"
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
-                      />
-                      <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
-                        CUM
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block font-bold text-slate-700 text-xs">Crane Lifting Capacity</label>
-                      <span className="text-[10px] text-slate-400">Metric Tons</span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        value={equipmentForm.craneLiftingCapacity || ''}
-                        onChange={e => setEquipmentForm(prev => ({ ...prev, craneLiftingCapacity: parseFloat(e.target.value) || 0 }))}
-                        placeholder="e.g. 25.0"
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
-                      />
-                      <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
-                        Tons
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Forklift Capacity & Dumper Payload Capacity */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block font-bold text-slate-700 text-xs">Forklift Fork Capacity</label>
-                      <span className="text-[10px] text-slate-400">Metric Tons</span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        value={equipmentForm.forkliftForkCapacity || ''}
-                        onChange={e => setEquipmentForm(prev => ({ ...prev, forkliftForkCapacity: parseFloat(e.target.value) || 0 }))}
-                        placeholder="e.g. 3.5"
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
-                      />
-                      <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
-                        Tons
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block font-bold text-slate-700 text-xs">Dumper Payload Capacity</label>
-                      <span className="text-[10px] text-slate-400">Metric Tons</span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        value={equipmentForm.dumperPayloadCapacity || ''}
-                        onChange={e => setEquipmentForm(prev => ({ ...prev, dumperPayloadCapacity: parseFloat(e.target.value) || 0 }))}
-                        placeholder="e.g. 40.0"
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
-                      />
-                      <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
-                        Tons
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Operating Weight & Hour Meter */}
+                  {/* Operating Weight */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block font-bold text-slate-700 text-xs">Operating Weight</label>
@@ -1145,6 +1217,7 @@ export default function VehicleMasterPage() {
                     </div>
                   </div>
 
+                  {/* Hour Meter Reading */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block font-bold text-slate-700 text-xs">Hour Meter Reading</label>
@@ -1168,20 +1241,167 @@ export default function VehicleMasterPage() {
                 </div>
               </div>
 
+              {/* Section 2: Technical Specifications */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5 w-full">
+                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
+                  <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                    <SlidersHorizontal size={16} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-900">2. Technical Specifications</h3>
+                    <p className="text-[11px] text-slate-400">Excavator, Loader, Crane, Forklift and Dumper mechanical ratings</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {/* Excavator Bucket Capacity */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block font-bold text-slate-700 text-xs">Excavator Bucket Capacity</label>
+                      <span className="text-[10px] text-slate-400">CUM</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.05"
+                        min="0"
+                        value={equipmentForm.excavatorBucketCapacity || ''}
+                        onChange={e => setEquipmentForm(prev => ({ ...prev, excavatorBucketCapacity: parseFloat(e.target.value) || 0 }))}
+                        placeholder="e.g. 1.20"
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
+                      />
+                      <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
+                        CUM
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Boom Length */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block font-bold text-slate-700 text-xs">Boom Length</label>
+                      <span className="text-[10px] text-slate-400">Meters</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={equipmentForm.boomLength || ''}
+                        onChange={e => setEquipmentForm(prev => ({ ...prev, boomLength: parseFloat(e.target.value) || 0 }))}
+                        placeholder="e.g. 5.7"
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
+                      />
+                      <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
+                        Meters
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Loader Bucket Capacity */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block font-bold text-slate-700 text-xs">Loader Bucket Capacity</label>
+                      <span className="text-[10px] text-slate-400">CUM</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.05"
+                        min="0"
+                        value={equipmentForm.loaderBucketCapacity || ''}
+                        onChange={e => setEquipmentForm(prev => ({ ...prev, loaderBucketCapacity: parseFloat(e.target.value) || 0 }))}
+                        placeholder="e.g. 3.50"
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
+                      />
+                      <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
+                        CUM
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Crane Lifting Capacity */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block font-bold text-slate-700 text-xs">Crane Lifting Capacity</label>
+                      <span className="text-[10px] text-slate-400">Metric Tons</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        value={equipmentForm.craneLiftingCapacity || ''}
+                        onChange={e => setEquipmentForm(prev => ({ ...prev, craneLiftingCapacity: parseFloat(e.target.value) || 0 }))}
+                        placeholder="e.g. 25.0"
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
+                      />
+                      <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
+                        Tons
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Forklift Fork Capacity */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block font-bold text-slate-700 text-xs">Forklift Fork Capacity</label>
+                      <span className="text-[10px] text-slate-400">Metric Tons</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={equipmentForm.forkliftForkCapacity || ''}
+                        onChange={e => setEquipmentForm(prev => ({ ...prev, forkliftForkCapacity: parseFloat(e.target.value) || 0 }))}
+                        placeholder="e.g. 3.5"
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
+                      />
+                      <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
+                        Tons
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Dumper Payload Capacity */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block font-bold text-slate-700 text-xs">Dumper Payload Capacity</label>
+                      <span className="text-[10px] text-slate-400">Metric Tons</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        value={equipmentForm.dumperPayloadCapacity || ''}
+                        onChange={e => setEquipmentForm(prev => ({ ...prev, dumperPayloadCapacity: parseFloat(e.target.value) || 0 }))}
+                        placeholder="e.g. 40.0"
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
+                      />
+                      <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
+                        Tons
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Section 3: Financial Information & Status */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5 w-full">
                 <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
                   <div className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
                     <IndianRupee size={16} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-sm text-slate-900">3. Financial Information</h3>
+                    <h3 className="font-bold text-sm text-slate-900">3. Financial Information & Status</h3>
                     <p className="text-[11px] text-slate-400">Capital purchase cost, equipment supplier, and operational status</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Purchase Date & Cost */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {/* Purchase Date */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Purchase Date</label>
                     <input
@@ -1192,6 +1412,7 @@ export default function VehicleMasterPage() {
                     />
                   </div>
 
+                  {/* Purchase Cost */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Purchase Cost (₹)</label>
                     <div className="relative">
@@ -1208,7 +1429,7 @@ export default function VehicleMasterPage() {
                     </div>
                   </div>
 
-                  {/* Vendor & Status */}
+                  {/* Vendor */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Vendor / Supplier</label>
                     <input
@@ -1220,6 +1441,7 @@ export default function VehicleMasterPage() {
                     />
                   </div>
 
+                  {/* Status */}
                   <div>
                     <label className="block font-bold text-slate-700 text-xs mb-1.5">Status</label>
                     <select
@@ -1248,17 +1470,16 @@ export default function VehicleMasterPage() {
   // MAIN REGISTRY & DASHBOARD VIEW
   // ══════════════════════════════════════════════════════════════════════════════
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50/60 p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="flex-1 overflow-y-auto bg-slate-50/60 p-4 sm:p-6 lg:p-8 space-y-6 w-full">
       {/* Toast Notification */}
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl shadow-xl border flex items-center gap-3 text-xs font-bold transition-all ${
-            toast.type === 'success'
+          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl shadow-xl border flex items-center gap-3 text-xs font-bold transition-all ${toast.type === 'success'
               ? 'bg-emerald-900 text-emerald-100 border-emerald-700'
               : toast.type === 'error'
-              ? 'bg-rose-900 text-rose-100 border-rose-700'
-              : 'bg-slate-900 text-white border-slate-700'
-          }`}
+                ? 'bg-rose-900 text-rose-100 border-rose-700'
+                : 'bg-slate-900 text-white border-slate-700'
+            }`}
         >
           {toast.type === 'success' ? <CheckCircle2 size={16} className="text-emerald-400" /> : <AlertCircle size={16} className="text-rose-400" />}
           <span>{toast.message}</span>
@@ -1372,17 +1593,15 @@ export default function VehicleMasterPage() {
               setActiveTab('vehicles');
               setTypeFilter('All');
             }}
-            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
-              activeTab === 'vehicles'
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${activeTab === 'vehicles'
                 ? 'bg-slate-900 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
+              }`}
           >
             <Truck size={14} className={activeTab === 'vehicles' ? 'text-[#46B351]' : 'text-slate-400'} />
             <span>MODULE 1: Vehicle Master</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-              activeTab === 'vehicles' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-            }`}>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'vehicles' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+              }`}>
               {vehicles.length}
             </span>
           </button>
@@ -1393,17 +1612,15 @@ export default function VehicleMasterPage() {
               setActiveTab('equipment');
               setTypeFilter('All');
             }}
-            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
-              activeTab === 'equipment'
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${activeTab === 'equipment'
                 ? 'bg-slate-900 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
+              }`}
           >
             <HardHat size={14} className={activeTab === 'equipment' ? 'text-amber-400' : 'text-slate-400'} />
             <span>MODULE 2: Heavy Equipment Master</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-              activeTab === 'equipment' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-            }`}>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'equipment' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+              }`}>
               {equipmentList.length}
             </span>
           </button>
@@ -1412,17 +1629,15 @@ export default function VehicleMasterPage() {
         <div className="hidden sm:flex items-center gap-1 pr-2">
           <button
             onClick={() => setViewMode('table')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
-              viewMode === 'table' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'
-            }`}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold ${viewMode === 'table' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'
+              }`}
           >
             Table
           </button>
           <button
             onClick={() => setViewMode('grid')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
-              viewMode === 'grid' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'
-            }`}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold ${viewMode === 'grid' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'
+              }`}
           >
             Grid
           </button>
@@ -1439,7 +1654,7 @@ export default function VehicleMasterPage() {
             placeholder={
               activeTab === 'vehicles'
                 ? 'Search vehicle number, fleet code, make...'
-                : 'Search equipment ID, number, model, operator...'
+                : 'Search equipment ID, number, model, type...'
             }
             className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:border-[#46B351] font-medium"
           />
@@ -1455,8 +1670,8 @@ export default function VehicleMasterPage() {
           >
             <option value="All">All Types</option>
             {activeTab === 'vehicles'
-              ? VEHICLE_TYPES.map(t => <option key={t} value={t}>{t}</option>)
-              : EQUIPMENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              ? allVehicleTypes.map(t => <option key={t} value={t}>{t}</option>)
+              : allEquipmentTypes.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
 
           {/* Status Filter */}
@@ -1505,6 +1720,7 @@ export default function VehicleMasterPage() {
                     <th className="py-3 px-4">Vehicle & Fleet Code</th>
                     <th className="py-3 px-4">Type & Make</th>
                     <th className="py-3 px-4">Capacity Specs</th>
+                    <th className="py-3 px-4">Fuel & Powertrain</th>
                     <th className="py-3 px-4">Registration & Chassis</th>
                     <th className="py-3 px-4">Financial & Valuation</th>
                     <th className="py-3 px-4">Status</th>
@@ -1555,6 +1771,21 @@ export default function VehicleMasterPage() {
                             </span>
                           ) : null}
                         </div>
+                      </td>
+
+                      {/* Fuel & Powertrain */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-[10px]">
+                            <Fuel size={10} className="text-emerald-600" />
+                            {v.fuelPowerType || 'Diesel'}
+                          </span>
+                        </div>
+                        {v.fuelConsumption && (
+                          <span className="block text-[11px] text-slate-500 font-medium mt-0.5">
+                            {v.fuelConsumption}
+                          </span>
+                        )}
                       </td>
 
                       {/* Registration & Chassis */}
@@ -1615,7 +1846,7 @@ export default function VehicleMasterPage() {
             </div>
           ) : (
             /* Grid View */
-            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredVehicles.map(v => (
                 <div key={v.id} className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-shadow space-y-4">
                   <div className="flex items-start justify-between">
@@ -1645,8 +1876,8 @@ export default function VehicleMasterPage() {
                       <span className="font-bold text-emerald-600">{v.tonCapacity || 0} MT</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 block">Volume</span>
-                      <span className="font-bold text-slate-700">{v.volumeCapacity || 0} {v.volumeUnit || 'CUM'}</span>
+                      <span className="text-[10px] text-slate-400 block">Fuel / Power</span>
+                      <span className="font-bold text-slate-700">{v.fuelPowerType || 'Diesel'}</span>
                     </div>
                   </div>
 
@@ -1676,7 +1907,7 @@ export default function VehicleMasterPage() {
         </div>
       )}
 
-      {/* ──────────────────────────────────────────────────────────────────────────
+      {/* ──────────────────────────────────────────────────────────────────────
           MODULE 2: HEAVY EQUIPMENT MASTER TABLE / GRID
           ────────────────────────────────────────────────────────────────────────── */}
       {activeTab === 'equipment' && (
@@ -1705,6 +1936,7 @@ export default function VehicleMasterPage() {
                     <th className="py-3 px-4">Equipment ID & Number</th>
                     <th className="py-3 px-4">Equipment Type & Make</th>
                     <th className="py-3 px-4">Technical Ratings & Specs</th>
+                    <th className="py-3 px-4">Fuel & Powertrain</th>
                     <th className="py-3 px-4">Hour Meter</th>
                     <th className="py-3 px-4">Purchase Info</th>
                     <th className="py-3 px-4">Status</th>
@@ -1775,6 +2007,21 @@ export default function VehicleMasterPage() {
                         </div>
                       </td>
 
+                      {/* Fuel & Powertrain */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 font-bold text-[10px]">
+                            <Fuel size={10} className="text-amber-600" />
+                            {eq.fuelPowerType || eq.fuelType || 'Diesel'}
+                          </span>
+                        </div>
+                        {eq.fuelConsumption && (
+                          <span className="block text-[11px] text-slate-500 font-medium mt-0.5">
+                            {eq.fuelConsumption}
+                          </span>
+                        )}
+                      </td>
+
                       {/* Hour Meter */}
                       <td className="py-3.5 px-4 font-mono">
                         <span className="font-bold text-slate-800">
@@ -1831,7 +2078,7 @@ export default function VehicleMasterPage() {
             </div>
           ) : (
             /* Grid View */
-            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredEquipment.map(eq => (
                 <div key={eq.id} className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-shadow space-y-4">
                   <div className="flex items-start justify-between">
@@ -1861,8 +2108,8 @@ export default function VehicleMasterPage() {
                       <span className="font-bold text-amber-600">{Number(eq.hourMeterReading || 0).toLocaleString()} hrs</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 block">Serial Number</span>
-                      <span className="font-mono font-bold text-slate-700 truncate block">{eq.serialNumber || '—'}</span>
+                      <span className="text-[10px] text-slate-400 block">Fuel / Power</span>
+                      <span className="font-bold text-slate-700 truncate block">{eq.fuelPowerType || eq.fuelType || 'Diesel'}</span>
                     </div>
                   </div>
 
@@ -1897,7 +2144,7 @@ export default function VehicleMasterPage() {
           ────────────────────────────────────────────────────────────────────────── */}
       {viewingVehicle && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-2xl bg-emerald-50 text-[#46B351] flex items-center justify-center">
@@ -1924,6 +2171,14 @@ export default function VehicleMasterPage() {
               <div className="p-3 bg-slate-50 rounded-xl">
                 <span className="text-[10px] text-slate-400 block font-semibold">Payload & Volume</span>
                 <span className="font-bold text-slate-800">{viewingVehicle.tonCapacity || 0} MT • {viewingVehicle.volumeCapacity || 0} {viewingVehicle.volumeUnit || 'CUM'}</span>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl">
+                <span className="text-[10px] text-slate-400 block font-semibold">Fuel / Power Type</span>
+                <span className="font-bold text-emerald-700">{viewingVehicle.fuelPowerType || 'Diesel'}</span>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl">
+                <span className="text-[10px] text-slate-400 block font-semibold">Fuel Consumption</span>
+                <span className="font-bold text-slate-800">{viewingVehicle.fuelConsumption || 'Not specified'}</span>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl">
                 <span className="text-[10px] text-slate-400 block font-semibold">Registration Number</span>
@@ -1965,7 +2220,7 @@ export default function VehicleMasterPage() {
 
       {viewingEquipment && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
@@ -1994,6 +2249,14 @@ export default function VehicleMasterPage() {
                 <span className="font-mono text-[11px] font-bold text-slate-800">{viewingEquipment.serialNumber || '—'}</span>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl">
+                <span className="text-[10px] text-slate-400 block font-semibold">Fuel / Power Type</span>
+                <span className="font-bold text-amber-700">{viewingEquipment.fuelPowerType || viewingEquipment.fuelType || 'Diesel'}</span>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl">
+                <span className="text-[10px] text-slate-400 block font-semibold">Fuel Consumption</span>
+                <span className="font-bold text-slate-800">{viewingEquipment.fuelConsumption || 'Not specified'}</span>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl">
                 <span className="text-[10px] text-slate-400 block font-semibold">Hour Meter Reading</span>
                 <span className="font-bold text-amber-700">{Number(viewingEquipment.hourMeterReading || 0).toLocaleString()} hrs</span>
               </div>
@@ -2006,12 +2269,12 @@ export default function VehicleMasterPage() {
                 <span className="font-bold text-slate-800">{viewingEquipment.purchaseDate || '—'}</span>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Vendor / Supplier</span>
-                <span className="font-bold text-slate-800">{viewingEquipment.vendor || '—'}</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl">
                 <span className="text-[10px] text-slate-400 block font-semibold">Purchase Cost</span>
                 <span className="font-bold text-emerald-700">₹{Number(viewingEquipment.purchaseCost || 0).toLocaleString()}</span>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl">
+                <span className="text-[10px] text-slate-400 block font-semibold">Vendor / Supplier</span>
+                <span className="font-bold text-slate-800">{viewingEquipment.vendor || '—'}</span>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl">
                 <span className="text-[10px] text-slate-400 block font-semibold">Status</span>
