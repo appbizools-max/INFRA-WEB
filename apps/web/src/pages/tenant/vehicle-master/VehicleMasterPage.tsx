@@ -1240,7 +1240,7 @@ export default function VehicleMasterPage() {
                 </div>
               </div>
 
-              {/* Section 3: Financial & Procurement Information */}
+              {/* Section 3: Financial Information & Status */}
               <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
                 <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
                   <div className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
@@ -1248,7 +1248,7 @@ export default function VehicleMasterPage() {
                   </div>
                   <div>
                     <h3 className="font-bold text-sm text-slate-900">3. Financial Information</h3>
-                    <p className="text-[11px] text-slate-400">Capital purchase cost, equipment dealer, and insurance valuation</p>
+                    <p className="text-[11px] text-slate-400">Capital purchase cost, equipment supplier, and operational status</p>
                   </div>
                 </div>
 
@@ -1280,52 +1280,20 @@ export default function VehicleMasterPage() {
                     </div>
                   </div>
 
-                  {/* Vendor & Insurance Value */}
+                  {/* Vendor & Status */}
                   <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Vendor / OEM Supplier</label>
+                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Vendor / Supplier</label>
                     <input
                       type="text"
                       value={equipmentForm.vendor}
                       onChange={e => setEquipmentForm(prev => ({ ...prev, vendor: e.target.value }))}
-                      placeholder="e.g. L&T Construction Equipment / JCB Hub"
+                      placeholder="e.g. L&T Construction Equipment / Gainwell"
                       className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
                     />
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Insurance Value (IDV in ₹)</label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="0"
-                        step="1000"
-                        value={equipmentForm.insuranceValue || ''}
-                        onChange={e => setEquipmentForm(prev => ({ ...prev, insuranceValue: parseFloat(e.target.value) || 0 }))}
-                        placeholder="0.00"
-                        className="w-full px-4 py-2.5 pl-8 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-900"
-                      />
-                      <IndianRupee size={13} className="absolute left-2.5 top-3.5 text-slate-400 pointer-events-none" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 4: Operational Status & Site Assignment */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5">
-                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
-                  <div className="h-8 w-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold">
-                    <User size={16} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-900">4. Operational Assignment & Operator</h3>
-                    <p className="text-[11px] text-slate-400">Assigned operator, deployed worksite and operational condition</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Status */}
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Operational Status</label>
+                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Status</label>
                     <select
                       value={equipmentForm.status}
                       onChange={e => setEquipmentForm(prev => ({ ...prev, status: e.target.value }))}
@@ -1338,62 +1306,6 @@ export default function VehicleMasterPage() {
                       <option value="Idle">Idle</option>
                       <option value="Decommissioned">Decommissioned</option>
                     </select>
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Deployed Work Site</label>
-                    <input
-                      type="text"
-                      value={equipmentForm.assignedWorksiteName}
-                      onChange={e => setEquipmentForm(prev => ({ ...prev, assignedWorksiteName: e.target.value }))}
-                      placeholder="e.g. Coal Pit Siding A / Bridge Pier #12"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
-                    />
-                  </div>
-
-                  {/* Operator Name & Phone */}
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Assigned Operator Name</label>
-                    <input
-                      type="text"
-                      value={equipmentForm.assignedOperatorName}
-                      onChange={e => setEquipmentForm(prev => ({ ...prev, assignedOperatorName: e.target.value }))}
-                      placeholder="e.g. Dharmendra Pradhan"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Operator Contact Phone</label>
-                    <input
-                      type="tel"
-                      value={equipmentForm.assignedOperatorPhone}
-                      onChange={e => setEquipmentForm(prev => ({ ...prev, assignedOperatorPhone: e.target.value }))}
-                      placeholder="e.g. +91 98451 23456"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Project Tag</label>
-                    <input
-                      type="text"
-                      value={equipmentForm.assignedProjectName}
-                      onChange={e => setEquipmentForm(prev => ({ ...prev, assignedProjectName: e.target.value }))}
-                      placeholder="e.g. Talcher Coal Rail Corridor"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Maintenance & Safety Directives</label>
-                    <textarea
-                      rows={3}
-                      value={equipmentForm.notes}
-                      onChange={e => setEquipmentForm(prev => ({ ...prev, notes: e.target.value }))}
-                      placeholder="Log hydraulic oil service intervals, greasing log notes, wire rope calibration dates..."
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800 leading-relaxed"
-                    />
                   </div>
                 </div>
               </div>
@@ -1866,7 +1778,7 @@ export default function VehicleMasterPage() {
                     <th className="py-3 px-4">Equipment Type & Make</th>
                     <th className="py-3 px-4">Technical Ratings & Specs</th>
                     <th className="py-3 px-4">Hour Meter</th>
-                    <th className="py-3 px-4">Assigned Operator / Worksite</th>
+                    <th className="py-3 px-4">Purchase Info</th>
                     <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
@@ -1943,12 +1855,12 @@ export default function VehicleMasterPage() {
                         <span className="text-[10px] text-slate-400 ml-1">hrs</span>
                       </td>
 
-                      {/* Operator & Worksite */}
+                      {/* Purchase Info */}
                       <td className="py-3.5 px-4">
-                        <span className="font-bold text-slate-800">{eq.assignedOperatorName || 'Unassigned'}</span>
-                        {eq.assignedWorksiteName && (
-                          <span className="block text-[11px] text-slate-400 truncate max-w-[150px]">
-                            {eq.assignedWorksiteName}
+                        <span className="font-bold text-emerald-700">₹{Number(eq.purchaseCost || 0).toLocaleString()}</span>
+                        {eq.purchaseDate && (
+                          <span className="block text-[11px] text-slate-400">
+                            {new Date(eq.purchaseDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </span>
                         )}
                       </td>
@@ -2021,14 +1933,14 @@ export default function VehicleMasterPage() {
                       <span className="font-bold text-amber-600">{Number(eq.hourMeterReading || 0).toLocaleString()} hrs</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 block">Work Site</span>
-                      <span className="font-bold text-slate-700 truncate block">{eq.assignedWorksiteName || '—'}</span>
+                      <span className="text-[10px] text-slate-400 block">Serial Number</span>
+                      <span className="font-mono font-bold text-slate-700 truncate block">{eq.serialNumber || '—'}</span>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between pt-1">
-                    <span className="text-[11px] text-slate-500 truncate max-w-[180px]">
-                      {eq.assignedOperatorName ? `👷 ${eq.assignedOperatorName}` : 'No operator assigned'}
+                    <span className="text-[11px] font-bold text-emerald-700 truncate max-w-[180px]">
+                      ₹{Number(eq.purchaseCost || 0).toLocaleString()}
                     </span>
                     <div className="flex items-center gap-1">
                       <button
@@ -2170,13 +2082,12 @@ export default function VehicleMasterPage() {
                 <span className="font-bold text-slate-800">{viewingEquipment.operatingWeight ? `${viewingEquipment.operatingWeight} MT` : '—'}</span>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Assigned Operator</span>
-                <span className="font-bold text-slate-800">{viewingEquipment.assignedOperatorName || 'Unassigned'}</span>
-                {viewingEquipment.assignedOperatorPhone && <span className="block text-[10px] text-slate-500">{viewingEquipment.assignedOperatorPhone}</span>}
+                <span className="text-[10px] text-slate-400 block font-semibold">Purchase Date</span>
+                <span className="font-bold text-slate-800">{viewingEquipment.purchaseDate || '—'}</span>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Deployed Work Site</span>
-                <span className="font-bold text-slate-800">{viewingEquipment.assignedWorksiteName || '—'}</span>
+                <span className="text-[10px] text-slate-400 block font-semibold">Vendor / Supplier</span>
+                <span className="font-bold text-slate-800">{viewingEquipment.vendor || '—'}</span>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl">
                 <span className="text-[10px] text-slate-400 block font-semibold">Purchase Cost</span>
