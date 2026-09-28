@@ -170,10 +170,12 @@ export default function WorkOrdersPage() {
   });
 
   // Multi-select dropdown states & refs
-  const [isWorksiteDropdownOpen, setIsWorksiteDropdownOpen] = useState(false);
   const [isDivisionDropdownOpen, setIsDivisionDropdownOpen] = useState(false);
-  const worksiteDropdownRef = useRef<HTMLDivElement>(null);
   const divisionDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Worksite dropdown vs custom input modes for loading & unloading
+  const [loadingLocationMode, setLoadingLocationMode] = useState<'dropdown' | 'custom'>('dropdown');
+  const [unloadingLocationMode, setUnloadingLocationMode] = useState<'dropdown' | 'custom'>('dropdown');
 
   const handleToggleTransportMode = (mode: string) => {
     setFormData(prev => {
@@ -237,9 +239,6 @@ export default function WorkOrdersPage() {
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (worksiteDropdownRef.current && !worksiteDropdownRef.current.contains(event.target as Node)) {
-        setIsWorksiteDropdownOpen(false);
-      }
       if (divisionDropdownRef.current && !divisionDropdownRef.current.contains(event.target as Node)) {
         setIsDivisionDropdownOpen(false);
       }
@@ -415,6 +414,8 @@ export default function WorkOrdersPage() {
       estimatedCost: 0,
       notes: ''
     });
+    setLoadingLocationMode('dropdown');
+    setUnloadingLocationMode('dropdown');
     setEditingOrder(null);
   };
 
@@ -493,6 +494,21 @@ export default function WorkOrdersPage() {
       estimatedCost: order.estimatedCost || 0,
       notes: order.notes || ''
     });
+
+    const isMatchingLoadingSite = worksites.some(ws => {
+      const full1 = ws.location ? `${ws.name}, ${ws.location}` : ws.name;
+      const full2 = ws.location ? `${ws.name} (${ws.location})` : ws.name;
+      return ws.name === order.loadingLocation || full1 === order.loadingLocation || full2 === order.loadingLocation;
+    });
+    setLoadingLocationMode(isMatchingLoadingSite || !order.loadingLocation ? 'dropdown' : 'custom');
+
+    const isMatchingUnloadingSite = worksites.some(ws => {
+      const full1 = ws.location ? `${ws.name}, ${ws.location}` : ws.name;
+      const full2 = ws.location ? `${ws.name} (${ws.location})` : ws.name;
+      return ws.name === order.unloadingLocation || full1 === order.unloadingLocation || full2 === order.unloadingLocation;
+    });
+    setUnloadingLocationMode(isMatchingUnloadingSite || !order.unloadingLocation ? 'dropdown' : 'custom');
+
     setIsCreateModalOpen(true);
   };
 
@@ -503,14 +519,13 @@ export default function WorkOrdersPage() {
       showToast('Please enter a work order title', 'error');
       return;
     }
-    if (!formData.projectLocationAddress.trim()) {
-      showToast('Please enter the Project Location Address', 'error');
-      return;
-    }
     if (!currentUser) return;
 
     setSaving(true);
     const host = getBaseUrl();
+
+    const derivedLocationAddress = formData.unloadingLocation?.trim() || formData.loadingLocation?.trim() || '';
+    const derivedWorksiteName = [formData.loadingLocation, formData.unloadingLocation].filter(Boolean).join(', ');
 
     const finalCommodity = formData.commodity === 'Add New' ? formData.customCommodity : formData.commodity;
     const finalUnit = formData.contractQuantityUnit === 'Add New' ? formData.customQuantityUnit : formData.contractQuantityUnit;
@@ -527,9 +542,9 @@ export default function WorkOrdersPage() {
       clientId: formData.clientId === 'Add New' ? null : (formData.clientId || null),
       clientName: finalClientName || null,
       clientCode: finalClientCode || null,
-      worksiteId: formData.worksiteId,
-      worksiteName: formData.worksiteName,
-      projectLocationAddress: formData.projectLocationAddress,
+      worksiteId: formData.worksiteId || null,
+      worksiteName: derivedWorksiteName || formData.worksiteName || null,
+      projectLocationAddress: derivedLocationAddress || formData.projectLocationAddress || null,
       loadingLocation: formData.loadingLocation?.trim() || null,
       unloadingLocation: formData.unloadingLocation?.trim() || null,
       transportModes: formData.selectedTransportModes.join(', ') || 'Road',
@@ -962,7 +977,7 @@ export default function WorkOrdersPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-sm text-slate-900">2. Origin, Destination & Transit Logistics</h3>
-                  <p className="text-[11px] text-slate-400">Work sites, loading & unloading points, site address, and multi-modal transport</p>
+                  <p className="text-[11px] text-slate-400">Loading & unloading work sites, transit route, and multi-modal transport</p>
                 </div>
               </div>
               <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
@@ -971,130 +986,127 @@ export default function WorkOrdersPage() {
             </div>
 
             <div className="space-y-4">
-              {/* Origin & Destination Side by Side */}
+              {/* Origin & Destination Side by Side (Work Sites Dropdowns) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Loading Location (Origin / Start Point) */}
                 <div>
-                  <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center gap-1.5">
-                    <MapPin size={13} className="text-blue-500" />
-                    Loading Location (Origin / Start Point)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.loadingLocation}
-                    onChange={e => setFormData(prev => ({ ...prev, loadingLocation: e.target.value }))}
-                    placeholder="e.g. Talcher Coal Mines Siding #3, Angul, Odisha"
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium text-xs text-slate-800"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center gap-1.5">
-                    <MapPin size={13} className="text-rose-500" />
-                    Unloading Location (Destination / End Point)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.unloadingLocation}
-                    onChange={e => setFormData(prev => ({ ...prev, unloadingLocation: e.target.value }))}
-                    placeholder="e.g. NTPC Thermal Power Plant Bunker #2, Ramagundam"
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium text-xs text-slate-800"
-                  />
-                </div>
-              </div>
-
-              {/* Work Site Multi-Select & Project Location Address Side by Side */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Work Site Multi-Select */}
-                <div className="relative" ref={worksiteDropdownRef}>
-                <label className="block font-bold text-slate-700 text-xs mb-1.5 flex items-center justify-between">
-                  <span>Work Site(s)</span>
-                  {formData.selectedWorksiteIds.length > 0 && (
-                    <span className="text-[10px] text-[#46B351] font-bold">
-                      {formData.selectedWorksiteIds.length} selected
-                    </span>
-                  )}
-                </label>
-                <div
-                  onClick={() => setIsWorksiteDropdownOpen(prev => !prev)}
-                  className="min-h-[42px] w-full px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-[#46B351]/20 focus-within:border-[#46B351]"
-                >
-                  {formData.selectedWorksiteIds.length === 0 ? (
-                    <span className="text-slate-400 text-xs py-1">Select Work Site(s)...</span>
-                  ) : (
-                    formData.selectedWorksiteIds.map(siteId => {
-                      const s = worksites.find(ws => String(ws.id) === siteId || ws.worksiteId === siteId);
-                      const label = s?.name || siteId;
-                      return (
-                        <span
-                          key={siteId}
-                          className="inline-flex items-center gap-1 bg-white border border-slate-200 text-slate-800 text-[11px] font-semibold px-2 py-0.5 rounded-lg shadow-2xs"
-                        >
-                          <MapPin size={10} className="text-[#46B351] shrink-0" />
-                          <span className="truncate max-w-[140px]">{label}</span>
-                          <span
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleWorksite(siteId);
-                            }}
-                            className="text-slate-400 hover:text-rose-500 rounded-full cursor-pointer ml-0.5"
-                          >
-                            <X size={12} />
-                          </span>
-                        </span>
-                      );
-                    })
-                  )}
-                  <ChevronDown size={14} className="ml-auto text-slate-400 shrink-0" />
-                </div>
-
-                {isWorksiteDropdownOpen && (
-                  <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-2 max-h-56 overflow-y-auto space-y-1">
-                    {worksites.length === 0 ? (
-                      <div className="text-xs text-slate-400 p-2 text-center">No worksites available</div>
-                    ) : (
-                      worksites.map(site => {
-                        const siteId = String(site.worksiteId || site.id);
-                        const isSelected = formData.selectedWorksiteIds.includes(siteId);
-                        return (
-                          <div
-                            key={site.id}
-                            onClick={() => handleToggleWorksite(siteId)}
-                            className={`flex items-center justify-between p-2 rounded-lg cursor-pointer text-xs transition-colors ${
-                              isSelected ? 'bg-emerald-50 text-emerald-900 font-bold' : 'hover:bg-slate-50 text-slate-700'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2 truncate pr-2">
-                              <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-                                isSelected ? 'bg-[#46B351] border-[#46B351] text-white' : 'border-slate-300 bg-white'
-                              }`}>
-                                {isSelected && <Check size={11} />}
-                              </div>
-                              <span className="truncate">{site.name}</span>
-                              {site.location && (
-                                <span className="text-[10px] text-slate-400 truncate">({site.location})</span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block font-bold text-slate-700 text-xs flex items-center gap-1.5">
+                      <MapPin size={13} className="text-blue-500" />
+                      Loading Location (Origin / Start Point)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setLoadingLocationMode(prev => prev === 'dropdown' ? 'custom' : 'dropdown')}
+                      className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+                    >
+                      {loadingLocationMode === 'custom' ? 'Select Work Site' : '+ Custom Location'}
+                    </button>
                   </div>
-                )}
-              </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 text-xs mb-1.5">
-                  Project Location Address <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.projectLocationAddress}
-                  onChange={e => setFormData(prev => ({ ...prev, projectLocationAddress: e.target.value }))}
-                  placeholder="e.g., North Expressway Sector 4, Terminal Dock A"
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
-                />
-              </div>
+                  {loadingLocationMode === 'custom' ? (
+                    <input
+                      type="text"
+                      value={formData.loadingLocation}
+                      onChange={e => setFormData(prev => ({ ...prev, loadingLocation: e.target.value }))}
+                      placeholder="e.g. Talcher Coal Mines Siding #3, Angul, Odisha"
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium text-xs text-slate-800"
+                    />
+                  ) : (
+                    <select
+                      value={formData.loadingLocation}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (val === '__CUSTOM__') {
+                          setLoadingLocationMode('custom');
+                          setFormData(prev => ({ ...prev, loadingLocation: '' }));
+                        } else {
+                          const matchedWs = worksites.find(ws => {
+                            const full = ws.location ? `${ws.name}, ${ws.location}` : ws.name;
+                            return ws.name === val || full === val;
+                          });
+                          setFormData(prev => ({
+                            ...prev,
+                            loadingLocation: val,
+                            worksiteId: matchedWs ? String(matchedWs.worksiteId || matchedWs.id) : prev.worksiteId,
+                            worksiteName: matchedWs ? matchedWs.name : prev.worksiteName
+                          }));
+                        }
+                      }}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-semibold text-xs text-slate-800"
+                    >
+                      <option value="">Select Work Site (Origin / Start Point)...</option>
+                      {worksites.map(ws => {
+                        const val = ws.location ? `${ws.name}, ${ws.location}` : ws.name;
+                        return (
+                          <option key={ws.id || ws.worksiteId} value={val}>
+                            {ws.name}{ws.location ? ` — ${ws.location}` : ''}
+                          </option>
+                        );
+                      })}
+                      <option value="__CUSTOM__" className="font-bold text-blue-600">
+                        + Enter Custom Location...
+                      </option>
+                    </select>
+                  )}
+                </div>
+
+                {/* Unloading Location (Destination / End Point) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block font-bold text-slate-700 text-xs flex items-center gap-1.5">
+                      <MapPin size={13} className="text-rose-500" />
+                      Unloading Location (Destination / End Point)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setUnloadingLocationMode(prev => prev === 'dropdown' ? 'custom' : 'dropdown')}
+                      className="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer"
+                    >
+                      {unloadingLocationMode === 'custom' ? 'Select Work Site' : '+ Custom Location'}
+                    </button>
+                  </div>
+
+                  {unloadingLocationMode === 'custom' ? (
+                    <input
+                      type="text"
+                      value={formData.unloadingLocation}
+                      onChange={e => setFormData(prev => ({ ...prev, unloadingLocation: e.target.value }))}
+                      placeholder="e.g. NTPC Thermal Power Plant Bunker #2, Ramagundam"
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-medium text-xs text-slate-800"
+                    />
+                  ) : (
+                    <select
+                      value={formData.unloadingLocation}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (val === '__CUSTOM__') {
+                          setUnloadingLocationMode('custom');
+                          setFormData(prev => ({ ...prev, unloadingLocation: '' }));
+                        } else {
+                          setFormData(prev => ({
+                            ...prev,
+                            unloadingLocation: val
+                          }));
+                        }
+                      }}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 focus:border-[#46B351] font-semibold text-xs text-slate-800"
+                    >
+                      <option value="">Select Work Site (Destination / End Point)...</option>
+                      {worksites.map(ws => {
+                        const val = ws.location ? `${ws.name}, ${ws.location}` : ws.name;
+                        return (
+                          <option key={ws.id || ws.worksiteId} value={val}>
+                            {ws.name}{ws.location ? ` — ${ws.location}` : ''}
+                          </option>
+                        );
+                      })}
+                      <option value="__CUSTOM__" className="font-bold text-rose-600">
+                        + Enter Custom Location...
+                      </option>
+                    </select>
+                  )}
+                </div>
               </div>
 
               {/* Mode(s) of Transport */}

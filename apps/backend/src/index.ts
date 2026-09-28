@@ -3587,7 +3587,7 @@ app.post('/api/tenant/work-orders/:id/convert-to-project', async (req, res) => {
         tenantId,
         nextProjId,
         wo.title,
-        wo.project_location_address || wo.worksite_name || 'N/A',
+        wo.unloading_location || wo.project_location_address || wo.loading_location || wo.worksite_name || 'N/A',
         effectiveDivision,
         customerInfo,
         wo.commodity || 'General Cargo',
