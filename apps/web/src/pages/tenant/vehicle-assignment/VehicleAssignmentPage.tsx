@@ -88,23 +88,7 @@ interface FleetAsset {
   currentLocation?: string;
 }
 
-const VEHICLE_OPERATION_PRESETS = [
-  'Material Hauling (M-Sand, Aggregate, Soil)',
-  'Earthmoving & Debris Shifting',
-  'Quarry Transport & Stone Supply',
-  'Asphalt & Bitumen Laying Transport',
-  'Water Tanker & Dust Suppression',
-  'Inter-Site Mobilization & Logistics'
-];
 
-const EQUIPMENT_OPERATION_PRESETS = [
-  'Excavation & Trenching',
-  'Site Grading & Land Leveling',
-  'Loading & Stockpile Management',
-  'Rock Breaking & Hammer Operation',
-  'Compaction & Sub-base Consolidation',
-  'Heavy Demolition & Clearing'
-];
 
 export default function VehicleAssignmentPage() {
   const { currentUser } = useAuth();
@@ -116,7 +100,6 @@ export default function VehicleAssignmentPage() {
   const [projectsList, setProjectsList] = useState<any[]>([]);
   const [worksitesList, setWorksitesList] = useState<WorkSite[]>([]);
   const [isCustomWorksite, setIsCustomWorksite] = useState(false);
-  const [isCustomOperation, setIsCustomOperation] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -528,8 +511,7 @@ export default function VehicleAssignmentPage() {
         setIsCreateModalOpen(false);
         setFormData(initialFormState);
         setIsCustomWorksite(false);
-        setIsCustomOperation(false);
-        showToast(`${formData.assetNumber} deployed successfully!`, 'success');
+                showToast(`${formData.assetNumber} deployed successfully!`, 'success');
         fetchData();
       } else {
         const err = await res.json();
@@ -690,7 +672,7 @@ export default function VehicleAssignmentPage() {
             onClick={() => {
               setFormData(initialFormState);
               setIsCustomWorksite(false);
-              setIsCustomOperation(false);
+              
               setIsCreateModalOpen(true);
             }}
             className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#46B351] hover:bg-[#3ca046] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
@@ -850,7 +832,7 @@ export default function VehicleAssignmentPage() {
                 <tr className="border-b border-slate-200 bg-slate-50/90 text-[9px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                   <th className="py-2.5 px-3">Asset & Identifier</th>
                   <th className="py-2.5 px-3">Project & Worksite</th>
-                  <th className="py-2.5 px-3">Site Operations & Volume</th>
+                  <th className="py-2.5 px-3">Volume & Trips Done</th>
                   <th className="py-2.5 px-3">Odometer / Hour Meter & Run</th>
                   <th className="py-2.5 px-3">Personnel</th>
                   <th className="py-2.5 px-3">Status</th>
@@ -899,27 +881,33 @@ export default function VehicleAssignmentPage() {
                       )}
                     </td>
 
-                    {/* Site Operations & Volume */}
+                    {/* Volume & Trips */}
                     <td className="py-2.5 px-3">
                       <div className="space-y-0.5">
-                        <span className="inline-block px-1.5 py-0.5 rounded text-[9.5px] font-semibold bg-slate-100 text-slate-700 max-w-[180px] truncate">
-                          {a.operations || 'General Site Duty'}
-                        </span>
                         {a.assetType === 'vehicle' ? (
-                          <div className="text-[10px] text-slate-500 flex items-center gap-2">
+                          <div className="text-[10.5px] text-slate-600 space-y-0.5">
                             {a.tripsCompleted !== undefined && a.tripsCompleted > 0 && (
-                              <span>Trips: <strong className="text-slate-800">{a.tripsCompleted}</strong></span>
+                              <div className="flex items-center gap-1">
+                                <span className="text-slate-400 text-[10px]">Trips:</span>
+                                <strong className="text-slate-800 font-mono">{a.tripsCompleted}</strong>
+                              </div>
                             )}
-                            {a.quantityTransported && (
-                              <span>Qty: <strong className="text-slate-800">{a.quantityTransported}</strong></span>
-                            )}
+                            {a.quantityTransported ? (
+                              <div className="flex items-center gap-1">
+                                <span className="text-slate-400 text-[10px]">Qty:</span>
+                                <strong className="text-slate-800">{a.quantityTransported}</strong>
+                              </div>
+                            ) : (!a.tripsCompleted ? <span className="text-slate-400">—</span> : null)}
                           </div>
                         ) : (
-                          <div className="text-[10px] text-slate-500">
+                          <div className="text-[10.5px] text-slate-600">
                             {a.quantityHandled ? (
-                              <span>Handled: <strong className="text-slate-800">{a.quantityHandled}</strong></span>
+                              <div className="flex items-center gap-1">
+                                <span className="text-slate-400 text-[10px]">Handled:</span>
+                                <strong className="text-slate-800">{a.quantityHandled}</strong>
+                              </div>
                             ) : (
-                              <span>Machinery Service</span>
+                              <span className="text-slate-400">—</span>
                             )}
                           </div>
                         )}
@@ -1216,7 +1204,7 @@ export default function VehicleAssignmentPage() {
                   <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
                     <Activity size={13} className="text-[#46B351]" />
                     <span>
-                      {formData.assetType === 'equipment' ? 'Heavy Equipment Operations & Hour Meter' : 'Vehicle Site Operations, Trips & Odometer'}
+                      {formData.assetType === 'equipment' ? 'Heavy Equipment Hour Meter & Volume' : 'Vehicle Trips, Volume & Odometer'}
                     </span>
                   </div>
                   <span className="text-[10px] text-slate-400 capitalize">
@@ -1224,42 +1212,7 @@ export default function VehicleAssignmentPage() {
                   </span>
                 </div>
 
-                {/* Operations Dropdown with quick presets */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[10px] font-semibold text-slate-500">
-                      Site Operations / Task Type <span className="text-rose-500">*</span>
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setIsCustomOperation(!isCustomOperation)}
-                      className="text-[9.5px] text-[#46B351] hover:underline font-bold"
-                    >
-                      {isCustomOperation ? 'Use Presets' : '+ Custom Operation'}
-                    </button>
-                  </div>
 
-                  {isCustomOperation ? (
-                    <input
-                      type="text"
-                      placeholder="e.g. Concrete Hauling, Road Bed Preparation"
-                      value={formData.operations}
-                      onChange={e => setFormData(prev => ({ ...prev, operations: e.target.value }))}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800"
-                    />
-                  ) : (
-                    <select
-                      value={formData.operations}
-                      onChange={e => setFormData(prev => ({ ...prev, operations: e.target.value }))}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
-                    >
-                      <option value="">-- Select Operation Type --</option>
-                      {(formData.assetType === 'equipment' ? EQUIPMENT_OPERATION_PRESETS : VEHICLE_OPERATION_PRESETS).map(op => (
-                        <option key={op} value={op}>{op}</option>
-                      ))}
-                    </select>
-                  )}
-                </div>
 
                 {/* DYNAMIC ROW: VEHICLE SPECIFIC (Trips, Transported, Odo Opening/Closing, Distance) */}
                 {formData.assetType === 'vehicle' && (
@@ -1572,12 +1525,7 @@ export default function VehicleAssignmentPage() {
                   </span>
                 </div>
 
-                <div className="p-2 bg-slate-50 rounded-lg border border-slate-100">
-                  <span className="text-[9px] text-slate-400 font-semibold block">Site Operations</span>
-                  <span className="font-bold text-slate-800 text-[11px] truncate mt-0.5 block">
-                    {viewingAssignment.operations || 'General'}
-                  </span>
-                </div>
+
 
                 <div className="p-2 bg-slate-50 rounded-lg border border-slate-100">
                   <span className="text-[9px] text-slate-400 font-semibold block">Personnel</span>
