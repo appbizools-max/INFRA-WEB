@@ -282,7 +282,7 @@ export default function VehicleMasterPage() {
   const getInsuranceStatusBadge = (expiryDate?: string) => {
     if (!expiryDate) {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-semibold">
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[9px] font-semibold">
           No Policy
         </span>
       );
@@ -293,24 +293,24 @@ export default function VehicleMasterPage() {
 
     if (diffDays < 0) {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold">
-          <AlertTriangle size={10} className="text-rose-500" />
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[9px] font-bold">
+          <AlertTriangle size={9} className="text-rose-500" />
           Expired
         </span>
       );
     }
     if (diffDays <= 30) {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold">
-          <Clock size={10} className="text-amber-600" />
-          Expiring in ${diffDays}d
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 text-[9px] font-bold">
+          <Clock size={9} className="text-amber-600" />
+          {diffDays}d left
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-semibold">
-        <Check size={10} className="text-emerald-600" />
-        Valid (${new Date(expiryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })})
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 text-[9px] font-bold">
+        <CheckCircle2 size={9} className="text-emerald-600" />
+        Valid ({exp.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })})
       </span>
     );
   };
@@ -724,36 +724,42 @@ export default function VehicleMasterPage() {
       case 'Active':
       case 'In Operation':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
             {status}
           </span>
         );
       case 'Under Maintenance':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-            <Wrench size={10} className="text-amber-600" />
-            Under Maintenance
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+            <Wrench size={9} className="text-amber-600" />
+            Maintenance
           </span>
         );
       case 'Breakdown':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
-            <AlertTriangle size={10} className="text-rose-600" />
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9.5px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+            <AlertTriangle size={9} className="text-rose-600" />
             Breakdown
           </span>
         );
       case 'Idle':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
-            <Clock size={10} className="text-slate-500" />
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9.5px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+            <span className="h-1 w-1 rounded-full bg-slate-400" />
             Idle
+          </span>
+        );
+      case 'Disposed':
+        return (
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9.5px] font-bold bg-slate-100 text-slate-500 border border-slate-200">
+            Disposed
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-50 text-slate-600 border border-slate-200">
-            {status}
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9.5px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+            {status || 'Unknown'}
           </span>
         );
     }
@@ -2165,32 +2171,30 @@ export default function VehicleMasterPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/75 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                    <th className="py-2.5 px-3">Vehicle & Fleet No.</th>
-                    <th className="py-2.5 px-3">Type & Brand</th>
-                    <th className="py-2.5 px-3">Capacity</th>
-                    <th className="py-2.5 px-3">Fuel / Power</th>
-                    <th className="py-2.5 px-3">RC & Chassis</th>
-                    <th className="py-2.5 px-3">Cost & Insurance</th>
-                    <th className="py-2.5 px-3">Status</th>
-                    <th className="py-2.5 px-3 text-right">Actions</th>
+                  <tr className="border-b border-slate-200 bg-slate-50/90 text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                    <th className="py-2 px-2.5">Vehicle / Fleet</th>
+                    <th className="py-2 px-2.5">Type / Make</th>
+                    <th className="py-2 px-2.5">Capacity</th>
+                    <th className="py-2 px-2.5">Fuel</th>
+                    <th className="py-2 px-2.5">RC / Chassis</th>
+                    <th className="py-2 px-2.5">Cost / Ins.</th>
+                    <th className="py-2 px-2.5">Status</th>
+                    <th className="py-2 px-2.5 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
+                <tbody className="divide-y divide-slate-100 text-[11px]">
                   {filteredVehicles.map(v => (
                     <tr key={v.id} className="hover:bg-slate-50/80 transition-colors group">
                       {/* Vehicle Number & Code */}
-                      <td className="py-2.5 px-3">
+                      <td className="py-2 px-2.5">
                         <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold shrink-0">
-                            <Truck size={16} />
+                          <div className="h-7 w-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold shrink-0">
+                            <Truck size={13} />
                           </div>
                           <div>
-                            <span className="font-black text-slate-900 hover:text-[#46B351] transition-colors">
-                              {v.vehicleNumber}
-                            </span>
+                            <span className="font-bold text-xs text-slate-900 hover:text-[#46B351] transition-colors">{v.vehicleNumber}</span>
                             {v.fleetCode && (
-                              <span className="block text-[11px] font-semibold text-slate-400 font-mono">
+                              <span className="block text-[10px] font-semibold text-slate-400 font-mono">
                                 {v.fleetCode}
                               </span>
                             )}
@@ -2199,23 +2203,23 @@ export default function VehicleMasterPage() {
                       </td>
 
                       {/* Type & Make */}
-                      <td className="py-2.5 px-3">
-                        <span className="font-bold text-slate-800">{v.vehicleType}</span>
-                        <span className="block text-[11px] text-slate-400">
+                      <td className="py-2 px-2.5">
+                        <span className="font-bold text-[11px] text-slate-800">{v.vehicleType}</span>
+                        <span className="block text-[10px] text-slate-400">
                           {v.make || '—'} {v.model ? `• ${v.model}` : ''} {v.year ? `(${v.year})` : ''}
                         </span>
                       </td>
 
                       {/* Capacity Specs */}
-                      <td className="py-2.5 px-3">
+                      <td className="py-2 px-2.5">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {v.tonCapacity ? (
-                            <span className="px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-700 font-bold text-[10px]">
+                            <span className="px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-700 font-bold text-[9px]">
                               {v.tonCapacity} MT
                             </span>
                           ) : null}
                           {v.volumeCapacity ? (
-                            <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-medium text-[10px]">
+                            <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium text-[9px]">
                               {v.volumeCapacity} {v.volumeUnit || 'CUM'}
                             </span>
                           ) : null}
@@ -2223,10 +2227,10 @@ export default function VehicleMasterPage() {
                       </td>
 
                       {/* Fuel & Powertrain */}
-                      <td className="py-2.5 px-3">
+                      <td className="py-2 px-2.5">
                         <div className="flex items-center gap-1.5">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-[10px]">
-                            <Fuel size={10} className="text-emerald-600" />
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold text-[9px]">
+                            <Fuel size={9} className="text-emerald-600" />
                             {v.fuelPowerType || 'Diesel'}
                           </span>
                         </div>
@@ -2238,7 +2242,7 @@ export default function VehicleMasterPage() {
                       </td>
 
                       {/* Registration & Chassis */}
-                      <td className="py-2.5 px-3 font-mono text-[11px]">
+                      <td className="py-2 px-2.5 font-mono text-[11px]">
                         <span className="text-slate-700 font-bold">{v.registrationNumber || '—'}</span>
                         {v.chassisNumber && (
                           <span className="block text-[10px] text-slate-400 truncate max-w-[140px]" title={v.chassisNumber}>
@@ -2248,7 +2252,7 @@ export default function VehicleMasterPage() {
                       </td>
 
                       {/* Financial Info & Insurance */}
-                      <td className="py-2.5 px-3">
+                      <td className="py-2 px-2.5">
                         <span className="font-bold text-emerald-700">₹{Number(v.purchaseCost || 0).toLocaleString()}</span>
                         {v.vendor && (
                           <span className="block text-[11px] text-slate-400 truncate max-w-[140px]" title={v.vendor}>
@@ -2261,42 +2265,38 @@ export default function VehicleMasterPage() {
                             type="button"
                             onClick={() => handleOpenRenewInsurance('vehicle', v)}
                             title="Renew Insurance Policy"
-                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-bold transition-colors cursor-pointer"
-                          >
-                            <Shield size={10} />
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[9px] font-bold transition-colors cursor-pointer">
+                            <Shield size={9} />
                             Renew
                           </button>
                         </div>
                       </td>
 
                       {/* Status */}
-                      <td className="py-2.5 px-3">
+                      <td className="py-2 px-2.5">
                         {getStatusBadge(v.status)}
                       </td>
 
                       {/* Actions */}
-                      <td className="py-2.5 px-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5 opacity-90 group-hover:opacity-100">
+                      <td className="py-2 px-2.5 text-right">
+                        <div className="flex items-center justify-end gap-1 opacity-90 group-hover:opacity-100">
                           <button
                             onClick={() => setViewingVehicle(v)}
                             title="View Vehicle Details"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-                          >
-                            <Eye size={15} />
+                            className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer">
+                            <Eye size={13} />
                           </button>
                           <button
                             onClick={() => handleOpenEditVehicle(v)}
                             title="Edit Vehicle"
-                            className="p-1.5 rounded-lg text-blue-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
-                          >
-                            <Edit2 size={15} />
+                            className="p-1 rounded-md text-blue-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer">
+                            <Edit2 size={13} />
                           </button>
                           <button
                             onClick={() => handleDeleteVehicle(v.id)}
                             title="Delete Vehicle"
-                            className="p-1.5 rounded-lg text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                          >
-                            <Trash2 size={15} />
+                            className="p-1 rounded-md text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer">
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </td>
@@ -2393,31 +2393,29 @@ export default function VehicleMasterPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/75 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                    <th className="py-2.5 px-3">Equipment ID & No.</th>
-                    <th className="py-2.5 px-3">Type & Brand</th>
-                    <th className="py-2.5 px-3">Technical Specs</th>
-                    <th className="py-2.5 px-3">Fuel / Power</th>
-                    <th className="py-2.5 px-3">Run Hours</th>
-                    <th className="py-2.5 px-3">Cost & Insurance</th>
-                    <th className="py-2.5 px-3">Status</th>
-                    <th className="py-2.5 px-3 text-right">Actions</th>
+                  <tr className="border-b border-slate-200 bg-slate-50/90 text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                    <th className="py-2 px-2.5">Equipment ID</th>
+                    <th className="py-2 px-2.5">Type / Make</th>
+                    <th className="py-2 px-2.5">Specs</th>
+                    <th className="py-2 px-2.5">Fuel</th>
+                    <th className="py-2 px-2.5">Hours</th>
+                    <th className="py-2 px-2.5">Cost / Ins.</th>
+                    <th className="py-2 px-2.5">Status</th>
+                    <th className="py-2 px-2.5 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
+                <tbody className="divide-y divide-slate-100 text-[11px]">
                   {filteredEquipment.map(eq => (
                     <tr key={eq.id} className="hover:bg-slate-50/80 transition-colors group">
                       {/* ID & Number */}
-                      <td className="py-2.5 px-3">
+                      <td className="py-2 px-2.5">
                         <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold shrink-0">
-                            <HardHat size={16} />
+                          <div className="h-7 w-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold shrink-0">
+                            <HardHat size={13} />
                           </div>
                           <div>
-                            <span className="font-black text-slate-900 font-mono hover:text-[#46B351] transition-colors">
-                              {eq.equipmentId}
-                            </span>
-                            <span className="block text-[11px] font-bold text-slate-500">
+                            <span className="font-bold text-xs text-slate-900 font-mono hover:text-[#46B351] transition-colors">{eq.equipmentId}</span>
+                            <span className="block text-[10px] font-semibold text-slate-500">
                               {eq.equipmentNumber}
                             </span>
                           </div>
@@ -2425,43 +2423,43 @@ export default function VehicleMasterPage() {
                       </td>
 
                       {/* Type & Make */}
-                      <td className="py-2.5 px-3">
-                        <span className="font-bold text-slate-800">{eq.equipmentType}</span>
-                        <span className="block text-[11px] text-slate-400">
+                      <td className="py-2 px-2.5">
+                        <span className="font-bold text-[11px] text-slate-800">{eq.equipmentType}</span>
+                        <span className="block text-[10px] text-slate-400">
                           {eq.make || '—'} {eq.model ? `• ${eq.model}` : ''} {eq.manufacturingYear ? `(${eq.manufacturingYear})` : ''}
                         </span>
                       </td>
 
                       {/* Technical Specs */}
-                      <td className="py-2.5 px-3">
+                      <td className="py-2 px-2.5">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {Number(eq.excavatorBucketCapacity) > 0 && (
-                            <span className="px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800 font-bold text-[10px]">
+                            <span className="px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-800 font-bold text-[9px]">
                               Bucket: {eq.excavatorBucketCapacity} CUM
                             </span>
                           )}
                           {Number(eq.loaderBucketCapacity) > 0 && (
-                            <span className="px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800 font-bold text-[10px]">
+                            <span className="px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-800 font-bold text-[9px]">
                               Loader: {eq.loaderBucketCapacity} CUM
                             </span>
                           )}
                           {Number(eq.craneLiftingCapacity) > 0 && (
-                            <span className="px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-700 font-bold text-[10px]">
+                            <span className="px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-700 font-bold text-[9px]">
                               Crane: {eq.craneLiftingCapacity} Tons
                             </span>
                           )}
                           {Number(eq.forkliftForkCapacity) > 0 && (
-                            <span className="px-2 py-0.5 rounded-md bg-purple-50 border border-purple-200 text-purple-700 font-bold text-[10px]">
+                            <span className="px-1.5 py-0.5 rounded bg-purple-50 border border-purple-200 text-purple-700 font-bold text-[9px]">
                               Forklift: {eq.forkliftForkCapacity} Tons
                             </span>
                           )}
                           {Number(eq.dumperPayloadCapacity) > 0 && (
-                            <span className="px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-[10px]">
+                            <span className="px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-[9px]">
                               Dumper: {eq.dumperPayloadCapacity} Tons
                             </span>
                           )}
                           {Number(eq.boomLength) > 0 && (
-                            <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-medium text-[10px]">
+                            <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium text-[9px]">
                               Boom: {eq.boomLength}m
                             </span>
                           )}
@@ -2469,10 +2467,10 @@ export default function VehicleMasterPage() {
                       </td>
 
                       {/* Fuel & Powertrain */}
-                      <td className="py-2.5 px-3">
+                      <td className="py-2 px-2.5">
                         <div className="flex items-center gap-1.5">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 font-bold text-[10px]">
-                            <Fuel size={10} className="text-amber-600" />
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-semibold text-[9px]">
+                            <Fuel size={9} className="text-amber-600" />
                             {eq.fuelPowerType || eq.fuelType || 'Diesel'}
                           </span>
                         </div>
@@ -2484,7 +2482,7 @@ export default function VehicleMasterPage() {
                       </td>
 
                       {/* Hour Meter */}
-                      <td className="py-2.5 px-3 font-mono">
+                      <td className="py-2 px-2.5 font-mono">
                         <span className="font-bold text-slate-800">
                           {Number(eq.hourMeterReading || 0).toLocaleString()}
                         </span>
@@ -2492,10 +2490,10 @@ export default function VehicleMasterPage() {
                       </td>
 
                       {/* Purchase Info & Insurance */}
-                      <td className="py-2.5 px-3">
+                      <td className="py-2 px-2.5">
                         <span className="font-bold text-emerald-700">₹{Number(eq.purchaseCost || 0).toLocaleString()}</span>
                         {eq.purchaseDate && (
-                          <span className="block text-[11px] text-slate-400">
+                          <span className="block text-[10px] text-slate-400">
                             {new Date(eq.purchaseDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </span>
                         )}
@@ -2505,42 +2503,38 @@ export default function VehicleMasterPage() {
                             type="button"
                             onClick={() => handleOpenRenewInsurance('equipment', eq)}
                             title="Renew Insurance Policy"
-                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-bold transition-colors cursor-pointer"
-                          >
-                            <Shield size={10} />
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[9px] font-bold transition-colors cursor-pointer">
+                            <Shield size={9} />
                             Renew
                           </button>
                         </div>
                       </td>
 
                       {/* Status */}
-                      <td className="py-2.5 px-3">
+                      <td className="py-2 px-2.5">
                         {getStatusBadge(eq.status)}
                       </td>
 
                       {/* Actions */}
-                      <td className="py-2.5 px-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5 opacity-90 group-hover:opacity-100">
+                      <td className="py-2 px-2.5 text-right">
+                        <div className="flex items-center justify-end gap-1 opacity-90 group-hover:opacity-100">
                           <button
                             onClick={() => setViewingEquipment(eq)}
                             title="View Equipment Details"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-                          >
-                            <Eye size={15} />
+                            className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer">
+                            <Eye size={13} />
                           </button>
                           <button
                             onClick={() => handleOpenEditEquipment(eq)}
                             title="Edit Heavy Equipment"
-                            className="p-1.5 rounded-lg text-blue-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
-                          >
-                            <Edit2 size={15} />
+                            className="p-1 rounded-md text-blue-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer">
+                            <Edit2 size={13} />
                           </button>
                           <button
                             onClick={() => handleDeleteEquipment(eq.id)}
                             title="Delete Heavy Equipment"
-                            className="p-1.5 rounded-lg text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                          >
-                            <Trash2 size={15} />
+                            className="p-1 rounded-md text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer">
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </td>
