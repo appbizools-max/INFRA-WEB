@@ -58,7 +58,6 @@ function AdminComingSoon({ name }: { name: string }) {
     </div>
   );
 }
-
 // Guard for SaaS Admin Routes
 function AdminProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = sessionStorage.getItem('saas_admin_jwt') || localStorage.getItem('saas_admin_jwt');
