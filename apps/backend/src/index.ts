@@ -3714,7 +3714,6 @@ app.get(['/api/tenant/vehicles/:firebaseUid', '/api/tenant/vehicles'], async (re
     if (!tenantId) {
       tenantId = '1';
     }
-
     const vRes = await pool.query(
       `SELECT 
          id,
@@ -3764,7 +3763,6 @@ app.get(['/api/tenant/vehicles/:firebaseUid', '/api/tenant/vehicles'], async (re
     res.status(500).json({ error: err.message });
   }
 });
-
 // POST Vehicle
 app.post('/api/tenant/vehicles', async (req, res) => {
   const {
@@ -3801,11 +3799,9 @@ app.post('/api/tenant/vehicles', async (req, res) => {
     status,
     notes
   } = req.body;
-
   if (!vehicleNumber || !vehicleType) {
     return res.status(400).json({ error: 'Vehicle number and vehicle type are required' });
   }
-
   try {
     let tenantId = null;
     if (firebaseUid) {

@@ -28,6 +28,14 @@ import {
   ArrowRightCircle
 } from 'lucide-react';
 
+interface WorkSite {
+  id: string;
+  worksiteId: string;
+  name: string;
+  location: string;
+  type?: string;
+}
+
 interface VehicleAssignment {
   id: number | string;
   tenantId?: string;
@@ -70,11 +78,14 @@ export default function VehicleAssignmentPage() {
   const [availableVehicles, setAvailableVehicles] = useState<any[]>([]);
   const [availableEquipment, setAvailableEquipment] = useState<any[]>([]);
   const [projectsList, setProjectsList] = useState<any[]>([]);
+  const [worksitesList, setWorksitesList] = useState<WorkSite[]>([]);
+  const [isCustomWorksite, setIsCustomWorksite] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [assetTypeFilter, setAssetTypeFilter] = useState<'All' | 'vehicle' | 'equipment'>('All');
+  const [worksiteFilter, setWorksiteFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
 
   // Modals
@@ -92,6 +103,7 @@ export default function VehicleAssignmentPage() {
     assetTitle: '',
     projectId: '',
     projectName: '',
+    worksiteId: '',
     worksiteName: '',
     assignedToType: 'driver',
     assignedToName: '',
@@ -147,6 +159,14 @@ export default function VehicleAssignmentPage() {
         const pData = await pRes.json();
         setProjectsList(Array.isArray(pData) ? pData : []);
       }
+
+      // 5. Fetch Worksites
+      const wsUrl = currentUser?.uid ? `/api/tenant/worksites/${currentUser.uid}` : '/api/tenant/worksites';
+      const wsRes = await apiFetch(wsUrl);
+      if (wsRes.ok) {
+        const wsData = await wsRes.json();
+        setWorksitesList(Array.isArray(wsData) ? wsData : []);
+      }
     } catch (err: any) {
       console.error('[VehicleAssignment] Failed to load data:', err);
       showToast('Could not load assignment records', 'error');
@@ -201,9 +221,15 @@ export default function VehicleAssignmentPage() {
       // Status
       const matchesStatus = statusFilter === 'All' || item.status === statusFilter;
 
-      return matchesSearch && matchesType && matchesStatus;
+      // Worksite Filter
+      const matchesWorksite =
+        worksiteFilter === 'All' ||
+        item.worksiteName === worksiteFilter ||
+        (item.worksiteName && item.worksiteName.toLowerCase().includes(worksiteFilter.toLowerCase()));
+
+      return matchesSearch && matchesType && matchesStatus && matchesWorksite;
     });
-  }, [assignments, searchQuery, assetTypeFilter, statusFilter]);
+  }, [assignments, searchQuery, assetTypeFilter, statusFilter, worksiteFilter]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -214,23 +240,59 @@ export default function VehicleAssignmentPage() {
     return { total, active, scheduled, released };
   }, [assignments]);
 
+  // Calculate last recorded odometer reading for the selected vehicle / equipment
+  const lastRecordedOdo = useMemo(() => {
+    if (!formData.assetId && !formData.assetNumber) return null;
+    const history = assignments.filter(
+      a => String(a.assetId) === String(formData.assetId) || a.assetNumber === formData.assetNumber
+    );
+    if (history.length === 0) return null;
+    for (const item of history) {
+      if (item.meterReadingAtRelease !== undefined && item.meterReadingAtRelease !== null && Number(item.meterReadingAtRelease) > 0) {
+        return Number(item.meterReadingAtRelease);
+      }
+      if (item.meterReadingAtAssign !== undefined && item.meterReadingAtAssign !== null && Number(item.meterReadingAtAssign) > 0) {
+        return Number(item.meterReadingAtAssign);
+      }
+    }
+    return null;
+  }, [formData.assetId, formData.assetNumber, assignments]);
+
   // Handle Asset selection in modal
   const handleSelectAsset = (assetId: string) => {
     const selected = fleetOptions.find(f => String(f.id) === String(assetId));
     if (selected) {
+      // Find previous odometer
+      const history = assignments.filter(
+        a => String(a.assetId) === String(selected.id) || a.assetNumber === selected.number
+      );
+      let prevReading = '';
+      for (const item of history) {
+        if (item.meterReadingAtRelease !== undefined && item.meterReadingAtRelease !== null && Number(item.meterReadingAtRelease) > 0) {
+          prevReading = String(item.meterReadingAtRelease);
+          break;
+        }
+        if (item.meterReadingAtAssign !== undefined && item.meterReadingAtAssign !== null && Number(item.meterReadingAtAssign) > 0) {
+          prevReading = String(item.meterReadingAtAssign);
+          break;
+        }
+      }
+
       setFormData(prev => ({
         ...prev,
         assetId: String(selected.id),
         assetType: selected.type,
         assetNumber: selected.number,
-        assetTitle: selected.title
+        assetTitle: selected.title,
+        meterReadingAtAssign: prevReading || prev.meterReadingAtAssign
       }));
     } else {
       setFormData(prev => ({
         ...prev,
         assetId: '',
         assetNumber: '',
-        assetTitle: ''
+        assetTitle: '',
+        meterReadingAtAssign: ''
       }));
     }
   };
@@ -480,6 +542,23 @@ export default function VehicleAssignmentPage() {
           </select>
 
           <div className="flex items-center gap-1.5 text-xs text-slate-400 ml-2">
+            <MapPin size={12} />
+            <span>Worksite:</span>
+          </div>
+          <select
+            value={worksiteFilter}
+            onChange={e => setWorksiteFilter(e.target.value)}
+            className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
+          >
+            <option value="All">All Worksites</option>
+            {worksitesList.map(ws => (
+              <option key={ws.worksiteId || ws.id} value={ws.name}>
+                {ws.name}
+              </option>
+            ))}
+          </select>
+
+          <div className="flex items-center gap-1.5 text-xs text-slate-400 ml-2">
             <span>Status:</span>
           </div>
           <select
@@ -530,7 +609,7 @@ export default function VehicleAssignmentPage() {
                   <th className="py-2 px-2.5">Assigned To</th>
                   <th className="py-2 px-2.5">Project & Worksite</th>
                   <th className="py-2 px-2.5">Timeline</th>
-                  <th className="py-2 px-2.5">Meter Reading</th>
+                  <th className="py-2 px-2.5">Odo Meter (km/hrs)</th>
                   <th className="py-2 px-2.5">Status</th>
                   <th className="py-2 px-2.5 text-right">Actions</th>
                 </tr>
@@ -608,14 +687,22 @@ export default function VehicleAssignmentPage() {
                       )}
                     </td>
 
-                    {/* Meter Reading */}
+                    {/* Odo Meter Reading */}
                     <td className="py-2 px-2.5 font-mono text-[10.5px]">
-                      <span className="font-bold text-slate-800">
-                        {Number(a.meterReadingAtAssign || 0).toLocaleString()}
-                      </span>
-                      <span className="text-[9.5px] text-slate-400 ml-1">
-                        {a.assetType === 'equipment' ? 'hrs' : 'km'}
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-800 flex items-center gap-1">
+                          <Gauge size={11} className="text-[#46B351]" />
+                          {Number(a.meterReadingAtAssign || 0).toLocaleString()}
+                          <span className="text-[9px] text-slate-400 font-sans font-normal uppercase">
+                            {a.assetType === 'equipment' ? 'hrs' : 'km'}
+                          </span>
+                        </span>
+                        {a.meterReadingAtRelease && Number(a.meterReadingAtRelease) > 0 && (
+                          <span className="text-[9.5px] text-emerald-600 font-medium">
+                            End: {Number(a.meterReadingAtRelease).toLocaleString()} (+{(Number(a.meterReadingAtRelease) - Number(a.meterReadingAtAssign || 0)).toLocaleString()})
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Status */}
@@ -759,16 +846,59 @@ export default function VehicleAssignmentPage() {
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-semibold text-slate-600 block mb-1">
-                      Worksite Location
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. North Zone Quarry, Bridge Site"
-                      value={formData.worksiteName}
-                      onChange={e => setFormData(prev => ({ ...prev, worksiteName: e.target.value }))}
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-semibold text-slate-600 flex items-center gap-1">
+                        <MapPin size={12} className="text-[#46B351]" />
+                        <span>Worksite Dropdown <span className="text-rose-500">*</span></span>
+                      </label>
+                      {formData.worksiteName && (
+                        <span className="text-[9.5px] text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                          Selected
+                        </span>
+                      )}
+                    </div>
+                    <select
+                      value={isCustomWorksite ? '__custom__' : (formData.worksiteId || '')}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (val === '__custom__') {
+                          setIsCustomWorksite(true);
+                          setFormData(prev => ({ ...prev, worksiteId: 'CUSTOM', worksiteName: '' }));
+                        } else {
+                          setIsCustomWorksite(false);
+                          const ws = worksitesList.find(w => String(w.worksiteId || w.id) === val);
+                          if (ws) {
+                            setFormData(prev => ({
+                              ...prev,
+                              worksiteId: String(ws.worksiteId || ws.id),
+                              worksiteName: `${ws.name}${ws.location ? ` - ${ws.location}` : ''}`
+                            }));
+                          } else {
+                            setFormData(prev => ({ ...prev, worksiteId: '', worksiteName: '' }));
+                          }
+                        }
+                      }}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
-                    />
+                    >
+                      <option value="">-- Select Work Site Dropdown --</option>
+                      {worksitesList.map(ws => (
+                        <option key={ws.worksiteId || ws.id} value={String(ws.worksiteId || ws.id)}>
+                          {ws.name} {ws.location ? `— ${ws.location}` : ''} ({ws.type || 'Site'})
+                        </option>
+                      ))}
+                      <option value="__custom__">+ Other / Enter Custom Worksite</option>
+                    </select>
+
+                    {isCustomWorksite && (
+                      <input
+                        type="text"
+                        autoFocus
+                        placeholder="Type custom worksite name / location..."
+                        value={formData.worksiteName}
+                        onChange={e => setFormData(prev => ({ ...prev, worksiteName: e.target.value }))}
+                        className="mt-1.5 w-full bg-white border border-[#46B351] rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -845,16 +975,29 @@ export default function VehicleAssignmentPage() {
                   </div>
 
                   <div>
-                    <label className="text-[10px] text-slate-400 font-semibold block mb-0.5">
-                      Meter at Dispatch
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="0.00"
-                      value={formData.meterReadingAtAssign}
-                      onChange={e => setFormData(prev => ({ ...prev, meterReadingAtAssign: e.target.value }))}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-mono"
-                    />
+                    <div className="flex items-center justify-between mb-0.5">
+                      <label className="text-[10px] text-slate-500 font-semibold flex items-center gap-1">
+                        <Gauge size={11} className="text-[#46B351]" />
+                        <span>Odo Meter Reading</span>
+                      </label>
+                      {lastRecordedOdo !== null && (
+                        <span className="text-[9px] text-emerald-600 font-bold">
+                          Last: {lastRecordedOdo.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        value={formData.meterReadingAtAssign}
+                        onChange={e => setFormData(prev => ({ ...prev, meterReadingAtAssign: e.target.value }))}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-2.5 pr-8 py-1.5 text-xs text-slate-800 font-mono focus:outline-none focus:ring-1 focus:ring-[#46B351]"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold uppercase">
+                        {formData.assetType === 'equipment' ? 'hrs' : 'km'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -980,7 +1123,7 @@ export default function VehicleAssignmentPage() {
                   </span>
                 </div>
                 <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-100">
-                  <span className="text-[9px] text-slate-400 block font-semibold leading-tight">Dispatch Meter</span>
+                  <span className="text-[9px] text-slate-400 block font-semibold leading-tight">Dispatch Odo Meter</span>
                   <span className="font-bold text-slate-800 text-[11px] truncate block mt-0.5">
                     {Number(viewingAssignment.meterReadingAtAssign || 0).toLocaleString()}
                   </span>
@@ -994,7 +1137,7 @@ export default function VehicleAssignmentPage() {
                     <span className="font-bold text-slate-800">{viewingAssignment.actualEndDate}</span>
                   </div>
                   <div>
-                    <span className="text-[9.5px] text-slate-500 block font-semibold">Meter at Release:</span>
+                    <span className="text-[9.5px] text-slate-500 block font-semibold">Closing Odo Meter:</span>
                     <span className="font-bold text-slate-800 font-mono">
                       {Number(viewingAssignment.meterReadingAtRelease || 0).toLocaleString()}
                     </span>
@@ -1060,16 +1203,27 @@ export default function VehicleAssignmentPage() {
               </div>
 
               <div>
-                <label className="text-[10.5px] text-slate-500 font-semibold block mb-1">
-                  Final Meter Reading ({releasingAssignment.assetType === 'equipment' ? 'hrs' : 'km'})
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[10.5px] text-slate-500 font-semibold flex items-center gap-1">
+                    <Gauge size={12} className="text-emerald-600" />
+                    <span>Closing Odo Meter Reading ({releasingAssignment.assetType === 'equipment' ? 'hrs' : 'km'})</span>
+                  </label>
+                  <span className="text-[10px] text-slate-500 font-medium">
+                    Dispatch: <strong className="text-slate-800 font-mono">{Number(releasingAssignment.meterReadingAtAssign || 0).toLocaleString()}</strong>
+                  </span>
+                </div>
                 <input
                   type="number"
-                  placeholder="e.g. 1540.5"
+                  placeholder="Enter return odo meter reading..."
                   value={releaseForm.meterReadingAtRelease}
                   onChange={e => setReleaseForm(prev => ({ ...prev, meterReadingAtRelease: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
+                {releaseForm.meterReadingAtRelease && Number(releaseForm.meterReadingAtRelease) >= Number(releasingAssignment.meterReadingAtAssign || 0) && (
+                  <span className="text-[10px] text-emerald-600 font-medium mt-1 block">
+                    Distance Logged: +{(Number(releaseForm.meterReadingAtRelease) - Number(releasingAssignment.meterReadingAtAssign || 0)).toLocaleString()} {releasingAssignment.assetType === 'equipment' ? 'hrs' : 'km'}
+                  </span>
+                )}
               </div>
 
               <div>
