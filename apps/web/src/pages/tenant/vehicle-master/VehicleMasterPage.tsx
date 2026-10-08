@@ -2178,7 +2178,6 @@ export default function VehicleMasterPage() {
                     <th className="py-2 px-2.5">Capacity</th>
                     <th className="py-2 px-2.5">Fuel</th>
                     <th className="py-2 px-2.5">RC / Chassis</th>
-                    <th className="py-2 px-2.5">Cost / Ins.</th>
                     <th className="py-2 px-2.5">Status</th>
                     <th className="py-2 px-2.5 text-right">Actions</th>
                   </tr>
@@ -2250,27 +2249,6 @@ export default function VehicleMasterPage() {
                             Chassis: {v.chassisNumber}
                           </span>
                         )}
-                      </td>
-
-                      {/* Financial Info & Insurance */}
-                      <td className="py-2 px-2.5">
-                        <span className="font-bold text-emerald-700">₹{Number(v.purchaseCost || 0).toLocaleString()}</span>
-                        {v.vendor && (
-                          <span className="block text-[11px] text-slate-400 truncate max-w-[140px]" title={v.vendor}>
-                            {v.vendor}
-                          </span>
-                        )}
-                        <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                          {getInsuranceStatusBadge(v.insuranceExpiryDate)}
-                          <button
-                            type="button"
-                            onClick={() => handleOpenRenewInsurance('vehicle', v)}
-                            title="Renew Insurance Policy"
-                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[9px] font-bold transition-colors cursor-pointer">
-                            <Shield size={9} />
-                            Renew
-                          </button>
-                        </div>
                       </td>
 
                       {/* Status */}
@@ -2400,7 +2378,6 @@ export default function VehicleMasterPage() {
                     <th className="py-2 px-2.5">Specs</th>
                     <th className="py-2 px-2.5">Fuel</th>
                     <th className="py-2 px-2.5">Hours</th>
-                    <th className="py-2 px-2.5">Cost / Ins.</th>
                     <th className="py-2 px-2.5">Status</th>
                     <th className="py-2 px-2.5 text-right">Actions</th>
                   </tr>
@@ -2488,27 +2465,6 @@ export default function VehicleMasterPage() {
                           {Number(eq.hourMeterReading || 0).toLocaleString()}
                         </span>
                         <span className="text-[10px] text-slate-400 ml-1">hrs</span>
-                      </td>
-
-                      {/* Purchase Info & Insurance */}
-                      <td className="py-2 px-2.5">
-                        <span className="font-bold text-emerald-700">₹{Number(eq.purchaseCost || 0).toLocaleString()}</span>
-                        {eq.purchaseDate && (
-                          <span className="block text-[10px] text-slate-400">
-                            {new Date(eq.purchaseDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </span>
-                        )}
-                        <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                          {getInsuranceStatusBadge(eq.insuranceExpiryDate)}
-                          <button
-                            type="button"
-                            onClick={() => handleOpenRenewInsurance('equipment', eq)}
-                            title="Renew Insurance Policy"
-                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[9px] font-bold transition-colors cursor-pointer">
-                            <Shield size={9} />
-                            Renew
-                          </button>
-                        </div>
                       </td>
 
                       {/* Status */}
