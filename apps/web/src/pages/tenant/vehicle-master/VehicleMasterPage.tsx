@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../../context/AuthContext';
+import { apiFetch } from '../../../lib/api';
 import {
   Truck,
   HardHat,
@@ -254,9 +255,8 @@ export default function VehicleMasterPage() {
         ? `/api/tenant/vehicles/${renewModalData.item.id}/renew-insurance`
         : `/api/tenant/heavy-equipment/${renewModalData.item.id}/renew-insurance`;
 
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           insuranceStartDate: renewModalData.startDate,
           insuranceDuration: renewModalData.duration,
@@ -418,16 +418,26 @@ export default function VehicleMasterPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const vRes = await fetch('/api/tenant/vehicles');
+      const vRes = await apiFetch('/api/tenant/vehicles');
       if (vRes.ok) {
-        const vData = await vRes.json();
-        setVehicles(Array.isArray(vData) ? vData : []);
+        const contentType = vRes.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const vData = await vRes.json();
+          setVehicles(Array.isArray(vData) ? vData : []);
+        } else {
+          console.warn('[VehicleMaster] Non-JSON response for vehicles:', contentType);
+        }
       }
 
-      const eqRes = await fetch('/api/tenant/heavy-equipment');
+      const eqRes = await apiFetch('/api/tenant/heavy-equipment');
       if (eqRes.ok) {
-        const eqData = await eqRes.json();
-        setEquipmentList(Array.isArray(eqData) ? eqData : []);
+        const contentType = eqRes.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const eqData = await eqRes.json();
+          setEquipmentList(Array.isArray(eqData) ? eqData : []);
+        } else {
+          console.warn('[VehicleMaster] Non-JSON response for heavy equipment:', contentType);
+        }
       }
     } catch (err) {
       console.error('Failed to load fleet data:', err);
@@ -633,9 +643,8 @@ export default function VehicleMasterPage() {
 
         const url = formMode === 'create' ? '/api/tenant/vehicles' : `/api/tenant/vehicles/${editingId}`;
         const method = formMode === 'create' ? 'POST' : 'PUT';
-        const res = await fetch(url, {
+        const res = await apiFetch(url, {
           method,
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...vehicleForm,
             firebaseUid: currentUser?.uid
@@ -656,9 +665,8 @@ export default function VehicleMasterPage() {
 
         const url = formMode === 'create' ? '/api/tenant/heavy-equipment' : `/api/tenant/heavy-equipment/${editingId}`;
         const method = formMode === 'create' ? 'POST' : 'PUT';
-        const res = await fetch(url, {
+        const res = await apiFetch(url, {
           method,
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...equipmentForm,
             fuelType: equipmentForm.fuelPowerType || equipmentForm.fuelType,
@@ -687,7 +695,7 @@ export default function VehicleMasterPage() {
   const handleDeleteVehicle = async (id: number | string) => {
     if (!window.confirm('Are you sure you want to permanently delete this vehicle?')) return;
     try {
-      const res = await fetch(`/api/tenant/vehicles/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/tenant/vehicles/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete vehicle');
       showToast('Vehicle deleted successfully');
       setVehicles(prev => prev.filter(v => v.id !== id));
@@ -700,7 +708,7 @@ export default function VehicleMasterPage() {
   const handleDeleteEquipment = async (id: number | string) => {
     if (!window.confirm('Are you sure you want to delete this heavy equipment asset?')) return;
     try {
-      const res = await fetch(`/api/tenant/heavy-equipment/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/tenant/heavy-equipment/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete equipment');
       showToast('Equipment deleted successfully');
       setEquipmentList(prev => prev.filter(eq => eq.id !== id));
