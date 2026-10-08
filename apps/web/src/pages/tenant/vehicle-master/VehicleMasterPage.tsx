@@ -184,7 +184,6 @@ export default function VehicleMasterPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
 
   // Creation / Editing Full-Screen Mode
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -2093,22 +2092,7 @@ export default function VehicleMasterPage() {
           </button>
         </div>
 
-        <div className="hidden sm:flex items-center gap-1 pr-2">
-          <button
-            onClick={() => setViewMode('table')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold ${viewMode === 'table' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'
-              }`}
-          >
-            Table
-          </button>
-          <button
-            onClick={() => setViewMode('grid')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold ${viewMode === 'grid' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'
-              }`}
-          >
-            Grid
-          </button>
-        </div>
+
       </div>
 
       {/* Search and Filters Bar */}
@@ -2179,8 +2163,8 @@ export default function VehicleMasterPage() {
                 + Register First Vehicle
               </button>
             </div>
-          ) : viewMode === 'table' ? (
-            <div className="overflow-x-auto">
+          ) : (
+            <div className="overflow-x-auto w-full">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50/90 text-[9px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
@@ -2295,65 +2279,6 @@ export default function VehicleMasterPage() {
                 </tbody>
               </table>
             </div>
-          ) : (
-            /* Grid View */
-            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredVehicles.map(v => (
-                <div key={v.id} className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-shadow space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-emerald-50 text-[#46B351] flex items-center justify-center font-bold">
-                        <Truck size={18} />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-sm text-slate-900">{v.vehicleNumber}</h4>
-                        <span className="text-[11px] font-semibold text-slate-400">{v.vehicleType}</span>
-                      </div>
-                    </div>
-                    {getStatusBadge(v.status)}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs py-2 border-y border-slate-100">
-                    <div>
-                      <span className="text-[10px] text-slate-400 block">Fleet Code</span>
-                      <span className="font-mono font-bold text-slate-700">{v.fleetCode || '—'}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block">Brand & Model</span>
-                      <span className="font-bold text-slate-700 truncate block">{v.make || '—'} {v.model || ''}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block">Payload</span>
-                      <span className="font-bold text-emerald-600">{v.tonCapacity || 0} MT</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block">Fuel / Power</span>
-                      <span className="font-bold text-slate-700">{v.fuelPowerType || 'Diesel'}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[11px] font-bold text-emerald-700 truncate max-w-[180px]">
-                      ₹{Number(v.purchaseCost || 0).toLocaleString()}
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleOpenEditVehicle(v)}
-                        className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 cursor-pointer"
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteVehicle(v.id)}
-                        className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 cursor-pointer"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
           )}
         </div>
       )}
@@ -2379,8 +2304,8 @@ export default function VehicleMasterPage() {
                 + Register First Equipment
               </button>
             </div>
-          ) : viewMode === 'table' ? (
-            <div className="overflow-x-auto">
+          ) : (
+            <div className="overflow-x-auto w-full">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50/90 text-[9px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
@@ -2510,65 +2435,6 @@ export default function VehicleMasterPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
-          ) : (
-            /* Grid View */
-            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredEquipment.map(eq => (
-                <div key={eq.id} className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-shadow space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-                        <HardHat size={18} />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-sm text-slate-900">{eq.equipmentId}</h4>
-                        <span className="text-[11px] font-semibold text-slate-400">{eq.equipmentType}</span>
-                      </div>
-                    </div>
-                    {getStatusBadge(eq.status)}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs py-2 border-y border-slate-100">
-                    <div>
-                      <span className="text-[10px] text-slate-400 block">Asset Tag</span>
-                      <span className="font-mono font-bold text-slate-700">{eq.equipmentNumber}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block">Brand & Model</span>
-                      <span className="font-bold text-slate-700 truncate block">{eq.make || '—'} {eq.model || ''}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block">Hour Meter</span>
-                      <span className="font-bold text-amber-600">{Number(eq.hourMeterReading || 0).toLocaleString()} hrs</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block">Fuel / Power</span>
-                      <span className="font-bold text-slate-700 truncate block">{eq.fuelPowerType || eq.fuelType || 'Diesel'}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[11px] font-bold text-emerald-700 truncate max-w-[180px]">
-                      ₹{Number(eq.purchaseCost || 0).toLocaleString()}
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleOpenEditEquipment(eq)}
-                        className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 cursor-pointer"
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteEquipment(eq.id)}
-                        className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 cursor-pointer"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
             </div>
           )}
         </div>
