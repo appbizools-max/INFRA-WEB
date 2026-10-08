@@ -2566,108 +2566,110 @@ export default function VehicleMasterPage() {
       {/* ──────────────────────────────────────────────────────────────────────────
           DETAIL POPUP MODALS FOR VEHICLE AND EQUIPMENT
           ────────────────────────────────────────────────────────────────────────── */}
+      {/* Vehicle Info Popup Modal */}
       {viewingVehicle && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-2xl bg-emerald-50 text-[#46B351] flex items-center justify-center">
-                  <Truck size={20} />
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 p-3 px-4.5 bg-slate-50/50 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-xl bg-emerald-50 text-[#46B351] flex items-center justify-center shrink-0">
+                  <Truck size={16} />
                 </div>
                 <div>
-                  <h3 className="font-black text-base text-slate-900">{viewingVehicle.vehicleNumber}</h3>
-                  <span className="text-xs text-slate-500">{viewingVehicle.vehicleType} • {viewingVehicle.fleetCode || 'No Fleet Code'}</span>
+                  <h3 className="font-bold text-sm text-slate-900 leading-tight">{viewingVehicle.vehicleNumber}</h3>
+                  <span className="text-[10px] text-slate-500">{viewingVehicle.vehicleType} • {viewingVehicle.fleetCode || 'No Fleet Code'}</span>
                 </div>
               </div>
               <button
                 onClick={() => setViewingVehicle(null)}
-                className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="p-1 rounded-lg hover:bg-slate-200/60 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Brand & Model</span>
-                <span className="font-bold text-slate-800">{viewingVehicle.make || '—'} {viewingVehicle.model || ''} ({viewingVehicle.year || '—'})</span>
+            {/* Scrollable Content */}
+            <div className="overflow-y-auto p-3.5 px-4.5 space-y-3 flex-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-100">
+                  <span className="text-[9px] text-slate-400 block font-semibold leading-tight">Brand & Model</span>
+                  <span className="font-bold text-slate-800 text-[11px] truncate block mt-0.5">{viewingVehicle.make || '—'} {viewingVehicle.model || ''} ({viewingVehicle.year || '—'})</span>
+                </div>
+                <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-100">
+                  <span className="text-[9px] text-slate-400 block font-semibold leading-tight">Payload & Volume</span>
+                  <span className="font-bold text-slate-800 text-[11px] truncate block mt-0.5">{viewingVehicle.tonCapacity || 0} MT • {viewingVehicle.volumeCapacity || 0} {viewingVehicle.volumeUnit || 'CUM'}</span>
+                </div>
+                <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-100">
+                  <span className="text-[9px] text-slate-400 block font-semibold leading-tight">Fuel / Power</span>
+                  <span className="font-bold text-emerald-700 text-[11px] truncate block mt-0.5">{viewingVehicle.fuelPowerType || 'Diesel'}</span>
+                </div>
+                <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-100">
+                  <span className="text-[9px] text-slate-400 block font-semibold leading-tight">Consumption</span>
+                  <span className="font-bold text-slate-800 text-[11px] truncate block mt-0.5">{viewingVehicle.fuelConsumption || '—'}</span>
+                </div>
+                <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-100">
+                  <span className="text-[9px] text-slate-400 block font-semibold leading-tight">Registration No.</span>
+                  <span className="font-mono font-bold text-slate-800 text-[11px] truncate block mt-0.5">{viewingVehicle.registrationNumber || '—'}</span>
+                </div>
+                <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-100">
+                  <span className="text-[9px] text-slate-400 block font-semibold leading-tight">Chassis No.</span>
+                  <span className="font-mono text-[10.5px] font-bold text-slate-800 truncate block mt-0.5">{viewingVehicle.chassisNumber || '—'}</span>
+                </div>
+                <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-100">
+                  <span className="text-[9px] text-slate-400 block font-semibold leading-tight">Engine No.</span>
+                  <span className="font-mono text-[10.5px] font-bold text-slate-800 truncate block mt-0.5">{viewingVehicle.engineNumber || '—'}</span>
+                </div>
+                <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-100">
+                  <span className="text-[9px] text-slate-400 block font-semibold leading-tight">Purchase Cost</span>
+                  <span className="font-bold text-emerald-700 text-[11px] truncate block mt-0.5">₹{Number(viewingVehicle.purchaseCost || 0).toLocaleString()}</span>
+                </div>
+                <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-100">
+                  <span className="text-[9px] text-slate-400 block font-semibold leading-tight">Vendor / Dealer</span>
+                  <span className="font-bold text-slate-800 text-[11px] truncate block mt-0.5">{viewingVehicle.vendor || '—'}</span>
+                </div>
               </div>
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Payload & Volume</span>
-                <span className="font-bold text-slate-800">{viewingVehicle.tonCapacity || 0} MT • {viewingVehicle.volumeCapacity || 0} {viewingVehicle.volumeUnit || 'CUM'}</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Fuel / Power Type</span>
-                <span className="font-bold text-emerald-700">{viewingVehicle.fuelPowerType || 'Diesel'}</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Fuel Consumption</span>
-                <span className="font-bold text-slate-800">{viewingVehicle.fuelConsumption || 'Not specified'}</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Registration Number</span>
-                <span className="font-mono font-bold text-slate-800">{viewingVehicle.registrationNumber || '—'}</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Chassis Number</span>
-                <span className="font-mono text-[11px] font-bold text-slate-800">{viewingVehicle.chassisNumber || '—'}</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Engine Number</span>
-                <span className="font-mono text-[11px] font-bold text-slate-800">{viewingVehicle.engineNumber || '—'}</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Purchase Cost / Valuation</span>
-                <span className="font-bold text-emerald-700">₹{Number(viewingVehicle.purchaseCost || 0).toLocaleString()}</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Vendor / Dealer</span>
-                <span className="font-bold text-slate-800">{viewingVehicle.vendor || '—'}</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Insurance Value</span>
-                <span className="font-bold text-slate-800">₹{Number(viewingVehicle.insuranceValue || 0).toLocaleString()}</span>
+
+              {/* Insurance Policy Suite Details */}
+              <div className="p-2.5 bg-emerald-50/40 rounded-xl border border-emerald-200/50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+                    <Shield size={13} className="text-emerald-700" />
+                    <span>Insurance & Policy Coverage</span>
+                  </div>
+                  {getInsuranceStatusBadge(viewingVehicle.insuranceExpiryDate)}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10.5px] pt-0.5">
+                  <div>
+                    <span className="text-[9px] text-slate-400 block font-semibold">Policy Number</span>
+                    <span className="font-mono font-bold text-slate-800 truncate block">{viewingVehicle.insurancePolicyNumber || 'Not registered'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 block font-semibold">Duration</span>
+                    <span className="font-bold text-slate-800 truncate block">{viewingVehicle.insuranceDuration || '1 Year'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 block font-semibold">Start Date</span>
+                    <span className="font-bold text-slate-800 truncate block">{viewingVehicle.insuranceStartDate || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 block font-semibold">Expiry Date</span>
+                    <span className="font-bold text-slate-800 truncate block">{viewingVehicle.insuranceExpiryDate || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 block font-semibold">Premium / Cost</span>
+                    <span className="font-bold text-emerald-700 truncate block">₹{Number(viewingVehicle.insuranceCost || 0).toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 block font-semibold">IDV Valuation</span>
+                    <span className="font-bold text-slate-800 truncate block">₹{Number(viewingVehicle.insuranceValue || 0).toLocaleString()}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Insurance Policy Suite Details */}
-            <div className="p-3.5 bg-emerald-50/50 rounded-2xl border border-emerald-200/60 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Shield size={14} className="text-emerald-700" />
-                  <span className="text-xs font-bold text-slate-900">Insurance & Policy Coverage</span>
-                </div>
-                {getInsuranceStatusBadge(viewingVehicle.insuranceExpiryDate)}
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-[11px] pt-1">
-                <div>
-                  <span className="text-[10px] text-slate-400 block font-semibold">Policy Number</span>
-                  <span className="font-mono font-bold text-slate-800">{viewingVehicle.insurancePolicyNumber || 'Not registered'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block font-semibold">Duration</span>
-                  <span className="font-bold text-slate-800">{viewingVehicle.insuranceDuration || '1 Year'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block font-semibold">Start Date</span>
-                  <span className="font-bold text-slate-800">{viewingVehicle.insuranceStartDate || '—'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block font-semibold">Expiry Date</span>
-                  <span className="font-bold text-slate-800">{viewingVehicle.insuranceExpiryDate || '—'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block font-semibold">Premium / Cost</span>
-                  <span className="font-bold text-emerald-700">₹{Number(viewingVehicle.insuranceCost || 0).toLocaleString()}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block font-semibold">IDV Valuation</span>
-                  <span className="font-bold text-slate-800">₹{Number(viewingVehicle.insuranceValue || 0).toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-2">
+            {/* Footer */}
+            <div className="flex items-center justify-between p-2.5 px-4.5 border-t border-slate-100 bg-slate-50/50 shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -2675,14 +2677,14 @@ export default function VehicleMasterPage() {
                   setViewingVehicle(null);
                   handleOpenRenewInsurance('vehicle', v);
                 }}
-                className="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
               >
-                <RefreshCw size={13} />
+                <RefreshCw size={12} />
                 Renew Insurance
               </button>
               <button
                 onClick={() => setViewingVehicle(null)}
-                className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 cursor-pointer"
+                className="px-3.5 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Close
               </button>
@@ -2691,115 +2693,117 @@ export default function VehicleMasterPage() {
         </div>
       )}
 
+      {/* Equipment Info Popup Modal */}
       {viewingEquipment && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                  <HardHat size={20} />
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 p-3 px-4.5 bg-slate-50/50 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                  <HardHat size={16} />
                 </div>
                 <div>
-                  <h3 className="font-black text-base text-slate-900">{viewingEquipment.equipmentId}</h3>
-                  <span className="text-xs text-slate-500">{viewingEquipment.equipmentType} • {viewingEquipment.equipmentNumber}</span>
+                  <h3 className="font-bold text-sm text-slate-900 leading-tight">{viewingEquipment.equipmentId}</h3>
+                  <span className="text-[10px] text-slate-500">{viewingEquipment.equipmentType} • {viewingEquipment.equipmentNumber}</span>
                 </div>
               </div>
               <button
                 onClick={() => setViewingEquipment(null)}
-                className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="p-1 rounded-lg hover:bg-slate-200/60 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Brand & Model</span>
-                <span className="font-bold text-slate-800">{viewingEquipment.make || '—'} {viewingEquipment.model || ''}</span>
+            {/* Scrollable Content */}
+            <div className="overflow-y-auto p-3.5 px-4.5 space-y-3 flex-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-100">
+                  <span className="text-[9px] text-slate-400 block font-semibold leading-tight">Brand & Model</span>
+                  <span className="font-bold text-slate-800 text-[11px] truncate block mt-0.5">{viewingEquipment.make || '—'} {viewingEquipment.model || ''}</span>
+                </div>
+                <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-100">
+                  <span className="text-[9px] text-slate-400 block font-semibold leading-tight">Serial Number</span>
+                  <span className="font-mono text-[10.5px] font-bold text-slate-800 truncate block mt-0.5">{viewingEquipment.serialNumber || '—'}</span>
+                </div>
+                <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-100">
+                  <span className="text-[9px] text-slate-400 block font-semibold leading-tight">Fuel / Power</span>
+                  <span className="font-bold text-amber-700 text-[11px] truncate block mt-0.5">{viewingEquipment.fuelPowerType || viewingEquipment.fuelType || 'Diesel'}</span>
+                </div>
+                <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-100">
+                  <span className="text-[9px] text-slate-400 block font-semibold leading-tight">Consumption</span>
+                  <span className="font-bold text-slate-800 text-[11px] truncate block mt-0.5">{viewingEquipment.fuelConsumption || '—'}</span>
+                </div>
+                <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-100">
+                  <span className="text-[9px] text-slate-400 block font-semibold leading-tight">Hour Meter</span>
+                  <span className="font-bold text-amber-700 text-[11px] truncate block mt-0.5">{Number(viewingEquipment.hourMeterReading || 0).toLocaleString()} hrs</span>
+                </div>
+                <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-100">
+                  <span className="text-[9px] text-slate-400 block font-semibold leading-tight">Weight</span>
+                  <span className="font-bold text-slate-800 text-[11px] truncate block mt-0.5">{viewingEquipment.operatingWeight ? `${viewingEquipment.operatingWeight} MT` : '—'}</span>
+                </div>
+                <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-100">
+                  <span className="text-[9px] text-slate-400 block font-semibold leading-tight">Purchase Date</span>
+                  <span className="font-bold text-slate-800 text-[11px] truncate block mt-0.5">{viewingEquipment.purchaseDate || '—'}</span>
+                </div>
+                <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-100">
+                  <span className="text-[9px] text-slate-400 block font-semibold leading-tight">Purchase Cost</span>
+                  <span className="font-bold text-emerald-700 text-[11px] truncate block mt-0.5">₹{Number(viewingEquipment.purchaseCost || 0).toLocaleString()}</span>
+                </div>
+                <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-100">
+                  <span className="text-[9px] text-slate-400 block font-semibold leading-tight">Status</span>
+                  <div className="mt-0.5">{getStatusBadge(viewingEquipment.status)}</div>
+                </div>
               </div>
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Serial Number</span>
-                <span className="font-mono text-[11px] font-bold text-slate-800">{viewingEquipment.serialNumber || '—'}</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Fuel / Power Type</span>
-                <span className="font-bold text-amber-700">{viewingEquipment.fuelPowerType || viewingEquipment.fuelType || 'Diesel'}</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Fuel Consumption</span>
-                <span className="font-bold text-slate-800">{viewingEquipment.fuelConsumption || 'Not specified'}</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Hour Meter Reading</span>
-                <span className="font-bold text-amber-700">{Number(viewingEquipment.hourMeterReading || 0).toLocaleString()} hrs</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Operating Weight</span>
-                <span className="font-bold text-slate-800">{viewingEquipment.operatingWeight ? `${viewingEquipment.operatingWeight} MT` : '—'}</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Purchase Date</span>
-                <span className="font-bold text-slate-800">{viewingEquipment.purchaseDate || '—'}</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Purchase Cost</span>
-                <span className="font-bold text-emerald-700">₹{Number(viewingEquipment.purchaseCost || 0).toLocaleString()}</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Vendor / Supplier</span>
-                <span className="font-bold text-slate-800">{viewingEquipment.vendor || '—'}</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] text-slate-400 block font-semibold">Status</span>
-                {getStatusBadge(viewingEquipment.status)}
+
+              {viewingEquipment.notes && (
+                <div className="p-2 bg-amber-50/50 rounded-lg border border-amber-200/50 text-[10.5px] text-amber-950">
+                  <span className="font-bold block mb-0.5 text-[9px] uppercase tracking-wider text-amber-800">Directives:</span>
+                  {viewingEquipment.notes}
+                </div>
+              )}
+
+              {/* Insurance Policy Suite Details */}
+              <div className="p-2.5 bg-emerald-50/40 rounded-xl border border-emerald-200/50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+                    <Shield size={13} className="text-emerald-700" />
+                    <span>Insurance & Policy Coverage</span>
+                  </div>
+                  {getInsuranceStatusBadge(viewingEquipment.insuranceExpiryDate)}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10.5px] pt-0.5">
+                  <div>
+                    <span className="text-[9px] text-slate-400 block font-semibold">Policy Number</span>
+                    <span className="font-mono font-bold text-slate-800 truncate block">{viewingEquipment.insurancePolicyNumber || 'Not registered'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 block font-semibold">Duration</span>
+                    <span className="font-bold text-slate-800 truncate block">{viewingEquipment.insuranceDuration || '1 Year'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 block font-semibold">Start Date</span>
+                    <span className="font-bold text-slate-800 truncate block">{viewingEquipment.insuranceStartDate || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 block font-semibold">Expiry Date</span>
+                    <span className="font-bold text-slate-800 truncate block">{viewingEquipment.insuranceExpiryDate || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 block font-semibold">Premium / Cost</span>
+                    <span className="font-bold text-emerald-700 truncate block">₹{Number(viewingEquipment.insuranceCost || 0).toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 block font-semibold">IDV Valuation</span>
+                    <span className="font-bold text-slate-800 truncate block">₹{Number(viewingEquipment.insuranceValue || 0).toLocaleString()}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {viewingEquipment.notes && (
-              <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-200/50 text-[11px] text-amber-950">
-                <span className="font-bold block mb-0.5">Directives:</span>
-                {viewingEquipment.notes}
-              </div>
-            )}
-
-            {/* Insurance Policy Suite Details */}
-            <div className="p-3.5 bg-emerald-50/50 rounded-2xl border border-emerald-200/60 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Shield size={14} className="text-emerald-700" />
-                  <span className="text-xs font-bold text-slate-900">Insurance & Policy Coverage</span>
-                </div>
-                {getInsuranceStatusBadge(viewingEquipment.insuranceExpiryDate)}
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-[11px] pt-1">
-                <div>
-                  <span className="text-[10px] text-slate-400 block font-semibold">Policy Number</span>
-                  <span className="font-mono font-bold text-slate-800">{viewingEquipment.insurancePolicyNumber || 'Not registered'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block font-semibold">Duration</span>
-                  <span className="font-bold text-slate-800">{viewingEquipment.insuranceDuration || '1 Year'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block font-semibold">Start Date</span>
-                  <span className="font-bold text-slate-800">{viewingEquipment.insuranceStartDate || '—'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block font-semibold">Expiry Date</span>
-                  <span className="font-bold text-slate-800">{viewingEquipment.insuranceExpiryDate || '—'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block font-semibold">Premium / Cost</span>
-                  <span className="font-bold text-emerald-700">₹{Number(viewingEquipment.insuranceCost || 0).toLocaleString()}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block font-semibold">IDV Valuation</span>
-                  <span className="font-bold text-slate-800">₹{Number(viewingEquipment.insuranceValue || 0).toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-2">
+            {/* Footer */}
+            <div className="flex items-center justify-between p-2.5 px-4.5 border-t border-slate-100 bg-slate-50/50 shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -2807,14 +2811,14 @@ export default function VehicleMasterPage() {
                   setViewingEquipment(null);
                   handleOpenRenewInsurance('equipment', eq);
                 }}
-                className="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
               >
-                <RefreshCw size={13} />
+                <RefreshCw size={12} />
                 Renew Insurance
               </button>
               <button
                 onClick={() => setViewingEquipment(null)}
-                className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 cursor-pointer"
+                className="px-3.5 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Close
               </button>
