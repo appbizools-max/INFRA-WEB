@@ -2165,22 +2165,22 @@ export default function VehicleMasterPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                    <th className="py-3 px-4">Vehicle & Fleet Code</th>
-                    <th className="py-3 px-4">Type & Brand</th>
-                    <th className="py-3 px-4">Capacity Specs</th>
-                    <th className="py-3 px-4">Fuel & Powertrain</th>
-                    <th className="py-3 px-4">Registration & Chassis</th>
-                    <th className="py-3 px-4">Financial & Valuation</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
+                  <tr className="border-b border-slate-100 bg-slate-50/75 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    <th className="py-2.5 px-3">Vehicle & Fleet No.</th>
+                    <th className="py-2.5 px-3">Type & Brand</th>
+                    <th className="py-2.5 px-3">Capacity</th>
+                    <th className="py-2.5 px-3">Fuel / Power</th>
+                    <th className="py-2.5 px-3">RC & Chassis</th>
+                    <th className="py-2.5 px-3">Cost & Insurance</th>
+                    <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
                   {filteredVehicles.map(v => (
                     <tr key={v.id} className="hover:bg-slate-50/80 transition-colors group">
                       {/* Vehicle Number & Code */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-3">
                         <div className="flex items-center gap-3">
                           <div className="h-9 w-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold shrink-0">
                             <Truck size={16} />
@@ -2199,7 +2199,7 @@ export default function VehicleMasterPage() {
                       </td>
 
                       {/* Type & Make */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-3">
                         <span className="font-bold text-slate-800">{v.vehicleType}</span>
                         <span className="block text-[11px] text-slate-400">
                           {v.make || '—'} {v.model ? `• ${v.model}` : ''} {v.year ? `(${v.year})` : ''}
@@ -2207,7 +2207,7 @@ export default function VehicleMasterPage() {
                       </td>
 
                       {/* Capacity Specs */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-3">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {v.tonCapacity ? (
                             <span className="px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-700 font-bold text-[10px]">
@@ -2223,7 +2223,7 @@ export default function VehicleMasterPage() {
                       </td>
 
                       {/* Fuel & Powertrain */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-3">
                         <div className="flex items-center gap-1.5">
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-[10px]">
                             <Fuel size={10} className="text-emerald-600" />
@@ -2238,7 +2238,7 @@ export default function VehicleMasterPage() {
                       </td>
 
                       {/* Registration & Chassis */}
-                      <td className="py-3.5 px-4 font-mono text-[11px]">
+                      <td className="py-2.5 px-3 font-mono text-[11px]">
                         <span className="text-slate-700 font-bold">{v.registrationNumber || '—'}</span>
                         {v.chassisNumber && (
                           <span className="block text-[10px] text-slate-400 truncate max-w-[140px]" title={v.chassisNumber}>
@@ -2248,7 +2248,7 @@ export default function VehicleMasterPage() {
                       </td>
 
                       {/* Financial Info & Insurance */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-3">
                         <span className="font-bold text-emerald-700">₹{Number(v.purchaseCost || 0).toLocaleString()}</span>
                         {v.vendor && (
                           <span className="block text-[11px] text-slate-400 truncate max-w-[140px]" title={v.vendor}>
@@ -2270,12 +2270,12 @@ export default function VehicleMasterPage() {
                       </td>
 
                       {/* Status */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-3">
                         {getStatusBadge(v.status)}
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="py-2.5 px-3 text-right">
                         <div className="flex items-center justify-end gap-1.5 opacity-90 group-hover:opacity-100">
                           <button
                             onClick={() => setViewingVehicle(v)}
@@ -2393,22 +2393,22 @@ export default function VehicleMasterPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                    <th className="py-3 px-4">Equipment ID & Number</th>
-                    <th className="py-3 px-4">Type & Brand</th>
-                    <th className="py-3 px-4">Technical Ratings & Specs</th>
-                    <th className="py-3 px-4">Fuel & Powertrain</th>
-                    <th className="py-3 px-4">Hour Meter</th>
-                    <th className="py-3 px-4">Purchase Info</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
+                  <tr className="border-b border-slate-100 bg-slate-50/75 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    <th className="py-2.5 px-3">Equipment ID & No.</th>
+                    <th className="py-2.5 px-3">Type & Brand</th>
+                    <th className="py-2.5 px-3">Technical Specs</th>
+                    <th className="py-2.5 px-3">Fuel / Power</th>
+                    <th className="py-2.5 px-3">Run Hours</th>
+                    <th className="py-2.5 px-3">Cost & Insurance</th>
+                    <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
                   {filteredEquipment.map(eq => (
                     <tr key={eq.id} className="hover:bg-slate-50/80 transition-colors group">
                       {/* ID & Number */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-3">
                         <div className="flex items-center gap-3">
                           <div className="h-9 w-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold shrink-0">
                             <HardHat size={16} />
@@ -2425,7 +2425,7 @@ export default function VehicleMasterPage() {
                       </td>
 
                       {/* Type & Make */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-3">
                         <span className="font-bold text-slate-800">{eq.equipmentType}</span>
                         <span className="block text-[11px] text-slate-400">
                           {eq.make || '—'} {eq.model ? `• ${eq.model}` : ''} {eq.manufacturingYear ? `(${eq.manufacturingYear})` : ''}
@@ -2433,7 +2433,7 @@ export default function VehicleMasterPage() {
                       </td>
 
                       {/* Technical Specs */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-3">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {Number(eq.excavatorBucketCapacity) > 0 && (
                             <span className="px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800 font-bold text-[10px]">
@@ -2469,7 +2469,7 @@ export default function VehicleMasterPage() {
                       </td>
 
                       {/* Fuel & Powertrain */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-3">
                         <div className="flex items-center gap-1.5">
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 font-bold text-[10px]">
                             <Fuel size={10} className="text-amber-600" />
@@ -2484,7 +2484,7 @@ export default function VehicleMasterPage() {
                       </td>
 
                       {/* Hour Meter */}
-                      <td className="py-3.5 px-4 font-mono">
+                      <td className="py-2.5 px-3 font-mono">
                         <span className="font-bold text-slate-800">
                           {Number(eq.hourMeterReading || 0).toLocaleString()}
                         </span>
@@ -2492,7 +2492,7 @@ export default function VehicleMasterPage() {
                       </td>
 
                       {/* Purchase Info & Insurance */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-3">
                         <span className="font-bold text-emerald-700">₹{Number(eq.purchaseCost || 0).toLocaleString()}</span>
                         {eq.purchaseDate && (
                           <span className="block text-[11px] text-slate-400">
@@ -2514,12 +2514,12 @@ export default function VehicleMasterPage() {
                       </td>
 
                       {/* Status */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-3">
                         {getStatusBadge(eq.status)}
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="py-2.5 px-3 text-right">
                         <div className="flex items-center justify-end gap-1.5 opacity-90 group-hover:opacity-100">
                           <button
                             onClick={() => setViewingEquipment(eq)}
