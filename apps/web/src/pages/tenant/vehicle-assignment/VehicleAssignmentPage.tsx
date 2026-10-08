@@ -141,7 +141,8 @@ export default function VehicleAssignmentPage() {
       }
 
       // 4. Fetch Projects
-      const pRes = await apiFetch('/api/tenant/projects');
+      const pUrl = currentUser?.uid ? `/api/tenant/projects/${currentUser.uid}` : '/api/tenant/projects';
+      const pRes = await apiFetch(pUrl);
       if (pRes.ok) {
         const pData = await pRes.json();
         setProjectsList(Array.isArray(pData) ? pData : []);

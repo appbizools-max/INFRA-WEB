@@ -2409,22 +2409,26 @@ app.delete('/api/tenant/team/:id', async (req, res) => {
 // ─── PROJECTS ─────────────────────────────────────────────────────────────
 
 // GET Projects
-app.get('/api/tenant/projects/:firebaseUid', async (req, res) => {
-  const { firebaseUid } = req.params;
-  console.log(`[GET /api/tenant/projects] Fetching projects for firebaseUid: ${firebaseUid}`);
+app.get(['/api/tenant/projects/:firebaseUid', '/api/tenant/projects'], async (req, res) => {
+  const firebaseUid = req.params.firebaseUid || req.query.firebaseUid || req.query.uid;
   try {
-    const tenantRes = await pool.query(
-      `SELECT tenant_id FROM tenant_admins WHERE firebase_uid = $1
-       UNION
-       SELECT tenant_id FROM tenant_users WHERE firebase_uid = $1`,
-      [firebaseUid]
-    );
-
-    if (tenantRes.rows.length === 0) {
-      console.warn(`[GET /api/tenant/projects] No tenant found for firebaseUid: ${firebaseUid}`);
-      return res.json([]);
+    let tenantId = null;
+    if (firebaseUid) {
+      const tenantRes = await pool.query(
+        `SELECT tenant_id FROM tenant_admins WHERE firebase_uid = $1
+         UNION
+         SELECT tenant_id FROM tenant_users WHERE firebase_uid = $1`,
+        [firebaseUid]
+      );
+      if (tenantRes.rows.length > 0) tenantId = tenantRes.rows[0].tenant_id;
     }
-    const tenantId = tenantRes.rows[0].tenant_id;
+    if (!tenantId) {
+      const firstTenant = await pool.query('SELECT tenant_id FROM tenant_admins ORDER BY id ASC LIMIT 1');
+      if (firstTenant.rows.length > 0) tenantId = firstTenant.rows[0].tenant_id;
+    }
+    if (!tenantId) {
+      tenantId = '1';
+    }
 
     const projectsRes = await pool.query(
       `SELECT id, project_id as "id", name, location, location_block as "locationBlock", 
@@ -2916,20 +2920,26 @@ app.delete('/api/tenant/projects/:id', async (req, res) => {
 // ─── WORKSITES ─────────────────────────────────────────────────────────────
 
 // GET Worksites
-app.get('/api/tenant/worksites/:firebaseUid', async (req, res) => {
-  const { firebaseUid } = req.params;
+app.get(['/api/tenant/worksites/:firebaseUid', '/api/tenant/worksites'], async (req, res) => {
+  const firebaseUid = req.params.firebaseUid || req.query.firebaseUid || req.query.uid;
   try {
-    const tenantRes = await pool.query(
-      `SELECT tenant_id FROM tenant_admins WHERE firebase_uid = $1
-       UNION
-       SELECT tenant_id FROM tenant_users WHERE firebase_uid = $1`,
-      [firebaseUid]
-    );
-
-    if (tenantRes.rows.length === 0) {
-      return res.json([]);
+    let tenantId = null;
+    if (firebaseUid) {
+      const tenantRes = await pool.query(
+        `SELECT tenant_id FROM tenant_admins WHERE firebase_uid = $1
+         UNION
+         SELECT tenant_id FROM tenant_users WHERE firebase_uid = $1`,
+        [firebaseUid]
+      );
+      if (tenantRes.rows.length > 0) tenantId = tenantRes.rows[0].tenant_id;
     }
-    const tenantId = tenantRes.rows[0].tenant_id;
+    if (!tenantId) {
+      const firstTenant = await pool.query('SELECT tenant_id FROM tenant_admins ORDER BY id ASC LIMIT 1');
+      if (firstTenant.rows.length > 0) tenantId = firstTenant.rows[0].tenant_id;
+    }
+    if (!tenantId) {
+      tenantId = '1';
+    }
 
     const worksitesRes = await pool.query(
       `SELECT id, worksite_id as "id", worksite_id as "worksiteId", name, location, type, supervisor, contact, 
