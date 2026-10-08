@@ -1925,7 +1925,7 @@ export default function VehicleMasterPage() {
   // MAIN REGISTRY & DASHBOARD VIEW
   // ══════════════════════════════════════════════════════════════════════════════
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50/60 p-4 sm:p-6 lg:p-8 space-y-6 w-full">
+    <div className="w-full space-y-6">
       {/* Toast Notification */}
       {toast && (
         <div
@@ -2171,7 +2171,7 @@ export default function VehicleMasterPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50/90 text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                  <tr className="border-b border-slate-200 bg-slate-50/90 text-[9px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                     <th className="py-2 px-2.5">Vehicle / Fleet</th>
                     <th className="py-2 px-2.5">Type / Make</th>
                     <th className="py-2 px-2.5">Capacity</th>
@@ -2393,7 +2393,7 @@ export default function VehicleMasterPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50/90 text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                  <tr className="border-b border-slate-200 bg-slate-50/90 text-[9px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                     <th className="py-2 px-2.5">Equipment ID</th>
                     <th className="py-2 px-2.5">Type / Make</th>
                     <th className="py-2 px-2.5">Specs</th>

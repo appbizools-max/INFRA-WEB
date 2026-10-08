@@ -350,7 +350,7 @@ export default function TenantLayout() {
         </div>
 
         {/* Scrollable Page Content */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-white p-4 md:p-8">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50/60 p-3 sm:p-4 md:p-5 lg:p-6">
           <div className="w-full">
             <Outlet />
           </div>
