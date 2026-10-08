@@ -22,6 +22,7 @@ import ProjectDetailsPage from './pages/tenant/project/ProjectDetailsPage';
 import WorkSitesPage from './pages/tenant/worksite/WorkSitesPage';
 import WorkOrdersPage from './pages/tenant/workorder/WorkOrdersPage';
 import VehicleMasterPage from './pages/tenant/vehicle-master/VehicleMasterPage';
+import VehicleAssignmentPage from './pages/tenant/vehicle-assignment/VehicleAssignmentPage';
 import HRPage from './pages/tenant/hr/HRPage';
 import DivisionsPage from './pages/tenant/divisions/DivisionsPage';
 import DepartmentsPage from './pages/tenant/departments/DepartmentsPage';
@@ -47,7 +48,6 @@ function LandingPage() {
     </div>
   );
 }
-
 // Simple coming soon for unbuilt saas-admin pages
 function AdminComingSoon({ name }: { name: string }) {
   return (
@@ -78,7 +78,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  
+
   if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
@@ -187,6 +187,7 @@ function App() {
             } />
             <Route path="work-orders" element={<WorkOrdersPage />} />
             <Route path="vehicle-master" element={<VehicleMasterPage />} />
+            <Route path="vehicle-assignment" element={<VehicleAssignmentPage />} />
             <Route path="vehicles" element={<Navigate to="/tenant/vehicle-master" replace />} />
             <Route path="heavy-equipment" element={<Navigate to="/tenant/vehicle-master" replace />} />
             <Route path="sub-contractors" element={<ComingSoon moduleName="Sub-Contractors" />} />

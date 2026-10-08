@@ -155,7 +155,15 @@ export default function TenantLayout() {
       }
     ] : []),
     { name: 'Work Orders', path: '/tenant/work-orders', icon: ClipboardList },
-    { name: 'Vehicle & Equipment Master', path: '/tenant/vehicle-master', icon: Truck },
+    {
+      name: 'Vehicle & Equipment Master',
+      icon: Truck,
+      isCollapsible: true,
+      subItems: [
+        { name: 'Master', path: '/tenant/vehicle-master', icon: Truck },
+        { name: 'Vehicle Assignment', path: '/tenant/vehicle-assignment', icon: ClipboardList },
+      ]
+    },
   ];
   const preferenceNavItems = [
     { name: 'Profile', path: '/tenant/profile', icon: User },
