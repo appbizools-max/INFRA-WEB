@@ -182,9 +182,6 @@ export default function VehicleMasterPage() {
   const [viewingVehicle, setViewingVehicle] = useState<Vehicle | null>(null);
   const [viewingEquipment, setViewingEquipment] = useState<HeavyEquipment | null>(null);
 
-  // Dynamic Specs Toggle for Heavy Equipment
-  const [showAllTechSpecs, setShowAllTechSpecs] = useState(false);
-
   // Insurance Renewal Modal State
   const [renewModalData, setRenewModalData] = useState<{
     isOpen: boolean;
@@ -1514,7 +1511,7 @@ export default function VehicleMasterPage() {
                 </div>
               </div>
 
-              {/* Section 2: Technical Specifications (Tailored Dynamically) */}
+              {/* Section 2: Technical Specifications (Tailored Dynamically to Equipment Type) */}
               {(() => {
                 const eqType = (equipmentForm.equipmentType || '').toLowerCase();
                 const isExcavator = eqType.includes('excavator') || eqType.includes('backhoe');
@@ -1522,39 +1519,30 @@ export default function VehicleMasterPage() {
                 const isCrane = eqType.includes('crane') || eqType.includes('pump');
                 const isForklift = eqType.includes('forklift');
                 const isDumper = eqType.includes('dumper') || eqType.includes('tipper') || eqType.includes('truck');
+                const hasSpecificSpecs = isExcavator || isLoader || isCrane || isForklift || isDumper;
 
                 return (
                   <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5 w-full">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                          <SlidersHorizontal size={16} />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-bold text-sm text-slate-900">2. Technical Specifications</h3>
-                            <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px] border border-blue-200">
-                              Tailored for {equipmentForm.equipmentType || 'Machinery'}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-400">
-                            Showing relevant mechanical ratings based on chosen classification
-                          </p>
-                        </div>
+                    <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
+                      <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                        <SlidersHorizontal size={16} />
                       </div>
-
-                      <button
-                        type="button"
-                        onClick={() => setShowAllTechSpecs(prev => !prev)}
-                        className="text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 transition-colors self-start sm:self-auto cursor-pointer"
-                      >
-                        {showAllTechSpecs ? 'Show Only Relevant Specs' : '+ Show All Machinery Specs'}
-                      </button>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-sm text-slate-900">2. Technical Specifications</h3>
+                          <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px] border border-blue-200">
+                            Tailored for {equipmentForm.equipmentType || 'Machinery'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400">
+                          Specific mechanical ratings for {equipmentForm.equipmentType || 'selected equipment'}
+                        </p>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {/* Excavator Bucket Capacity */}
-                      {(isExcavator || showAllTechSpecs) && (
+                      {isExcavator && (
                         <div>
                           <div className="flex items-center justify-between mb-1.5">
                             <label className="block font-bold text-slate-700 text-xs">Excavator Bucket Capacity</label>
@@ -1578,7 +1566,7 @@ export default function VehicleMasterPage() {
                       )}
 
                       {/* Boom Length */}
-                      {(isExcavator || isCrane || showAllTechSpecs) && (
+                      {(isExcavator || isCrane) && (
                         <div>
                           <div className="flex items-center justify-between mb-1.5">
                             <label className="block font-bold text-slate-700 text-xs">Boom Length</label>
@@ -1602,7 +1590,7 @@ export default function VehicleMasterPage() {
                       )}
 
                       {/* Loader Bucket Capacity */}
-                      {(isLoader || showAllTechSpecs) && (
+                      {isLoader && (
                         <div>
                           <div className="flex items-center justify-between mb-1.5">
                             <label className="block font-bold text-slate-700 text-xs">Loader Bucket Capacity</label>
@@ -1626,7 +1614,7 @@ export default function VehicleMasterPage() {
                       )}
 
                       {/* Crane Lifting Capacity */}
-                      {(isCrane || showAllTechSpecs) && (
+                      {isCrane && (
                         <div>
                           <div className="flex items-center justify-between mb-1.5">
                             <label className="block font-bold text-slate-700 text-xs">Crane Lifting Capacity</label>
@@ -1650,7 +1638,7 @@ export default function VehicleMasterPage() {
                       )}
 
                       {/* Forklift Fork Capacity */}
-                      {(isForklift || showAllTechSpecs) && (
+                      {isForklift && (
                         <div>
                           <div className="flex items-center justify-between mb-1.5">
                             <label className="block font-bold text-slate-700 text-xs">Forklift Fork Capacity</label>
@@ -1674,7 +1662,7 @@ export default function VehicleMasterPage() {
                       )}
 
                       {/* Dumper Payload Capacity */}
-                      {(isDumper || showAllTechSpecs) && (
+                      {isDumper && (
                         <div>
                           <div className="flex items-center justify-between mb-1.5">
                             <label className="block font-bold text-slate-700 text-xs">Dumper Payload Capacity</label>
@@ -1697,27 +1685,13 @@ export default function VehicleMasterPage() {
                         </div>
                       )}
 
-                      {/* Operating Weight (Universal for all Heavy Equipment) */}
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <label className="block font-bold text-slate-700 text-xs">Operating Weight</label>
-                          <span className="text-[10px] text-slate-400">Metric Tons</span>
+                      {/* Informative banner if no specific mechanical bucket/boom attachments */}
+                      {!hasSpecificSpecs && (
+                        <div className="col-span-full py-4 px-4 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs text-slate-500 font-medium flex items-center gap-2.5">
+                          <SlidersHorizontal size={15} className="text-slate-400 shrink-0" />
+                          <span>Standard mechanical drivetrain ratings apply for <strong>{equipmentForm.equipmentType}</strong>. All weight and power parameters are recorded in Section 1.</span>
                         </div>
-                        <div className="relative">
-                          <input
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            value={equipmentForm.operatingWeight || ''}
-                            onChange={e => setEquipmentForm(prev => ({ ...prev, operatingWeight: parseFloat(e.target.value) || 0 }))}
-                            placeholder="e.g. 21.5"
-                            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
-                          />
-                          <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
-                            MT
-                          </span>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 );
