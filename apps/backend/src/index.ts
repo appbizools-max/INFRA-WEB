@@ -3730,6 +3730,7 @@ app.get(['/api/tenant/vehicles/:firebaseUid', '/api/tenant/vehicles'], async (re
          insurance_cost as "insuranceCost",
          insurance_duration as "insuranceDuration",
          insurance_policy_number as "insurancePolicyNumber",
+         insurance_history as "insuranceHistory",
          fitness_expiry_date as "fitnessExpiryDate",
          assigned_driver_name as "assignedDriverName",
          assigned_driver_phone as "assignedDriverPhone",
@@ -4129,6 +4130,7 @@ app.get(['/api/tenant/heavy-equipment/:firebaseUid', '/api/tenant/heavy-equipmen
          insurance_cost as "insuranceCost",
          insurance_duration as "insuranceDuration",
          insurance_policy_number as "insurancePolicyNumber",
+         insurance_history as "insuranceHistory",
          assigned_operator_name as "assignedOperatorName",
          assigned_operator_phone as "assignedOperatorPhone",
          assigned_project_id as "assignedProjectId",
@@ -4495,6 +4497,35 @@ app.patch('/api/tenant/vehicles/:id/renew-insurance', async (req, res) => {
   } = req.body;
 
   try {
+    // 1. Fetch current insurance to archive into insurance_history
+    const existingRes = await pool.query(
+      `SELECT insurance_start_date, insurance_expiry_date, insurance_cost, insurance_value, insurance_duration, insurance_policy_number, insurance_history
+       FROM tenant_vehicles WHERE id = $1`,
+      [id]
+    );
+
+    let history: any[] = [];
+    if (existingRes.rows.length > 0) {
+      const ex = existingRes.rows[0];
+      if (Array.isArray(ex.insurance_history)) {
+        history = [...ex.insurance_history];
+      } else if (typeof ex.insurance_history === 'string' && ex.insurance_history) {
+        try { history = JSON.parse(ex.insurance_history); } catch (e) { history = []; }
+      }
+      // Archive old policy if it had data
+      if (ex.insurance_policy_number || ex.insurance_expiry_date || ex.insurance_start_date || (ex.insurance_cost && Number(ex.insurance_cost) > 0)) {
+        history.unshift({
+          policyNumber: ex.insurance_policy_number || 'N/A',
+          startDate: ex.insurance_start_date || '',
+          duration: ex.insurance_duration || '',
+          expiryDate: ex.insurance_expiry_date || '',
+          cost: ex.insurance_cost ? parseFloat(ex.insurance_cost) : 0,
+          insuranceValue: ex.insurance_value ? parseFloat(ex.insurance_value) : 0,
+          renewedAt: new Date().toISOString()
+        });
+      }
+    }
+
     const updateRes = await pool.query(
       `UPDATE tenant_vehicles
        SET insurance_start_date = $1,
@@ -4503,8 +4534,9 @@ app.patch('/api/tenant/vehicles/:id/renew-insurance', async (req, res) => {
            insurance_value = $4,
            insurance_duration = $5,
            insurance_policy_number = $6,
+           insurance_history = $7::jsonb,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $7
+       WHERE id = $8
        RETURNING 
          id,
          vehicle_number as "vehicleNumber",
@@ -4513,7 +4545,8 @@ app.patch('/api/tenant/vehicles/:id/renew-insurance', async (req, res) => {
          insurance_expiry_date as "insuranceExpiryDate",
          insurance_cost as "insuranceCost",
          insurance_duration as "insuranceDuration",
-         insurance_policy_number as "insurancePolicyNumber"`,
+         insurance_policy_number as "insurancePolicyNumber",
+         insurance_history as "insuranceHistory"`,
       [
         insuranceStartDate || null,
         insuranceExpiryDate || null,
@@ -4521,6 +4554,7 @@ app.patch('/api/tenant/vehicles/:id/renew-insurance', async (req, res) => {
         insuranceValue !== undefined ? parseFloat(insuranceValue) : 0,
         insuranceDuration?.trim() || null,
         insurancePolicyNumber?.trim() || null,
+        JSON.stringify(history),
         id
       ]
     );
@@ -4548,6 +4582,35 @@ app.patch('/api/tenant/heavy-equipment/:id/renew-insurance', async (req, res) =>
   } = req.body;
 
   try {
+    // 1. Fetch current insurance to archive into insurance_history
+    const existingRes = await pool.query(
+      `SELECT insurance_start_date, insurance_expiry_date, insurance_cost, insurance_value, insurance_duration, insurance_policy_number, insurance_history
+       FROM tenant_heavy_equipment WHERE id = $1`,
+      [id]
+    );
+
+    let history: any[] = [];
+    if (existingRes.rows.length > 0) {
+      const ex = existingRes.rows[0];
+      if (Array.isArray(ex.insurance_history)) {
+        history = [...ex.insurance_history];
+      } else if (typeof ex.insurance_history === 'string' && ex.insurance_history) {
+        try { history = JSON.parse(ex.insurance_history); } catch (e) { history = []; }
+      }
+      // Archive old policy if it had data
+      if (ex.insurance_policy_number || ex.insurance_expiry_date || ex.insurance_start_date || (ex.insurance_cost && Number(ex.insurance_cost) > 0)) {
+        history.unshift({
+          policyNumber: ex.insurance_policy_number || 'N/A',
+          startDate: ex.insurance_start_date || '',
+          duration: ex.insurance_duration || '',
+          expiryDate: ex.insurance_expiry_date || '',
+          cost: ex.insurance_cost ? parseFloat(ex.insurance_cost) : 0,
+          insuranceValue: ex.insurance_value ? parseFloat(ex.insurance_value) : 0,
+          renewedAt: new Date().toISOString()
+        });
+      }
+    }
+
     const updateRes = await pool.query(
       `UPDATE tenant_heavy_equipment
        SET insurance_start_date = $1,
@@ -4556,8 +4619,9 @@ app.patch('/api/tenant/heavy-equipment/:id/renew-insurance', async (req, res) =>
            insurance_value = $4,
            insurance_duration = $5,
            insurance_policy_number = $6,
+           insurance_history = $7::jsonb,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $7
+       WHERE id = $8
        RETURNING 
          id,
          equipment_id as "equipmentId",
@@ -4566,7 +4630,8 @@ app.patch('/api/tenant/heavy-equipment/:id/renew-insurance', async (req, res) =>
          insurance_expiry_date as "insuranceExpiryDate",
          insurance_cost as "insuranceCost",
          insurance_duration as "insuranceDuration",
-         insurance_policy_number as "insurancePolicyNumber"`,
+         insurance_policy_number as "insurancePolicyNumber",
+         insurance_history as "insuranceHistory"`,
       [
         insuranceStartDate || null,
         insuranceExpiryDate || null,
@@ -4574,6 +4639,7 @@ app.patch('/api/tenant/heavy-equipment/:id/renew-insurance', async (req, res) =>
         insuranceValue !== undefined ? parseFloat(insuranceValue) : 0,
         insuranceDuration?.trim() || null,
         insurancePolicyNumber?.trim() || null,
+        JSON.stringify(history),
         id
       ]
     );
@@ -7382,6 +7448,8 @@ app.listen(Number(port), '0.0.0.0', async () => {
     ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_cost NUMERIC(15,2) DEFAULT 0;
     ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_duration VARCHAR(50);
     ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_policy_number VARCHAR(100);
+    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS insurance_history JSONB DEFAULT '[]'::jsonb;
+    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_history JSONB DEFAULT '[]'::jsonb;
   `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tenant_vehicles (

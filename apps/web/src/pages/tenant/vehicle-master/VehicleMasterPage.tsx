@@ -38,6 +38,16 @@ import {
   Tag
 } from 'lucide-react';
 
+export interface InsuranceHistoryRecord {
+  policyNumber?: string;
+  startDate?: string;
+  duration?: string;
+  expiryDate?: string;
+  cost?: number;
+  insuranceValue?: number;
+  renewedAt?: string;
+}
+
 interface Vehicle {
   id: number | string;
   tenantId?: string;
@@ -64,6 +74,7 @@ interface Vehicle {
   insuranceCost?: number;
   insuranceDuration?: string;
   insurancePolicyNumber?: string;
+  insuranceHistory?: InsuranceHistoryRecord[];
   fitnessExpiryDate?: string;
   assignedDriverName?: string;
   assignedDriverPhone?: string;
@@ -2665,6 +2676,42 @@ export default function VehicleMasterPage() {
                     <span className="font-bold text-slate-800 truncate block">₹{Number(viewingVehicle.insuranceValue || 0).toLocaleString()}</span>
                   </div>
                 </div>
+
+                {/* Previous Policy History */}
+                {viewingVehicle.insuranceHistory && viewingVehicle.insuranceHistory.length > 0 && (
+                  <div className="pt-2 border-t border-emerald-200/60 space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
+                      <div className="flex items-center gap-1.5">
+                        <Clock size={11} className="text-slate-500" />
+                        <span>Previous Insurance Policies ({viewingVehicle.insuranceHistory.length})</span>
+                      </div>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold border border-slate-200">Past Records</span>
+                    </div>
+                    <div className="space-y-1.5 max-h-36 overflow-y-auto pr-0.5">
+                      {viewingVehicle.insuranceHistory.map((hist, hIdx) => (
+                        <div key={hIdx} className="p-2 rounded-lg bg-white/95 border border-slate-200 text-[10px] space-y-1 shadow-2xs">
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono font-bold text-slate-800">{hist.policyNumber || 'No Policy Number'}</span>
+                            <span className="text-[8.5px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold border border-slate-200">
+                              Archived Policy
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 text-[9.5px] text-slate-600">
+                            <div><span className="text-slate-400 block text-[8px] uppercase">Period</span> {hist.startDate || '—'} to {hist.expiryDate || '—'}</div>
+                            <div><span className="text-slate-400 block text-[8px] uppercase">Duration</span> {hist.duration || '1 Year'}</div>
+                            <div><span className="text-slate-400 block text-[8px] uppercase">Premium</span> ₹{Number(hist.cost || 0).toLocaleString()}</div>
+                            <div><span className="text-slate-400 block text-[8px] uppercase">IDV</span> ₹{Number(hist.insuranceValue || 0).toLocaleString()}</div>
+                          </div>
+                          {hist.renewedAt && (
+                            <div className="text-[8.5px] text-slate-400 pt-0.5 border-t border-slate-100 flex items-center justify-between">
+                              <span>Renewed: {new Date(hist.renewedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2799,6 +2846,42 @@ export default function VehicleMasterPage() {
                     <span className="font-bold text-slate-800 truncate block">₹{Number(viewingEquipment.insuranceValue || 0).toLocaleString()}</span>
                   </div>
                 </div>
+
+                {/* Previous Policy History */}
+                {viewingEquipment.insuranceHistory && viewingEquipment.insuranceHistory.length > 0 && (
+                  <div className="pt-2 border-t border-emerald-200/60 space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
+                      <div className="flex items-center gap-1.5">
+                        <Clock size={11} className="text-slate-500" />
+                        <span>Previous Insurance Policies ({viewingEquipment.insuranceHistory.length})</span>
+                      </div>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold border border-slate-200">Past Records</span>
+                    </div>
+                    <div className="space-y-1.5 max-h-36 overflow-y-auto pr-0.5">
+                      {viewingEquipment.insuranceHistory.map((hist, hIdx) => (
+                        <div key={hIdx} className="p-2 rounded-lg bg-white/95 border border-slate-200 text-[10px] space-y-1 shadow-2xs">
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono font-bold text-slate-800">{hist.policyNumber || 'No Policy Number'}</span>
+                            <span className="text-[8.5px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold border border-slate-200">
+                              Archived Policy
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 text-[9.5px] text-slate-600">
+                            <div><span className="text-slate-400 block text-[8px] uppercase">Period</span> {hist.startDate || '—'} to {hist.expiryDate || '—'}</div>
+                            <div><span className="text-slate-400 block text-[8px] uppercase">Duration</span> {hist.duration || '1 Year'}</div>
+                            <div><span className="text-slate-400 block text-[8px] uppercase">Premium</span> ₹{Number(hist.cost || 0).toLocaleString()}</div>
+                            <div><span className="text-slate-400 block text-[8px] uppercase">IDV</span> ₹{Number(hist.insuranceValue || 0).toLocaleString()}</div>
+                          </div>
+                          {hist.renewedAt && (
+                            <div className="text-[8.5px] text-slate-400 pt-0.5 border-t border-slate-100 flex items-center justify-between">
+                              <span>Renewed: {new Date(hist.renewedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
