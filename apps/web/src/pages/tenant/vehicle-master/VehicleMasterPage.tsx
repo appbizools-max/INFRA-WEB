@@ -2209,12 +2209,12 @@ export default function VehicleMasterPage() {
                       <td className="py-2 px-2.5">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {v.tonCapacity ? (
-                            <span className="px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-700 font-bold text-[9px]">
+                            <span className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-[9px]">
                               {v.tonCapacity} MT
                             </span>
                           ) : null}
                           {v.volumeCapacity ? (
-                            <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium text-[9px]">
+                            <span className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-[9px]">
                               {v.volumeCapacity} {v.volumeUnit || 'CUM'}
                             </span>
                           ) : null}
@@ -2224,8 +2224,8 @@ export default function VehicleMasterPage() {
                       {/* Fuel & Powertrain */}
                       <td className="py-2 px-2.5">
                         <div className="flex items-center gap-1.5">
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold text-[9px]">
-                            <Fuel size={9} className="text-emerald-600" />
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-semibold text-[9px]">
+                            <Fuel size={9} className="text-slate-500" />
                             {v.fuelPowerType || 'Diesel'}
                           </span>
                         </div>
@@ -2348,32 +2348,32 @@ export default function VehicleMasterPage() {
                       <td className="py-2 px-2.5">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {Number(eq.excavatorBucketCapacity) > 0 && (
-                            <span className="px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-800 font-bold text-[9px]">
+                            <span className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-[9px]">
                               Bucket: {eq.excavatorBucketCapacity} CUM
                             </span>
                           )}
                           {Number(eq.loaderBucketCapacity) > 0 && (
-                            <span className="px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-800 font-bold text-[9px]">
+                            <span className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-[9px]">
                               Loader: {eq.loaderBucketCapacity} CUM
                             </span>
                           )}
                           {Number(eq.craneLiftingCapacity) > 0 && (
-                            <span className="px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-700 font-bold text-[9px]">
+                            <span className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-[9px]">
                               Crane: {eq.craneLiftingCapacity} Tons
                             </span>
                           )}
                           {Number(eq.forkliftForkCapacity) > 0 && (
-                            <span className="px-1.5 py-0.5 rounded bg-purple-50 border border-purple-200 text-purple-700 font-bold text-[9px]">
+                            <span className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-[9px]">
                               Forklift: {eq.forkliftForkCapacity} Tons
                             </span>
                           )}
                           {Number(eq.dumperPayloadCapacity) > 0 && (
-                            <span className="px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-[9px]">
+                            <span className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-[9px]">
                               Dumper: {eq.dumperPayloadCapacity} Tons
                             </span>
                           )}
                           {Number(eq.boomLength) > 0 && (
-                            <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium text-[9px]">
+                            <span className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-[9px]">
                               Boom: {eq.boomLength}m
                             </span>
                           )}
@@ -2383,8 +2383,8 @@ export default function VehicleMasterPage() {
                       {/* Fuel & Powertrain */}
                       <td className="py-2 px-2.5">
                         <div className="flex items-center gap-1.5">
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-semibold text-[9px]">
-                            <Fuel size={9} className="text-amber-600" />
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-semibold text-[9px]">
+                            <Fuel size={9} className="text-slate-500" />
                             {eq.fuelPowerType || eq.fuelType || 'Diesel'}
                           </span>
                         </div>
