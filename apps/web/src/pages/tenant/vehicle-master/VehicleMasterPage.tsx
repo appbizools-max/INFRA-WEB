@@ -1087,13 +1087,13 @@ export default function VehicleMasterPage() {
                   </div>
                   <div>
                     <h3 className="font-bold text-sm text-slate-900">3. Financial & Vendor Information</h3>
-                    <p className="text-[11px] text-slate-400">Asset acquisition cost, dealer vendor, and complete insurance coverage suite</p>
+                    <p className="text-[11px] text-slate-400">Asset purchase cost, vendor dealer, and complete insurance policy details</p>
                   </div>
                 </div>
 
-                {/* Sub-section A: Capital Procurement & Operational Status */}
+                {/* Sub-section A: Purchase Details & Status */}
                 <div>
-                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Asset Procurement & Status</h4>
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Asset Purchase & Status</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {/* Purchase Date */}
                     <div>
@@ -1123,14 +1123,14 @@ export default function VehicleMasterPage() {
                       </div>
                     </div>
 
-                    {/* Vendor */}
+                    {/* Vendor / Dealer */}
                     <div>
                       <label className="block font-bold text-slate-700 text-xs mb-1.5">Vendor / Dealer</label>
                       <input
                         type="text"
                         value={vehicleForm.vendor}
                         onChange={e => setVehicleForm(prev => ({ ...prev, vendor: e.target.value }))}
-                        placeholder="e.g. Tata Commercial Sales / Gainwell"
+                        placeholder="e.g. Tata Motors / Commercial Dealer"
                         className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
                       />
                     </div>
@@ -1153,7 +1153,7 @@ export default function VehicleMasterPage() {
                   </div>
                 </div>
 
-                {/* Sub-section B: Insurance & Policy Coverage */}
+                {/* Sub-section B: Insurance Policy & Coverage */}
                 <div className="pt-2 border-t border-slate-100">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -1176,9 +1176,9 @@ export default function VehicleMasterPage() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
-                    {/* Policy / Certificate Number */}
+                    {/* Policy Number */}
                     <div>
-                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Policy / Cover Note No.</label>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Policy Number</label>
                       <input
                         type="text"
                         value={vehicleForm.insurancePolicyNumber || ''}
@@ -1190,7 +1190,7 @@ export default function VehicleMasterPage() {
 
                     {/* Insurance Start Date */}
                     <div>
-                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Insurance Start / Issue Date</label>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Insurance Start Date</label>
                       <input
                         type="date"
                         value={vehicleForm.insuranceStartDate || ''}
@@ -1209,7 +1209,7 @@ export default function VehicleMasterPage() {
 
                     {/* Duration of Insurance */}
                     <div>
-                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Duration of Insurance</label>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Insurance Duration</label>
                       <select
                         value={vehicleForm.insuranceDuration || '1 Year'}
                         onChange={e => {
@@ -1227,7 +1227,7 @@ export default function VehicleMasterPage() {
                         <option value="6 Months">6 Months</option>
                         <option value="2 Years">2 Years</option>
                         <option value="3 Years">3 Years</option>
-                        <option value="Custom">Custom / Other</option>
+                        <option value="Custom">Custom</option>
                       </select>
                     </div>
 
@@ -1245,9 +1245,9 @@ export default function VehicleMasterPage() {
                       />
                     </div>
 
-                    {/* Insurance Cost / Premium */}
+                    {/* Insurance Cost (₹) */}
                     <div>
-                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Insurance Cost / Premium (₹)</label>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Insurance Cost (₹)</label>
                       <div className="relative">
                         <input
                           type="number"
@@ -1262,7 +1262,7 @@ export default function VehicleMasterPage() {
                       </div>
                     </div>
 
-                    {/* Insurance Value / IDV */}
+                    {/* Insured Declared Value (IDV in ₹) */}
                     <div>
                       <label className="block font-bold text-slate-700 text-xs mb-1.5">Insured Declared Value (IDV in ₹)</label>
                       <div className="relative">
@@ -1705,13 +1705,13 @@ export default function VehicleMasterPage() {
                   </div>
                   <div>
                     <h3 className="font-bold text-sm text-slate-900">3. Financial & Vendor Information</h3>
-                    <p className="text-[11px] text-slate-400">Capital purchase cost, equipment supplier, and complete insurance coverage suite</p>
+                    <p className="text-[11px] text-slate-400">Asset purchase cost, vendor supplier, and complete insurance policy details</p>
                   </div>
                 </div>
 
-                {/* Sub-section A: Capital Procurement & Operational Status */}
+                {/* Sub-section A: Purchase Details & Status */}
                 <div>
-                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Asset Procurement & Status</h4>
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Asset Purchase & Status</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {/* Purchase Date */}
                     <div>
@@ -1741,14 +1741,14 @@ export default function VehicleMasterPage() {
                       </div>
                     </div>
 
-                    {/* Vendor */}
+                    {/* Vendor / Supplier */}
                     <div>
                       <label className="block font-bold text-slate-700 text-xs mb-1.5">Vendor / Supplier</label>
                       <input
                         type="text"
                         value={equipmentForm.vendor}
                         onChange={e => setEquipmentForm(prev => ({ ...prev, vendor: e.target.value }))}
-                        placeholder="e.g. L&T Construction Equipment / Gainwell"
+                        placeholder="e.g. L&T / Caterpillar Dealer"
                         className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
                       />
                     </div>
@@ -1772,7 +1772,7 @@ export default function VehicleMasterPage() {
                   </div>
                 </div>
 
-                {/* Sub-section B: Insurance & Policy Coverage */}
+                {/* Sub-section B: Insurance Policy & Coverage */}
                 <div className="pt-2 border-t border-slate-100">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -1795,9 +1795,9 @@ export default function VehicleMasterPage() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
-                    {/* Policy / Certificate Number */}
+                    {/* Policy Number */}
                     <div>
-                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Policy / Cover Note No.</label>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Policy Number</label>
                       <input
                         type="text"
                         value={equipmentForm.insurancePolicyNumber || ''}
@@ -1809,7 +1809,7 @@ export default function VehicleMasterPage() {
 
                     {/* Insurance Start Date */}
                     <div>
-                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Insurance Start / Issue Date</label>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Insurance Start Date</label>
                       <input
                         type="date"
                         value={equipmentForm.insuranceStartDate || ''}
@@ -1828,7 +1828,7 @@ export default function VehicleMasterPage() {
 
                     {/* Duration of Insurance */}
                     <div>
-                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Duration of Insurance</label>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Insurance Duration</label>
                       <select
                         value={equipmentForm.insuranceDuration || '1 Year'}
                         onChange={e => {
@@ -1846,7 +1846,7 @@ export default function VehicleMasterPage() {
                         <option value="6 Months">6 Months</option>
                         <option value="2 Years">2 Years</option>
                         <option value="3 Years">3 Years</option>
-                        <option value="Custom">Custom / Other</option>
+                        <option value="Custom">Custom</option>
                       </select>
                     </div>
 
@@ -1864,9 +1864,9 @@ export default function VehicleMasterPage() {
                       />
                     </div>
 
-                    {/* Insurance Cost / Premium */}
+                    {/* Insurance Cost (₹) */}
                     <div>
-                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Insurance Cost / Premium (₹)</label>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Insurance Cost (₹)</label>
                       <div className="relative">
                         <input
                           type="number"
@@ -1881,7 +1881,7 @@ export default function VehicleMasterPage() {
                       </div>
                     </div>
 
-                    {/* Insurance Value / IDV */}
+                    {/* Insured Declared Value (IDV in ₹) */}
                     <div>
                       <label className="block font-bold text-slate-700 text-xs mb-1.5">Insured Declared Value (IDV in ₹)</label>
                       <div className="relative">
