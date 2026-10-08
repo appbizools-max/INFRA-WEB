@@ -10,6 +10,7 @@ import {
   Edit2,
   Trash2,
   Eye,
+  Info,
   X,
   Check,
   AlertTriangle,
@@ -2282,9 +2283,9 @@ export default function VehicleMasterPage() {
                         <div className="flex items-center justify-end gap-1 opacity-90 group-hover:opacity-100">
                           <button
                             onClick={() => setViewingVehicle(v)}
-                            title="View Vehicle Details"
+                            title="View Vehicle Info"
                             className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer">
-                            <Eye size={13} />
+                            <Info size={13} />
                           </button>
                           <button
                             onClick={() => handleOpenEditVehicle(v)}
@@ -2520,9 +2521,9 @@ export default function VehicleMasterPage() {
                         <div className="flex items-center justify-end gap-1 opacity-90 group-hover:opacity-100">
                           <button
                             onClick={() => setViewingEquipment(eq)}
-                            title="View Equipment Details"
+                            title="View Equipment Info"
                             className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer">
-                            <Eye size={13} />
+                            <Info size={13} />
                           </button>
                           <button
                             onClick={() => handleOpenEditEquipment(eq)}
