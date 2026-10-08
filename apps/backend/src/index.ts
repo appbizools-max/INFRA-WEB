@@ -3725,7 +3725,11 @@ app.get(['/api/tenant/vehicles/:firebaseUid', '/api/tenant/vehicles'], async (re
          purchase_cost as "purchaseCost",
          vendor,
          insurance_value as "insuranceValue",
+         insurance_start_date as "insuranceStartDate",
          insurance_expiry_date as "insuranceExpiryDate",
+         insurance_cost as "insuranceCost",
+         insurance_duration as "insuranceDuration",
+         insurance_policy_number as "insurancePolicyNumber",
          fitness_expiry_date as "fitnessExpiryDate",
          assigned_driver_name as "assignedDriverName",
          assigned_driver_phone as "assignedDriverPhone",
@@ -3770,7 +3774,11 @@ app.post('/api/tenant/vehicles', async (req, res) => {
     purchaseCost,
     vendor,
     insuranceValue,
+    insuranceStartDate,
     insuranceExpiryDate,
+    insuranceCost,
+    insuranceDuration,
+    insurancePolicyNumber,
     fitnessExpiryDate,
     assignedDriverName,
     assignedDriverPhone,
@@ -3810,15 +3818,17 @@ app.post('/api/tenant/vehicles', async (req, res) => {
       `INSERT INTO tenant_vehicles (
          tenant_id, vehicle_number, fleet_code, vehicle_type, make, model, year,
          registration_number, chassis_number, engine_number, ton_capacity, volume_capacity,
-         volume_unit, purchase_date, purchase_cost, vendor, insurance_value, insurance_expiry_date,
+         volume_unit, purchase_date, purchase_cost, vendor, insurance_value, 
+         insurance_start_date, insurance_expiry_date, insurance_cost, insurance_duration, insurance_policy_number,
          fitness_expiry_date, assigned_driver_name, assigned_driver_phone, assigned_project_id,
          assigned_project_name, current_location, fuel_power_type, fuel_consumption, status, notes
        ) VALUES (
          $1, $2, $3, $4, $5, $6, $7,
          $8, $9, $10, $11, $12,
-         $13, $14, $15, $16, $17, $18,
-         $19, $20, $21, $22,
-         $23, $24, $25, $26, $27, $28
+         $13, $14, $15, $16, $17,
+         $18, $19, $20, $21, $22,
+         $23, $24, $25, $26,
+         $27, $28, $29, $30, $31, $32
        ) RETURNING 
          id,
          tenant_id as "tenantId",
@@ -3838,7 +3848,11 @@ app.post('/api/tenant/vehicles', async (req, res) => {
          purchase_cost as "purchaseCost",
          vendor,
          insurance_value as "insuranceValue",
+         insurance_start_date as "insuranceStartDate",
          insurance_expiry_date as "insuranceExpiryDate",
+         insurance_cost as "insuranceCost",
+         insurance_duration as "insuranceDuration",
+         insurance_policy_number as "insurancePolicyNumber",
          fitness_expiry_date as "fitnessExpiryDate",
          assigned_driver_name as "assignedDriverName",
          assigned_driver_phone as "assignedDriverPhone",
@@ -3910,7 +3924,11 @@ app.put('/api/tenant/vehicles/:id', async (req, res) => {
     purchaseCost,
     vendor,
     insuranceValue,
+    insuranceStartDate,
     insuranceExpiryDate,
+    insuranceCost,
+    insuranceDuration,
+    insurancePolicyNumber,
     fitnessExpiryDate,
     assignedDriverName,
     assignedDriverPhone,
@@ -3942,19 +3960,23 @@ app.put('/api/tenant/vehicles/:id', async (req, res) => {
            purchase_cost = $14,
            vendor = $15,
            insurance_value = $16,
-           insurance_expiry_date = $17,
-           fitness_expiry_date = $18,
-           assigned_driver_name = $19,
-           assigned_driver_phone = $20,
-           assigned_project_id = $21,
-           assigned_project_name = $22,
-           current_location = $23,
-           fuel_power_type = COALESCE($24, fuel_power_type),
-           fuel_consumption = COALESCE($25, fuel_consumption),
-           status = COALESCE($26, status),
-           notes = $27,
+           insurance_start_date = $17,
+           insurance_expiry_date = $18,
+           insurance_cost = $19,
+           insurance_duration = $20,
+           insurance_policy_number = $21,
+           fitness_expiry_date = $22,
+           assigned_driver_name = $23,
+           assigned_driver_phone = $24,
+           assigned_project_id = $25,
+           assigned_project_name = $26,
+           current_location = $27,
+           fuel_power_type = COALESCE($28, fuel_power_type),
+           fuel_consumption = COALESCE($29, fuel_consumption),
+           status = COALESCE($30, status),
+           notes = $31,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $28
+       WHERE id = $32
        RETURNING 
          id,
          tenant_id as "tenantId",
@@ -3974,7 +3996,11 @@ app.put('/api/tenant/vehicles/:id', async (req, res) => {
          purchase_cost as "purchaseCost",
          vendor,
          insurance_value as "insuranceValue",
+         insurance_start_date as "insuranceStartDate",
          insurance_expiry_date as "insuranceExpiryDate",
+         insurance_cost as "insuranceCost",
+         insurance_duration as "insuranceDuration",
+         insurance_policy_number as "insurancePolicyNumber",
          fitness_expiry_date as "fitnessExpiryDate",
          assigned_driver_name as "assignedDriverName",
          assigned_driver_phone as "assignedDriverPhone",
@@ -4004,7 +4030,11 @@ app.put('/api/tenant/vehicles/:id', async (req, res) => {
         purchaseCost !== undefined ? parseFloat(purchaseCost) : 0,
         vendor?.trim() || null,
         insuranceValue !== undefined ? parseFloat(insuranceValue) : 0,
+        insuranceStartDate || null,
         insuranceExpiryDate || null,
+        insuranceCost !== undefined ? parseFloat(insuranceCost) : 0,
+        insuranceDuration?.trim() || null,
+        insurancePolicyNumber?.trim() || null,
         fitnessExpiryDate || null,
         assignedDriverName?.trim() || null,
         assignedDriverPhone?.trim() || null,
@@ -4094,6 +4124,11 @@ app.get(['/api/tenant/heavy-equipment/:firebaseUid', '/api/tenant/heavy-equipmen
          purchase_cost as "purchaseCost",
          vendor,
          insurance_value as "insuranceValue",
+         insurance_start_date as "insuranceStartDate",
+         insurance_expiry_date as "insuranceExpiryDate",
+         insurance_cost as "insuranceCost",
+         insurance_duration as "insuranceDuration",
+         insurance_policy_number as "insurancePolicyNumber",
          assigned_operator_name as "assignedOperatorName",
          assigned_operator_phone as "assignedOperatorPhone",
          assigned_project_id as "assignedProjectId",
@@ -4141,6 +4176,11 @@ app.post('/api/tenant/heavy-equipment', async (req, res) => {
     purchaseCost,
     vendor,
     insuranceValue,
+    insuranceStartDate,
+    insuranceExpiryDate,
+    insuranceCost,
+    insuranceDuration,
+    insurancePolicyNumber,
     assignedOperatorName,
     assignedOperatorPhone,
     assignedProjectId,
@@ -4178,16 +4218,18 @@ app.post('/api/tenant/heavy-equipment', async (req, res) => {
          tenant_id, equipment_id, equipment_number, equipment_type, make, model, serial_number,
          manufacturing_year, excavator_bucket_capacity, boom_length, loader_bucket_capacity,
          crane_lifting_capacity, forklift_fork_capacity, dumper_payload_capacity, operating_weight,
-         fuel_type, fuel_power_type, fuel_consumption, hour_meter_reading, purchase_date, purchase_cost, vendor, insurance_value,
+         fuel_type, fuel_power_type, fuel_consumption, hour_meter_reading, purchase_date, purchase_cost, vendor, 
+         insurance_value, insurance_start_date, insurance_expiry_date, insurance_cost, insurance_duration, insurance_policy_number,
          assigned_operator_name, assigned_operator_phone, assigned_project_id, assigned_project_name,
          assigned_worksite_name, status, notes
        ) VALUES (
          $1, $2, $3, $4, $5, $6, $7,
          $8, $9, $10, $11,
          $12, $13, $14, $15,
-         $16, $17, $18, $19, $20, $21, $22, $23,
-         $24, $25, $26, $27,
-         $28, $29, $30
+         $16, $17, $18, $19, $20, $21, $22,
+         $23, $24, $25, $26, $27, $28,
+         $29, $30, $31, $32,
+         $33, $34, $35
        ) RETURNING 
          id,
          tenant_id as "tenantId",
@@ -4211,6 +4253,11 @@ app.post('/api/tenant/heavy-equipment', async (req, res) => {
          purchase_cost as "purchaseCost",
          vendor,
          insurance_value as "insuranceValue",
+         insurance_start_date as "insuranceStartDate",
+         insurance_expiry_date as "insuranceExpiryDate",
+         insurance_cost as "insuranceCost",
+         insurance_duration as "insuranceDuration",
+         insurance_policy_number as "insurancePolicyNumber",
          assigned_operator_name as "assignedOperatorName",
          assigned_operator_phone as "assignedOperatorPhone",
          assigned_project_id as "assignedProjectId",
@@ -4244,6 +4291,11 @@ app.post('/api/tenant/heavy-equipment', async (req, res) => {
         purchaseCost ? parseFloat(purchaseCost) : 0,
         vendor?.trim() || null,
         insuranceValue ? parseFloat(insuranceValue) : 0,
+        insuranceStartDate || null,
+        insuranceExpiryDate || null,
+        insuranceCost ? parseFloat(insuranceCost) : 0,
+        insuranceDuration?.trim() || null,
+        insurancePolicyNumber?.trim() || null,
         assignedOperatorName?.trim() || null,
         assignedOperatorPhone?.trim() || null,
         assignedProjectId || null,
@@ -4280,11 +4332,18 @@ app.put('/api/tenant/heavy-equipment/:id', async (req, res) => {
     dumperPayloadCapacity,
     operatingWeight,
     fuelType,
+    fuelPowerType,
+    fuelConsumption,
     hourMeterReading,
     purchaseDate,
     purchaseCost,
     vendor,
     insuranceValue,
+    insuranceStartDate,
+    insuranceExpiryDate,
+    insuranceCost,
+    insuranceDuration,
+    insurancePolicyNumber,
     assignedOperatorName,
     assignedOperatorPhone,
     assignedProjectId,
@@ -4315,19 +4374,24 @@ app.put('/api/tenant/heavy-equipment/:id', async (req, res) => {
            fuel_power_type = COALESCE($16, fuel_power_type),
            fuel_consumption = COALESCE($17, fuel_consumption),
            hour_meter_reading = $18,
-           purchase_date = $17,
-           purchase_cost = $18,
-           vendor = $19,
-           insurance_value = $20,
-           assigned_operator_name = $21,
-           assigned_operator_phone = $22,
-           assigned_project_id = $23,
-           assigned_project_name = $24,
-           assigned_worksite_name = $25,
-           status = COALESCE($26, status),
-           notes = $27,
+           purchase_date = $19,
+           purchase_cost = $20,
+           vendor = $21,
+           insurance_value = $22,
+           insurance_start_date = $23,
+           insurance_expiry_date = $24,
+           insurance_cost = $25,
+           insurance_duration = $26,
+           insurance_policy_number = $27,
+           assigned_operator_name = $28,
+           assigned_operator_phone = $29,
+           assigned_project_id = $30,
+           assigned_project_name = $31,
+           assigned_worksite_name = $32,
+           status = COALESCE($33, status),
+           notes = $34,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $28
+       WHERE id = $35
        RETURNING 
          id,
          tenant_id as "tenantId",
@@ -4346,11 +4410,18 @@ app.put('/api/tenant/heavy-equipment/:id', async (req, res) => {
          dumper_payload_capacity as "dumperPayloadCapacity",
          operating_weight as "operatingWeight",
          fuel_type as "fuelType",
+         fuel_power_type as "fuelPowerType",
+         fuel_consumption as "fuelConsumption",
          hour_meter_reading as "hourMeterReading",
          purchase_date as "purchaseDate",
          purchase_cost as "purchaseCost",
          vendor,
          insurance_value as "insuranceValue",
+         insurance_start_date as "insuranceStartDate",
+         insurance_expiry_date as "insuranceExpiryDate",
+         insurance_cost as "insuranceCost",
+         insurance_duration as "insuranceDuration",
+         insurance_policy_number as "insurancePolicyNumber",
          assigned_operator_name as "assignedOperatorName",
          assigned_operator_phone as "assignedOperatorPhone",
          assigned_project_id as "assignedProjectId",
@@ -4376,11 +4447,18 @@ app.put('/api/tenant/heavy-equipment/:id', async (req, res) => {
         dumperPayloadCapacity !== undefined ? parseFloat(dumperPayloadCapacity) : 0,
         operatingWeight !== undefined ? parseFloat(operatingWeight) : 0,
         fuelType || 'Diesel',
+        fuelPowerType || 'Diesel',
+        fuelConsumption?.trim() || null,
         hourMeterReading !== undefined ? parseFloat(hourMeterReading) : 0,
         purchaseDate || null,
         purchaseCost !== undefined ? parseFloat(purchaseCost) : 0,
         vendor?.trim() || null,
         insuranceValue !== undefined ? parseFloat(insuranceValue) : 0,
+        insuranceStartDate || null,
+        insuranceExpiryDate || null,
+        insuranceCost !== undefined ? parseFloat(insuranceCost) : 0,
+        insuranceDuration?.trim() || null,
+        insurancePolicyNumber?.trim() || null,
         assignedOperatorName?.trim() || null,
         assignedOperatorPhone?.trim() || null,
         assignedProjectId || null,
@@ -4403,6 +4481,113 @@ app.put('/api/tenant/heavy-equipment/:id', async (req, res) => {
 });
 
 // DELETE Heavy Equipment
+
+// PATCH Renew Vehicle Insurance
+app.patch('/api/tenant/vehicles/:id/renew-insurance', async (req, res) => {
+  const { id } = req.params;
+  const {
+    insuranceStartDate,
+    insuranceExpiryDate,
+    insuranceCost,
+    insuranceValue,
+    insuranceDuration,
+    insurancePolicyNumber
+  } = req.body;
+
+  try {
+    const updateRes = await pool.query(
+      `UPDATE tenant_vehicles
+       SET insurance_start_date = $1,
+           insurance_expiry_date = $2,
+           insurance_cost = $3,
+           insurance_value = $4,
+           insurance_duration = $5,
+           insurance_policy_number = $6,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $7
+       RETURNING 
+         id,
+         vehicle_number as "vehicleNumber",
+         insurance_value as "insuranceValue",
+         insurance_start_date as "insuranceStartDate",
+         insurance_expiry_date as "insuranceExpiryDate",
+         insurance_cost as "insuranceCost",
+         insurance_duration as "insuranceDuration",
+         insurance_policy_number as "insurancePolicyNumber"`,
+      [
+        insuranceStartDate || null,
+        insuranceExpiryDate || null,
+        insuranceCost !== undefined ? parseFloat(insuranceCost) : 0,
+        insuranceValue !== undefined ? parseFloat(insuranceValue) : 0,
+        insuranceDuration?.trim() || null,
+        insurancePolicyNumber?.trim() || null,
+        id
+      ]
+    );
+
+    if (updateRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Vehicle not found' });
+    }
+    res.json({ message: 'Vehicle insurance renewed successfully', vehicle: updateRes.rows[0] });
+  } catch (err: any) {
+    console.error('[PATCH /api/tenant/vehicles/:id/renew-insurance] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH Renew Heavy Equipment Insurance
+app.patch('/api/tenant/heavy-equipment/:id/renew-insurance', async (req, res) => {
+  const { id } = req.params;
+  const {
+    insuranceStartDate,
+    insuranceExpiryDate,
+    insuranceCost,
+    insuranceValue,
+    insuranceDuration,
+    insurancePolicyNumber
+  } = req.body;
+
+  try {
+    const updateRes = await pool.query(
+      `UPDATE tenant_heavy_equipment
+       SET insurance_start_date = $1,
+           insurance_expiry_date = $2,
+           insurance_cost = $3,
+           insurance_value = $4,
+           insurance_duration = $5,
+           insurance_policy_number = $6,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $7
+       RETURNING 
+         id,
+         equipment_id as "equipmentId",
+         insurance_value as "insuranceValue",
+         insurance_start_date as "insuranceStartDate",
+         insurance_expiry_date as "insuranceExpiryDate",
+         insurance_cost as "insuranceCost",
+         insurance_duration as "insuranceDuration",
+         insurance_policy_number as "insurancePolicyNumber"`,
+      [
+        insuranceStartDate || null,
+        insuranceExpiryDate || null,
+        insuranceCost !== undefined ? parseFloat(insuranceCost) : 0,
+        insuranceValue !== undefined ? parseFloat(insuranceValue) : 0,
+        insuranceDuration?.trim() || null,
+        insurancePolicyNumber?.trim() || null,
+        id
+      ]
+    );
+
+    if (updateRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Heavy Equipment not found' });
+    }
+    res.json({ message: 'Heavy equipment insurance renewed successfully', equipment: updateRes.rows[0] });
+  } catch (err: any) {
+    console.error('[PATCH /api/tenant/heavy-equipment/:id/renew-insurance] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.delete('/api/tenant/heavy-equipment/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -7182,7 +7367,22 @@ app.listen(Number(port), '0.0.0.0', async () => {
   console.log('✅ Form Fields Config table created/verified');
 
   // Auto-create tenant_vehicles & tenant_heavy_equipment tables on server startup
-  await pool.query(`ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS fuel_power_type VARCHAR(100); ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS fuel_consumption VARCHAR(100); ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS fuel_power_type VARCHAR(100); ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS fuel_consumption VARCHAR(100);`);
+  await pool.query(`
+    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS fuel_power_type VARCHAR(100); 
+    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS fuel_consumption VARCHAR(100); 
+    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS insurance_start_date VARCHAR(50);
+    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS insurance_expiry_date VARCHAR(50);
+    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS insurance_cost NUMERIC(15,2) DEFAULT 0;
+    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS insurance_duration VARCHAR(50);
+    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS insurance_policy_number VARCHAR(100);
+    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS fuel_power_type VARCHAR(100); 
+    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS fuel_consumption VARCHAR(100);
+    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_start_date VARCHAR(50);
+    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_expiry_date VARCHAR(50);
+    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_cost NUMERIC(15,2) DEFAULT 0;
+    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_duration VARCHAR(50);
+    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_policy_number VARCHAR(100);
+  `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tenant_vehicles (
       id SERIAL PRIMARY KEY,

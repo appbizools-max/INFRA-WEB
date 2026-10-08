@@ -57,7 +57,11 @@ interface Vehicle {
   purchaseCost?: number;
   vendor?: string;
   insuranceValue?: number;
+  insuranceStartDate?: string;
   insuranceExpiryDate?: string;
+  insuranceCost?: number;
+  insuranceDuration?: string;
+  insurancePolicyNumber?: string;
   fitnessExpiryDate?: string;
   assignedDriverName?: string;
   assignedDriverPhone?: string;
@@ -178,6 +182,142 @@ export default function VehicleMasterPage() {
   const [viewingVehicle, setViewingVehicle] = useState<Vehicle | null>(null);
   const [viewingEquipment, setViewingEquipment] = useState<HeavyEquipment | null>(null);
 
+  // Dynamic Specs Toggle for Heavy Equipment
+  const [showAllTechSpecs, setShowAllTechSpecs] = useState(false);
+
+  // Insurance Renewal Modal State
+  const [renewModalData, setRenewModalData] = useState<{
+    isOpen: boolean;
+    type: 'vehicle' | 'equipment';
+    item: Vehicle | HeavyEquipment | null;
+    startDate: string;
+    duration: string;
+    expiryDate: string;
+    cost: number;
+    insuranceValue: number;
+    policyNumber: string;
+  }>({
+    isOpen: false,
+    type: 'vehicle',
+    item: null,
+    startDate: '',
+    duration: '1 Year',
+    expiryDate: '',
+    cost: 0,
+    insuranceValue: 0,
+    policyNumber: ''
+  });
+
+  // Calculate Expiry Date Helper
+  const calculateExpiryDate = (startDateStr: string, durationStr: string): string => {
+    if (!startDateStr) return '';
+    const start = new Date(startDateStr);
+    if (isNaN(start.getTime())) return '';
+    const end = new Date(start);
+    if (durationStr === '6 Months') {
+      end.setMonth(end.getMonth() + 6);
+    } else if (durationStr === '2 Years') {
+      end.setFullYear(end.getFullYear() + 2);
+    } else if (durationStr === '3 Years') {
+      end.setFullYear(end.getFullYear() + 3);
+    } else if (durationStr === '1 Year' || !durationStr) {
+      end.setFullYear(end.getFullYear() + 1);
+    } else {
+      return ''; // manual for Custom
+    }
+    end.setDate(end.getDate() - 1); // standard policy end date
+    return end.toISOString().split('T')[0];
+  };
+
+  const handleOpenRenewInsurance = (type: 'vehicle' | 'equipment', item: Vehicle | HeavyEquipment) => {
+    const today = new Date().toISOString().split('T')[0];
+    const prevExpiry = item.insuranceExpiryDate ? item.insuranceExpiryDate.split('T')[0] : '';
+    const defaultStart = prevExpiry || today;
+    const defaultDuration = item.insuranceDuration || '1 Year';
+    const computedExpiry = calculateExpiryDate(defaultStart, defaultDuration);
+
+    setRenewModalData({
+      isOpen: true,
+      type,
+      item,
+      startDate: defaultStart,
+      duration: defaultDuration,
+      expiryDate: computedExpiry,
+      cost: item.insuranceCost || 0,
+      insuranceValue: item.insuranceValue || 0,
+      policyNumber: item.insurancePolicyNumber || ''
+    });
+  };
+
+  const handleSaveRenewal = async () => {
+    if (!renewModalData.item) return;
+    setSaving(true);
+    try {
+      const url = renewModalData.type === 'vehicle'
+        ? `/api/tenant/vehicles/${renewModalData.item.id}/renew-insurance`
+        : `/api/tenant/heavy-equipment/${renewModalData.item.id}/renew-insurance`;
+
+      const res = await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          insuranceStartDate: renewModalData.startDate,
+          insuranceDuration: renewModalData.duration,
+          insuranceExpiryDate: renewModalData.expiryDate,
+          insuranceCost: renewModalData.cost,
+          insuranceValue: renewModalData.insuranceValue,
+          insurancePolicyNumber: renewModalData.policyNumber
+        })
+      });
+
+      if (!res.ok) throw new Error('Failed to renew insurance policy');
+      showToast('Insurance policy successfully renewed!', 'success');
+      setRenewModalData(prev => ({ ...prev, isOpen: false, item: null }));
+      fetchData();
+    } catch (err: any) {
+      console.error('Renewal error:', err);
+      showToast(err.message || 'Renewal failed', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const getInsuranceStatusBadge = (expiryDate?: string) => {
+    if (!expiryDate) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-semibold">
+          No Policy
+        </span>
+      );
+    }
+    const exp = new Date(expiryDate);
+    const now = new Date();
+    const diffDays = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold">
+          <AlertTriangle size={10} className="text-rose-500" />
+          Expired
+        </span>
+      );
+    }
+    if (diffDays <= 30) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold">
+          <Clock size={10} className="text-amber-600" />
+          Expiring in ${diffDays}d
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-semibold">
+        <Check size={10} className="text-emerald-600" />
+        Valid (${new Date(expiryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })})
+      </span>
+    );
+  };
+
   // Toast Acknowledgment
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -210,7 +350,11 @@ export default function VehicleMasterPage() {
     purchaseCost: 0,
     vendor: '',
     insuranceValue: 0,
+    insuranceStartDate: '',
+    insuranceDuration: '1 Year',
     insuranceExpiryDate: '',
+    insuranceCost: 0,
+    insurancePolicyNumber: '',
     fitnessExpiryDate: '',
     assignedDriverName: '',
     assignedDriverPhone: '',
@@ -246,6 +390,11 @@ export default function VehicleMasterPage() {
     purchaseCost: 0,
     vendor: '',
     insuranceValue: 0,
+    insuranceStartDate: '',
+    insuranceDuration: '1 Year',
+    insuranceExpiryDate: '',
+    insuranceCost: 0,
+    insurancePolicyNumber: '',
     assignedOperatorName: '',
     assignedOperatorPhone: '',
     assignedProjectId: '',
@@ -384,7 +533,11 @@ export default function VehicleMasterPage() {
       purchaseCost: v.purchaseCost || 0,
       vendor: v.vendor || '',
       insuranceValue: v.insuranceValue || 0,
+      insuranceStartDate: v.insuranceStartDate ? v.insuranceStartDate.split('T')[0] : '',
+      insuranceDuration: v.insuranceDuration || '1 Year',
       insuranceExpiryDate: v.insuranceExpiryDate ? v.insuranceExpiryDate.split('T')[0] : '',
+      insuranceCost: v.insuranceCost || 0,
+      insurancePolicyNumber: v.insurancePolicyNumber || '',
       fitnessExpiryDate: v.fitnessExpiryDate ? v.fitnessExpiryDate.split('T')[0] : '',
       assignedDriverName: v.assignedDriverName || '',
       assignedDriverPhone: v.assignedDriverPhone || '',
@@ -424,6 +577,11 @@ export default function VehicleMasterPage() {
       purchaseCost: eq.purchaseCost || 0,
       vendor: eq.vendor || '',
       insuranceValue: eq.insuranceValue || 0,
+      insuranceStartDate: eq.insuranceStartDate ? eq.insuranceStartDate.split('T')[0] : '',
+      insuranceDuration: eq.insuranceDuration || '1 Year',
+      insuranceExpiryDate: eq.insuranceExpiryDate ? eq.insuranceExpiryDate.split('T')[0] : '',
+      insuranceCost: eq.insuranceCost || 0,
+      insurancePolicyNumber: eq.insurancePolicyNumber || '',
       assignedOperatorName: eq.assignedOperatorName || '',
       assignedOperatorPhone: eq.assignedOperatorPhone || '',
       assignedProjectId: eq.assignedProjectId || '',
@@ -924,90 +1082,205 @@ export default function VehicleMasterPage() {
                 </div>
               </div>
 
-              {/* Section 3: Financial & Procurement Information */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5 w-full">
+              {/* Section 3: Financial & Vendor Information */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-6 w-full">
                 <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
                   <div className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
                     <IndianRupee size={16} />
                   </div>
                   <div>
                     <h3 className="font-bold text-sm text-slate-900">3. Financial & Vendor Information</h3>
-                    <p className="text-[11px] text-slate-400">Asset acquisition cost, supplier vendor, and insurance valuation</p>
+                    <p className="text-[11px] text-slate-400">Asset acquisition cost, dealer vendor, and complete insurance coverage suite</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {/* Purchase Date */}
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Purchase Date</label>
-                    <input
-                      type="date"
-                      value={vehicleForm.purchaseDate}
-                      onChange={e => setVehicleForm(prev => ({ ...prev, purchaseDate: e.target.value }))}
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
-                    />
-                  </div>
-
-                  {/* Purchase Cost */}
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Purchase Cost (₹)</label>
-                    <div className="relative">
+                {/* Sub-section A: Capital Procurement & Operational Status */}
+                <div>
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Asset Procurement & Status</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Purchase Date */}
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Purchase Date</label>
                       <input
-                        type="number"
-                        min="0"
-                        step="1000"
-                        value={vehicleForm.purchaseCost || ''}
-                        onChange={e => setVehicleForm(prev => ({ ...prev, purchaseCost: parseFloat(e.target.value) || 0 }))}
-                        placeholder="0.00"
-                        className="w-full px-4 py-2.5 pl-8 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-black text-xs text-slate-900"
+                        type="date"
+                        value={vehicleForm.purchaseDate}
+                        onChange={e => setVehicleForm(prev => ({ ...prev, purchaseDate: e.target.value }))}
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
                       />
-                      <IndianRupee size={13} className="absolute left-2.5 top-3.5 text-slate-400 pointer-events-none" />
+                    </div>
+
+                    {/* Purchase Cost */}
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Purchase Cost (₹)</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          step="1000"
+                          value={vehicleForm.purchaseCost || ''}
+                          onChange={e => setVehicleForm(prev => ({ ...prev, purchaseCost: parseFloat(e.target.value) || 0 }))}
+                          placeholder="0.00"
+                          className="w-full px-4 py-2.5 pl-8 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-black text-xs text-slate-900"
+                        />
+                        <IndianRupee size={13} className="absolute left-2.5 top-3.5 text-slate-400 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    {/* Vendor */}
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Vendor / Dealer</label>
+                      <input
+                        type="text"
+                        value={vehicleForm.vendor}
+                        onChange={e => setVehicleForm(prev => ({ ...prev, vendor: e.target.value }))}
+                        placeholder="e.g. Tata Commercial Sales / Gainwell"
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
+                      />
+                    </div>
+
+                    {/* Status */}
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Status</label>
+                      <select
+                        value={vehicleForm.status}
+                        onChange={e => setVehicleForm(prev => ({ ...prev, status: e.target.value }))}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
+                      >
+                        <option value="Active">Active</option>
+                        <option value="Under Maintenance">Under Maintenance</option>
+                        <option value="Breakdown">Breakdown</option>
+                        <option value="Idle">Idle</option>
+                        <option value="Decommissioned">Decommissioned</option>
+                      </select>
                     </div>
                   </div>
+                </div>
 
-                  {/* Vendor */}
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Vendor / Dealer</label>
-                    <input
-                      type="text"
-                      value={vehicleForm.vendor}
-                      onChange={e => setVehicleForm(prev => ({ ...prev, vendor: e.target.value }))}
-                      placeholder="e.g. Tata Commercial Sales / Gainwell"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
-                    />
-                  </div>
-
-                  {/* Insurance Value */}
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Insurance Value (IDV in ₹)</label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="0"
-                        step="1000"
-                        value={vehicleForm.insuranceValue || ''}
-                        onChange={e => setVehicleForm(prev => ({ ...prev, insuranceValue: parseFloat(e.target.value) || 0 }))}
-                        placeholder="0.00"
-                        className="w-full px-4 py-2.5 pl-8 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-900"
-                      />
-                      <IndianRupee size={13} className="absolute left-2.5 top-3.5 text-slate-400 pointer-events-none" />
+                {/* Sub-section B: Insurance & Policy Coverage */}
+                <div className="pt-2 border-t border-slate-100">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Shield size={15} className="text-emerald-600" />
+                      <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Insurance Policy & Coverage</h4>
                     </div>
+                    {formMode === 'edit' && editingId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const v = vehicles.find(item => item.id === editingId);
+                          if (v) handleOpenRenewInsurance('vehicle', v);
+                        }}
+                        className="px-3 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <RefreshCw size={12} />
+                        Renew Insurance
+                      </button>
+                    )}
                   </div>
 
-                  {/* Status */}
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Status</label>
-                    <select
-                      value={vehicleForm.status}
-                      onChange={e => setVehicleForm(prev => ({ ...prev, status: e.target.value }))}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
-                    >
-                      <option value="Active">Active</option>
-                      <option value="Under Maintenance">Under Maintenance</option>
-                      <option value="Breakdown">Breakdown</option>
-                      <option value="Idle">Idle</option>
-                      <option value="Decommissioned">Decommissioned</option>
-                    </select>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
+                    {/* Policy / Certificate Number */}
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Policy / Cover Note No.</label>
+                      <input
+                        type="text"
+                        value={vehicleForm.insurancePolicyNumber || ''}
+                        onChange={e => setVehicleForm(prev => ({ ...prev, insurancePolicyNumber: e.target.value }))}
+                        placeholder="e.g. POL-992819401"
+                        className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800 font-mono"
+                      />
+                    </div>
+
+                    {/* Insurance Start Date */}
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Insurance Start / Issue Date</label>
+                      <input
+                        type="date"
+                        value={vehicleForm.insuranceStartDate || ''}
+                        onChange={e => {
+                          const newStart = e.target.value;
+                          const calculatedExp = calculateExpiryDate(newStart, vehicleForm.insuranceDuration || '1 Year');
+                          setVehicleForm(prev => ({
+                            ...prev,
+                            insuranceStartDate: newStart,
+                            insuranceExpiryDate: calculatedExp || prev.insuranceExpiryDate
+                          }));
+                        }}
+                        className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
+                      />
+                    </div>
+
+                    {/* Duration of Insurance */}
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Duration of Insurance</label>
+                      <select
+                        value={vehicleForm.insuranceDuration || '1 Year'}
+                        onChange={e => {
+                          const newDuration = e.target.value;
+                          const calculatedExp = calculateExpiryDate(vehicleForm.insuranceStartDate || '', newDuration);
+                          setVehicleForm(prev => ({
+                            ...prev,
+                            insuranceDuration: newDuration,
+                            insuranceExpiryDate: calculatedExp || prev.insuranceExpiryDate
+                          }));
+                        }}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
+                      >
+                        <option value="1 Year">1 Year (Standard)</option>
+                        <option value="6 Months">6 Months</option>
+                        <option value="2 Years">2 Years</option>
+                        <option value="3 Years">3 Years</option>
+                        <option value="Custom">Custom / Other</option>
+                      </select>
+                    </div>
+
+                    {/* Insurance Expiry Date */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block font-bold text-slate-700 text-xs">Insurance Expiry Date</label>
+                        <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">Auto-calculated</span>
+                      </div>
+                      <input
+                        type="date"
+                        value={vehicleForm.insuranceExpiryDate || ''}
+                        onChange={e => setVehicleForm(prev => ({ ...prev, insuranceExpiryDate: e.target.value }))}
+                        className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-900"
+                      />
+                    </div>
+
+                    {/* Insurance Cost / Premium */}
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Insurance Cost / Premium (₹)</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          step="500"
+                          value={vehicleForm.insuranceCost || ''}
+                          onChange={e => setVehicleForm(prev => ({ ...prev, insuranceCost: parseFloat(e.target.value) || 0 }))}
+                          placeholder="e.g. 45000"
+                          className="w-full px-4 py-2.5 pl-8 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-900"
+                        />
+                        <IndianRupee size={13} className="absolute left-2.5 top-3.5 text-slate-400 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    {/* Insurance Value / IDV */}
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Insured Declared Value (IDV in ₹)</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          step="1000"
+                          value={vehicleForm.insuranceValue || ''}
+                          onChange={e => setVehicleForm(prev => ({ ...prev, insuranceValue: parseFloat(e.target.value) || 0 }))}
+                          placeholder="e.g. 2500000"
+                          className="w-full px-4 py-2.5 pl-8 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-900"
+                        />
+                        <IndianRupee size={13} className="absolute left-2.5 top-3.5 text-slate-400 pointer-events-none" />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1241,221 +1514,415 @@ export default function VehicleMasterPage() {
                 </div>
               </div>
 
-              {/* Section 2: Technical Specifications */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5 w-full">
-                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
-                  <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                    <SlidersHorizontal size={16} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-900">2. Technical Specifications</h3>
-                    <p className="text-[11px] text-slate-400">Excavator, Loader, Crane, Forklift and Dumper mechanical ratings</p>
-                  </div>
-                </div>
+              {/* Section 2: Technical Specifications (Tailored Dynamically) */}
+              {(() => {
+                const eqType = (equipmentForm.equipmentType || '').toLowerCase();
+                const isExcavator = eqType.includes('excavator') || eqType.includes('backhoe');
+                const isLoader = eqType.includes('loader');
+                const isCrane = eqType.includes('crane') || eqType.includes('pump');
+                const isForklift = eqType.includes('forklift');
+                const isDumper = eqType.includes('dumper') || eqType.includes('tipper') || eqType.includes('truck');
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {/* Excavator Bucket Capacity */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block font-bold text-slate-700 text-xs">Excavator Bucket Capacity</label>
-                      <span className="text-[10px] text-slate-400">CUM</span>
+                return (
+                  <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5 w-full">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                          <SlidersHorizontal size={16} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-sm text-slate-900">2. Technical Specifications</h3>
+                            <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px] border border-blue-200">
+                              Tailored for {equipmentForm.equipmentType || 'Machinery'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400">
+                            Showing relevant mechanical ratings based on chosen classification
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowAllTechSpecs(prev => !prev)}
+                        className="text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 transition-colors self-start sm:self-auto cursor-pointer"
+                      >
+                        {showAllTechSpecs ? 'Show Only Relevant Specs' : '+ Show All Machinery Specs'}
+                      </button>
                     </div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.05"
-                        min="0"
-                        value={equipmentForm.excavatorBucketCapacity || ''}
-                        onChange={e => setEquipmentForm(prev => ({ ...prev, excavatorBucketCapacity: parseFloat(e.target.value) || 0 }))}
-                        placeholder="e.g. 1.20"
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
-                      />
-                      <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
-                        CUM
-                      </span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {/* Excavator Bucket Capacity */}
+                      {(isExcavator || showAllTechSpecs) && (
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="block font-bold text-slate-700 text-xs">Excavator Bucket Capacity</label>
+                            <span className="text-[10px] text-slate-400">CUM</span>
+                          </div>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              step="0.05"
+                              min="0"
+                              value={equipmentForm.excavatorBucketCapacity || ''}
+                              onChange={e => setEquipmentForm(prev => ({ ...prev, excavatorBucketCapacity: parseFloat(e.target.value) || 0 }))}
+                              placeholder="e.g. 1.20"
+                              className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
+                            />
+                            <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
+                              CUM
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Boom Length */}
+                      {(isExcavator || isCrane || showAllTechSpecs) && (
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="block font-bold text-slate-700 text-xs">Boom Length</label>
+                            <span className="text-[10px] text-slate-400">Meters</span>
+                          </div>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              value={equipmentForm.boomLength || ''}
+                              onChange={e => setEquipmentForm(prev => ({ ...prev, boomLength: parseFloat(e.target.value) || 0 }))}
+                              placeholder="e.g. 5.7"
+                              className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
+                            />
+                            <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
+                              Meters
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Loader Bucket Capacity */}
+                      {(isLoader || showAllTechSpecs) && (
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="block font-bold text-slate-700 text-xs">Loader Bucket Capacity</label>
+                            <span className="text-[10px] text-slate-400">CUM</span>
+                          </div>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              step="0.05"
+                              min="0"
+                              value={equipmentForm.loaderBucketCapacity || ''}
+                              onChange={e => setEquipmentForm(prev => ({ ...prev, loaderBucketCapacity: parseFloat(e.target.value) || 0 }))}
+                              placeholder="e.g. 3.50"
+                              className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
+                            />
+                            <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
+                              CUM
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Crane Lifting Capacity */}
+                      {(isCrane || showAllTechSpecs) && (
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="block font-bold text-slate-700 text-xs">Crane Lifting Capacity</label>
+                            <span className="text-[10px] text-slate-400">Metric Tons</span>
+                          </div>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              step="0.5"
+                              min="0"
+                              value={equipmentForm.craneLiftingCapacity || ''}
+                              onChange={e => setEquipmentForm(prev => ({ ...prev, craneLiftingCapacity: parseFloat(e.target.value) || 0 }))}
+                              placeholder="e.g. 25.0"
+                              className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
+                            />
+                            <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
+                              Tons
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Forklift Fork Capacity */}
+                      {(isForklift || showAllTechSpecs) && (
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="block font-bold text-slate-700 text-xs">Forklift Fork Capacity</label>
+                            <span className="text-[10px] text-slate-400">Metric Tons</span>
+                          </div>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              value={equipmentForm.forkliftForkCapacity || ''}
+                              onChange={e => setEquipmentForm(prev => ({ ...prev, forkliftForkCapacity: parseFloat(e.target.value) || 0 }))}
+                              placeholder="e.g. 3.5"
+                              className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
+                            />
+                            <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
+                              Tons
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Dumper Payload Capacity */}
+                      {(isDumper || showAllTechSpecs) && (
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="block font-bold text-slate-700 text-xs">Dumper Payload Capacity</label>
+                            <span className="text-[10px] text-slate-400">Metric Tons</span>
+                          </div>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              step="0.5"
+                              min="0"
+                              value={equipmentForm.dumperPayloadCapacity || ''}
+                              onChange={e => setEquipmentForm(prev => ({ ...prev, dumperPayloadCapacity: parseFloat(e.target.value) || 0 }))}
+                              placeholder="e.g. 40.0"
+                              className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
+                            />
+                            <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
+                              Tons
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Operating Weight (Universal for all Heavy Equipment) */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block font-bold text-slate-700 text-xs">Operating Weight</label>
+                          <span className="text-[10px] text-slate-400">Metric Tons</span>
+                        </div>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            value={equipmentForm.operatingWeight || ''}
+                            onChange={e => setEquipmentForm(prev => ({ ...prev, operatingWeight: parseFloat(e.target.value) || 0 }))}
+                            placeholder="e.g. 21.5"
+                            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
+                          />
+                          <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
+                            MT
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
+                );
+              })()}
 
-                  {/* Boom Length */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block font-bold text-slate-700 text-xs">Boom Length</label>
-                      <span className="text-[10px] text-slate-400">Meters</span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        value={equipmentForm.boomLength || ''}
-                        onChange={e => setEquipmentForm(prev => ({ ...prev, boomLength: parseFloat(e.target.value) || 0 }))}
-                        placeholder="e.g. 5.7"
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
-                      />
-                      <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
-                        Meters
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Loader Bucket Capacity */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block font-bold text-slate-700 text-xs">Loader Bucket Capacity</label>
-                      <span className="text-[10px] text-slate-400">CUM</span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.05"
-                        min="0"
-                        value={equipmentForm.loaderBucketCapacity || ''}
-                        onChange={e => setEquipmentForm(prev => ({ ...prev, loaderBucketCapacity: parseFloat(e.target.value) || 0 }))}
-                        placeholder="e.g. 3.50"
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
-                      />
-                      <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
-                        CUM
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Crane Lifting Capacity */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block font-bold text-slate-700 text-xs">Crane Lifting Capacity</label>
-                      <span className="text-[10px] text-slate-400">Metric Tons</span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        value={equipmentForm.craneLiftingCapacity || ''}
-                        onChange={e => setEquipmentForm(prev => ({ ...prev, craneLiftingCapacity: parseFloat(e.target.value) || 0 }))}
-                        placeholder="e.g. 25.0"
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
-                      />
-                      <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
-                        Tons
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Forklift Fork Capacity */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block font-bold text-slate-700 text-xs">Forklift Fork Capacity</label>
-                      <span className="text-[10px] text-slate-400">Metric Tons</span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        value={equipmentForm.forkliftForkCapacity || ''}
-                        onChange={e => setEquipmentForm(prev => ({ ...prev, forkliftForkCapacity: parseFloat(e.target.value) || 0 }))}
-                        placeholder="e.g. 3.5"
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
-                      />
-                      <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
-                        Tons
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Dumper Payload Capacity */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block font-bold text-slate-700 text-xs">Dumper Payload Capacity</label>
-                      <span className="text-[10px] text-slate-400">Metric Tons</span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        value={equipmentForm.dumperPayloadCapacity || ''}
-                        onChange={e => setEquipmentForm(prev => ({ ...prev, dumperPayloadCapacity: parseFloat(e.target.value) || 0 }))}
-                        placeholder="e.g. 40.0"
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
-                      />
-                      <span className="absolute right-3.5 top-3 text-[11px] font-bold text-slate-400 pointer-events-none">
-                        Tons
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 3: Financial Information & Status */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-5 w-full">
+              {/* Section 3: Financial Information, Insurance & Status */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7 space-y-6 w-full">
                 <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
                   <div className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
                     <IndianRupee size={16} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-sm text-slate-900">3. Financial Information & Status</h3>
-                    <p className="text-[11px] text-slate-400">Capital purchase cost, equipment supplier, and operational status</p>
+                    <h3 className="font-bold text-sm text-slate-900">3. Financial & Vendor Information</h3>
+                    <p className="text-[11px] text-slate-400">Capital purchase cost, equipment supplier, and complete insurance coverage suite</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {/* Purchase Date */}
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Purchase Date</label>
-                    <input
-                      type="date"
-                      value={equipmentForm.purchaseDate}
-                      onChange={e => setEquipmentForm(prev => ({ ...prev, purchaseDate: e.target.value }))}
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
-                    />
-                  </div>
-
-                  {/* Purchase Cost */}
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Purchase Cost (₹)</label>
-                    <div className="relative">
+                {/* Sub-section A: Capital Procurement & Operational Status */}
+                <div>
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Asset Procurement & Status</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Purchase Date */}
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Purchase Date</label>
                       <input
-                        type="number"
-                        min="0"
-                        step="1000"
-                        value={equipmentForm.purchaseCost || ''}
-                        onChange={e => setEquipmentForm(prev => ({ ...prev, purchaseCost: parseFloat(e.target.value) || 0 }))}
-                        placeholder="0.00"
-                        className="w-full px-4 py-2.5 pl-8 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-black text-xs text-slate-900"
+                        type="date"
+                        value={equipmentForm.purchaseDate}
+                        onChange={e => setEquipmentForm(prev => ({ ...prev, purchaseDate: e.target.value }))}
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
                       />
-                      <IndianRupee size={13} className="absolute left-2.5 top-3.5 text-slate-400 pointer-events-none" />
+                    </div>
+
+                    {/* Purchase Cost */}
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Purchase Cost (₹)</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          step="1000"
+                          value={equipmentForm.purchaseCost || ''}
+                          onChange={e => setEquipmentForm(prev => ({ ...prev, purchaseCost: parseFloat(e.target.value) || 0 }))}
+                          placeholder="0.00"
+                          className="w-full px-4 py-2.5 pl-8 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-black text-xs text-slate-900"
+                        />
+                        <IndianRupee size={13} className="absolute left-2.5 top-3.5 text-slate-400 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    {/* Vendor */}
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Vendor / Supplier</label>
+                      <input
+                        type="text"
+                        value={equipmentForm.vendor}
+                        onChange={e => setEquipmentForm(prev => ({ ...prev, vendor: e.target.value }))}
+                        placeholder="e.g. L&T Construction Equipment / Gainwell"
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
+                      />
+                    </div>
+
+                    {/* Status */}
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Status</label>
+                      <select
+                        value={equipmentForm.status}
+                        onChange={e => setEquipmentForm(prev => ({ ...prev, status: e.target.value }))}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
+                      >
+                        <option value="Active">Active</option>
+                        <option value="In Operation">In Operation</option>
+                        <option value="Under Maintenance">Under Maintenance</option>
+                        <option value="Breakdown">Breakdown</option>
+                        <option value="Idle">Idle</option>
+                        <option value="Decommissioned">Decommissioned</option>
+                      </select>
                     </div>
                   </div>
+                </div>
 
-                  {/* Vendor */}
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Vendor / Supplier</label>
-                    <input
-                      type="text"
-                      value={equipmentForm.vendor}
-                      onChange={e => setEquipmentForm(prev => ({ ...prev, vendor: e.target.value }))}
-                      placeholder="e.g. L&T Construction Equipment / Gainwell"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
-                    />
+                {/* Sub-section B: Insurance & Policy Coverage */}
+                <div className="pt-2 border-t border-slate-100">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Shield size={15} className="text-emerald-600" />
+                      <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Insurance Policy & Coverage</h4>
+                    </div>
+                    {formMode === 'edit' && editingId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const eq = equipmentList.find(item => item.id === editingId);
+                          if (eq) handleOpenRenewInsurance('equipment', eq);
+                        }}
+                        className="px-3 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <RefreshCw size={12} />
+                        Renew Insurance
+                      </button>
+                    )}
                   </div>
 
-                  {/* Status */}
-                  <div>
-                    <label className="block font-bold text-slate-700 text-xs mb-1.5">Status</label>
-                    <select
-                      value={equipmentForm.status}
-                      onChange={e => setEquipmentForm(prev => ({ ...prev, status: e.target.value }))}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
-                    >
-                      <option value="Active">Active</option>
-                      <option value="In Operation">In Operation</option>
-                      <option value="Under Maintenance">Under Maintenance</option>
-                      <option value="Breakdown">Breakdown</option>
-                      <option value="Idle">Idle</option>
-                      <option value="Decommissioned">Decommissioned</option>
-                    </select>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
+                    {/* Policy / Certificate Number */}
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Policy / Cover Note No.</label>
+                      <input
+                        type="text"
+                        value={equipmentForm.insurancePolicyNumber || ''}
+                        onChange={e => setEquipmentForm(prev => ({ ...prev, insurancePolicyNumber: e.target.value }))}
+                        placeholder="e.g. POL-881920311"
+                        className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#46B351] font-semibold text-xs text-slate-800 font-mono"
+                      />
+                    </div>
+
+                    {/* Insurance Start Date */}
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Insurance Start / Issue Date</label>
+                      <input
+                        type="date"
+                        value={equipmentForm.insuranceStartDate || ''}
+                        onChange={e => {
+                          const newStart = e.target.value;
+                          const calculatedExp = calculateExpiryDate(newStart, equipmentForm.insuranceDuration || '1 Year');
+                          setEquipmentForm(prev => ({
+                            ...prev,
+                            insuranceStartDate: newStart,
+                            insuranceExpiryDate: calculatedExp || prev.insuranceExpiryDate
+                          }));
+                        }}
+                        className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-800"
+                      />
+                    </div>
+
+                    {/* Duration of Insurance */}
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Duration of Insurance</label>
+                      <select
+                        value={equipmentForm.insuranceDuration || '1 Year'}
+                        onChange={e => {
+                          const newDuration = e.target.value;
+                          const calculatedExp = calculateExpiryDate(equipmentForm.insuranceStartDate || '', newDuration);
+                          setEquipmentForm(prev => ({
+                            ...prev,
+                            insuranceDuration: newDuration,
+                            insuranceExpiryDate: calculatedExp || prev.insuranceExpiryDate
+                          }));
+                        }}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-800"
+                      >
+                        <option value="1 Year">1 Year (Standard)</option>
+                        <option value="6 Months">6 Months</option>
+                        <option value="2 Years">2 Years</option>
+                        <option value="3 Years">3 Years</option>
+                        <option value="Custom">Custom / Other</option>
+                      </select>
+                    </div>
+
+                    {/* Insurance Expiry Date */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block font-bold text-slate-700 text-xs">Insurance Expiry Date</label>
+                        <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">Auto-calculated</span>
+                      </div>
+                      <input
+                        type="date"
+                        value={equipmentForm.insuranceExpiryDate || ''}
+                        onChange={e => setEquipmentForm(prev => ({ ...prev, insuranceExpiryDate: e.target.value }))}
+                        className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-900"
+                      />
+                    </div>
+
+                    {/* Insurance Cost / Premium */}
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Insurance Cost / Premium (₹)</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          step="500"
+                          value={equipmentForm.insuranceCost || ''}
+                          onChange={e => setEquipmentForm(prev => ({ ...prev, insuranceCost: parseFloat(e.target.value) || 0 }))}
+                          placeholder="e.g. 60000"
+                          className="w-full px-4 py-2.5 pl-8 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-900"
+                        />
+                        <IndianRupee size={13} className="absolute left-2.5 top-3.5 text-slate-400 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    {/* Insurance Value / IDV */}
+                    <div>
+                      <label className="block font-bold text-slate-700 text-xs mb-1.5">Insured Declared Value (IDV in ₹)</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          step="1000"
+                          value={equipmentForm.insuranceValue || ''}
+                          onChange={e => setEquipmentForm(prev => ({ ...prev, insuranceValue: parseFloat(e.target.value) || 0 }))}
+                          placeholder="e.g. 4500000"
+                          className="w-full px-4 py-2.5 pl-8 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-900"
+                        />
+                        <IndianRupee size={13} className="absolute left-2.5 top-3.5 text-slate-400 pointer-events-none" />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1798,7 +2265,7 @@ export default function VehicleMasterPage() {
                         )}
                       </td>
 
-                      {/* Financial Info */}
+                      {/* Financial Info & Insurance */}
                       <td className="py-3.5 px-4">
                         <span className="font-bold text-emerald-700">₹{Number(v.purchaseCost || 0).toLocaleString()}</span>
                         {v.vendor && (
@@ -1806,6 +2273,18 @@ export default function VehicleMasterPage() {
                             {v.vendor}
                           </span>
                         )}
+                        <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                          {getInsuranceStatusBadge(v.insuranceExpiryDate)}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenRenewInsurance('vehicle', v)}
+                            title="Renew Insurance Policy"
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-bold transition-colors cursor-pointer"
+                          >
+                            <Shield size={10} />
+                            Renew
+                          </button>
+                        </div>
                       </td>
 
                       {/* Status */}
@@ -2030,7 +2509,7 @@ export default function VehicleMasterPage() {
                         <span className="text-[10px] text-slate-400 ml-1">hrs</span>
                       </td>
 
-                      {/* Purchase Info */}
+                      {/* Purchase Info & Insurance */}
                       <td className="py-3.5 px-4">
                         <span className="font-bold text-emerald-700">₹{Number(eq.purchaseCost || 0).toLocaleString()}</span>
                         {eq.purchaseDate && (
@@ -2038,6 +2517,18 @@ export default function VehicleMasterPage() {
                             {new Date(eq.purchaseDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </span>
                         )}
+                        <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                          {getInsuranceStatusBadge(eq.insuranceExpiryDate)}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenRenewInsurance('equipment', eq)}
+                            title="Renew Insurance Policy"
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-bold transition-colors cursor-pointer"
+                          >
+                            <Shield size={10} />
+                            Renew
+                          </button>
+                        </div>
                       </td>
 
                       {/* Status */}
@@ -2206,7 +2697,56 @@ export default function VehicleMasterPage() {
               </div>
             </div>
 
-            <div className="flex justify-end pt-2">
+            {/* Insurance Policy Suite Details */}
+            <div className="p-3.5 bg-emerald-50/50 rounded-2xl border border-emerald-200/60 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Shield size={14} className="text-emerald-700" />
+                  <span className="text-xs font-bold text-slate-900">Insurance & Policy Coverage</span>
+                </div>
+                {getInsuranceStatusBadge(viewingVehicle.insuranceExpiryDate)}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-[11px] pt-1">
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-semibold">Policy Number</span>
+                  <span className="font-mono font-bold text-slate-800">{viewingVehicle.insurancePolicyNumber || 'Not registered'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-semibold">Duration</span>
+                  <span className="font-bold text-slate-800">{viewingVehicle.insuranceDuration || '1 Year'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-semibold">Start Date</span>
+                  <span className="font-bold text-slate-800">{viewingVehicle.insuranceStartDate || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-semibold">Expiry Date</span>
+                  <span className="font-bold text-slate-800">{viewingVehicle.insuranceExpiryDate || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-semibold">Premium / Cost</span>
+                  <span className="font-bold text-emerald-700">₹{Number(viewingVehicle.insuranceCost || 0).toLocaleString()}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-semibold">IDV Valuation</span>
+                  <span className="font-bold text-slate-800">₹{Number(viewingVehicle.insuranceValue || 0).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const v = viewingVehicle;
+                  setViewingVehicle(null);
+                  handleOpenRenewInsurance('vehicle', v);
+                }}
+                className="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <RefreshCw size={13} />
+                Renew Insurance
+              </button>
               <button
                 onClick={() => setViewingVehicle(null)}
                 className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 cursor-pointer"
@@ -2289,7 +2829,56 @@ export default function VehicleMasterPage() {
               </div>
             )}
 
-            <div className="flex justify-end pt-2">
+            {/* Insurance Policy Suite Details */}
+            <div className="p-3.5 bg-emerald-50/50 rounded-2xl border border-emerald-200/60 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Shield size={14} className="text-emerald-700" />
+                  <span className="text-xs font-bold text-slate-900">Insurance & Policy Coverage</span>
+                </div>
+                {getInsuranceStatusBadge(viewingEquipment.insuranceExpiryDate)}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-[11px] pt-1">
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-semibold">Policy Number</span>
+                  <span className="font-mono font-bold text-slate-800">{viewingEquipment.insurancePolicyNumber || 'Not registered'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-semibold">Duration</span>
+                  <span className="font-bold text-slate-800">{viewingEquipment.insuranceDuration || '1 Year'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-semibold">Start Date</span>
+                  <span className="font-bold text-slate-800">{viewingEquipment.insuranceStartDate || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-semibold">Expiry Date</span>
+                  <span className="font-bold text-slate-800">{viewingEquipment.insuranceExpiryDate || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-semibold">Premium / Cost</span>
+                  <span className="font-bold text-emerald-700">₹{Number(viewingEquipment.insuranceCost || 0).toLocaleString()}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-semibold">IDV Valuation</span>
+                  <span className="font-bold text-slate-800">₹{Number(viewingEquipment.insuranceValue || 0).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const eq = viewingEquipment;
+                  setViewingEquipment(null);
+                  handleOpenRenewInsurance('equipment', eq);
+                }}
+                className="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <RefreshCw size={13} />
+                Renew Insurance
+              </button>
               <button
                 onClick={() => setViewingEquipment(null)}
                 className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 cursor-pointer"
@@ -2300,6 +2889,192 @@ export default function VehicleMasterPage() {
           </div>
         </div>
       )}
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          RENEW INSURANCE POLICY MODAL
+          ────────────────────────────────────────────────────────────────────────── */}
+      {renewModalData.isOpen && renewModalData.item && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+                  <Shield size={20} />
+                </div>
+                <div>
+                  <h3 className="font-black text-base text-slate-900">Renew Insurance Policy</h3>
+                  <span className="text-xs text-slate-500">
+                    {renewModalData.type === 'vehicle'
+                      ? `Vehicle: ${(renewModalData.item as Vehicle).vehicleNumber}`
+                      : `Equipment: ${(renewModalData.item as HeavyEquipment).equipmentId} (${(renewModalData.item as HeavyEquipment).equipmentNumber})`}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRenewModalData(prev => ({ ...prev, isOpen: false }))}
+                className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              {/* Previous Policy Quick Bar */}
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-slate-400 font-semibold block uppercase">Current Policy Status</span>
+                  {getInsuranceStatusBadge(renewModalData.item.insuranceExpiryDate)}
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 font-semibold block uppercase">Previous Expiry</span>
+                  <span className="font-bold text-slate-700">
+                    {renewModalData.item.insuranceExpiryDate
+                      ? new Date(renewModalData.item.insuranceExpiryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                      : 'None'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Policy Number */}
+              <div>
+                <label className="block font-bold text-slate-700 text-xs mb-1">New Policy / Certificate Number</label>
+                <input
+                  type="text"
+                  value={renewModalData.policyNumber}
+                  onChange={e => setRenewModalData(prev => ({ ...prev, policyNumber: e.target.value }))}
+                  placeholder="e.g. POL-2026-RENEW-01"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-mono font-bold text-xs text-slate-900"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {/* Start Date */}
+                <div>
+                  <label className="block font-bold text-slate-700 text-xs mb-1">Renewal Start Date</label>
+                  <input
+                    type="date"
+                    value={renewModalData.startDate}
+                    onChange={e => {
+                      const newStart = e.target.value;
+                      const newExp = calculateExpiryDate(newStart, renewModalData.duration);
+                      setRenewModalData(prev => ({
+                        ...prev,
+                        startDate: newStart,
+                        expiryDate: newExp || prev.expiryDate
+                      }));
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-medium text-xs text-slate-900"
+                  />
+                </div>
+
+                {/* Duration */}
+                <div>
+                  <label className="block font-bold text-slate-700 text-xs mb-1">Renewal Duration</label>
+                  <select
+                    value={renewModalData.duration}
+                    onChange={e => {
+                      const newDuration = e.target.value;
+                      const newExp = calculateExpiryDate(renewModalData.startDate, newDuration);
+                      setRenewModalData(prev => ({
+                        ...prev,
+                        duration: newDuration,
+                        expiryDate: newExp || prev.expiryDate
+                      }));
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-900"
+                  >
+                    <option value="1 Year">1 Year (Standard)</option>
+                    <option value="6 Months">6 Months</option>
+                    <option value="2 Years">2 Years</option>
+                    <option value="3 Years">3 Years</option>
+                    <option value="Custom">Custom / Other</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Expiry Date */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-bold text-slate-700 text-xs">New Expiry Date</label>
+                  <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">Auto-calculated</span>
+                </div>
+                <input
+                  type="date"
+                  value={renewModalData.expiryDate}
+                  onChange={e => setRenewModalData(prev => ({ ...prev, expiryDate: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-900"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {/* Cost / Renewal Amount */}
+                <div>
+                  <label className="block font-bold text-slate-700 text-xs mb-1">Renewal Premium / Cost (₹)</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      step="500"
+                      value={renewModalData.cost || ''}
+                      onChange={e => setRenewModalData(prev => ({ ...prev, cost: parseFloat(e.target.value) || 0 }))}
+                      placeholder="0.00"
+                      className="w-full px-3.5 py-2.5 pl-8 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-900"
+                    />
+                    <IndianRupee size={13} className="absolute left-2.5 top-3.5 text-slate-400 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* IDV Amount */}
+                <div>
+                  <label className="block font-bold text-slate-700 text-xs mb-1">Updated IDV (₹)</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      step="1000"
+                      value={renewModalData.insuranceValue || ''}
+                      onChange={e => setRenewModalData(prev => ({ ...prev, insuranceValue: parseFloat(e.target.value) || 0 }))}
+                      placeholder="0.00"
+                      className="w-full px-3.5 py-2.5 pl-8 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-[#46B351] font-bold text-xs text-slate-900"
+                    />
+                    <IndianRupee size={13} className="absolute left-2.5 top-3.5 text-slate-400 pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setRenewModalData(prev => ({ ...prev, isOpen: false }))}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleSaveRenewal}
+                className="px-5 py-2.5 rounded-xl bg-[#46B351] hover:bg-[#3ca046] text-white text-xs font-bold flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+              >
+                {saving ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Check size={15} />
+                    Confirm & Renew Policy
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
