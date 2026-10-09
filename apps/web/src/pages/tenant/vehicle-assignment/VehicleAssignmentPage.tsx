@@ -42,6 +42,7 @@ interface VehicleAssignment {
   id: number | string;
   tenantId?: string;
   assetType: 'vehicle' | 'equipment';
+  memberId?: string;
   assetId: string;
   assetNumber: string;
   assetTitle?: string;
@@ -71,6 +72,15 @@ interface FleetAsset {
   currentLocation?: string;
 }
 
+interface TeamMemberOption {
+  id: string;
+  name: string;
+  role: string;
+  department?: string;
+  mobile?: string;
+  status?: string;
+}
+
 interface AssignmentRow {
   rowId: string;
   assetId: string;
@@ -88,6 +98,7 @@ const createNewRow = (): AssignmentRow => ({
   assetNumber: '',
   assetTitle: '',
   assetType: 'vehicle',
+  memberId: '',
   assignedToType: 'driver',
   assignedToName: '',
   assignedToPhone: ''
@@ -102,6 +113,7 @@ export default function VehicleAssignmentPage() {
   const [availableEquipment, setAvailableEquipment] = useState<any[]>([]);
   const [projectsList, setProjectsList] = useState<any[]>([]);
   const [worksitesList, setWorksitesList] = useState<WorkSite[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMemberOption[]>([]);
   const [isCustomWorksite, setIsCustomWorksite] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -183,6 +195,24 @@ export default function VehicleAssignmentPage() {
       if (wsRes.ok) {
         const wsData = await wsRes.json();
         setWorksitesList(Array.isArray(wsData) ? wsData : []);
+      }
+
+      // 6. Fetch Team Members (Company Drivers & Staff)
+      try {
+        const teamUrl = currentUser?.uid ? `/api/tenant/team/${currentUser.uid}` : '/api/tenant/team';
+        const tRes = await apiFetch(teamUrl);
+        if (tRes.ok) {
+          const tData = await tRes.json();
+          setTeamMembers(Array.isArray(tData) ? tData : []);
+        } else {
+          const fbRes = await apiFetch('/api/tenant/team');
+          if (fbRes.ok) {
+            const fbData = await fbRes.json();
+            setTeamMembers(Array.isArray(fbData) ? fbData : []);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load team members:', e);
       }
     } catch (err: any) {
       console.error('[VehicleAssignment] Failed to load data:', err);
@@ -338,6 +368,48 @@ export default function VehicleAssignmentPage() {
     setAssignmentRows(prev =>
       prev.map(row => (row.rowId === rowId ? { ...row, ...updates } : row))
     );
+  };
+
+    // Drivers and staff split
+  const driverList = useMemo(() => {
+    return teamMembers.filter(m => {
+      const r = (m.role || '').toLowerCase();
+      const d = (m.department || '').toLowerCase();
+      return r.includes('driver') || r.includes('operator') || d.includes('fleet') || d.includes('transport');
+    });
+  }, [teamMembers]);
+
+  const otherStaffList = useMemo(() => {
+    return teamMembers.filter(m => {
+      const r = (m.role || '').toLowerCase();
+      const d = (m.department || '').toLowerCase();
+      return !(r.includes('driver') || r.includes('operator') || d.includes('fleet') || d.includes('transport'));
+    });
+  }, [teamMembers]);
+
+  const handleSelectDriverForRow = (rowId: string, memberId: string) => {
+    if (!memberId || memberId === 'custom') {
+      handleUpdateRow(rowId, {
+        memberId: memberId === 'custom' ? 'custom' : ''
+      });
+      return;
+    }
+
+    const member = teamMembers.find(m => String(m.id) === String(memberId));
+    if (member) {
+      const isOperator =
+        member.role?.toLowerCase().includes('operator') ||
+        member.role?.toLowerCase().includes('crane') ||
+        member.role?.toLowerCase().includes('dozer') ||
+        member.role?.toLowerCase().includes('machinery');
+
+      handleUpdateRow(rowId, {
+        memberId: String(member.id),
+        assignedToName: member.name,
+        assignedToPhone: member.mobile || '',
+        assignedToType: isOperator ? 'operator' : 'driver'
+      });
+    }
   };
 
   const handleSelectAssetForRow = (rowId: string, assetId: string) => {
@@ -1047,62 +1119,137 @@ export default function VehicleAssignmentPage() {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-                        {/* Vehicle / Equipment Selector */}
-                        <div className="sm:col-span-5">
-                          <label className="text-[10px] font-semibold text-slate-500 block mb-0.5">
-                            Select Vehicle / Equipment <span className="text-rose-500">*</span>
-                          </label>
-                          <select
-                            required
-                            value={row.assetId}
-                            onChange={e => handleSelectAssetForRow(row.rowId, e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
-                          >
-                            <option value="">-- Choose Asset --</option>
-                            <optgroup label="🚚 Vehicles">
-                              {fleetOptions.filter(f => f.type === 'vehicle').map(f => (
-                                <option key={f.id} value={String(f.id)}>
-                                  {f.number} • {f.title}
-                                </option>
-                              ))}
-                            </optgroup>
-                            <optgroup label="🚜 Heavy Equipment">
-                              {fleetOptions.filter(f => f.type === 'equipment').map(f => (
-                                <option key={f.id} value={String(f.id)}>
-                                  {f.number} • {f.title}
-                                </option>
-                              ))}
-                            </optgroup>
-                          </select>
+                      <div className="space-y-2.5">
+                        {/* Top Tier: Asset Select & Company Driver / Operator Select */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {/* 1. Vehicle / Equipment Selector */}
+                          <div>
+                            <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">
+                              Select Vehicle / Equipment <span className="text-rose-500">*</span>
+                            </label>
+                            <select
+                              required
+                              value={row.assetId}
+                              onChange={e => handleSelectAssetForRow(row.rowId, e.target.value)}
+                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
+                            >
+                              <option value="">-- Choose Asset --</option>
+                              <optgroup label="🚚 Vehicles">
+                                {fleetOptions.filter(f => f.type === 'vehicle').map(f => (
+                                  <option key={f.id} value={String(f.id)}>
+                                    {f.number} • {f.title}
+                                  </option>
+                                ))}
+                              </optgroup>
+                              <optgroup label="🚜 Heavy Equipment">
+                                {fleetOptions.filter(f => f.type === 'equipment').map(f => (
+                                  <option key={f.id} value={String(f.id)}>
+                                    {f.number} • {f.title}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            </select>
+                          </div>
+
+                          {/* 2. Company Driver / Personnel Dropdown */}
+                          <div>
+                            <label className="text-[10.5px] font-semibold text-slate-600 mb-1 flex items-center justify-between">
+                              <span className="flex items-center gap-1">
+                                <Users size={12} className="text-[#46B351]" />
+                                <span>Company Driver / Personnel</span>
+                              </span>
+                              {row.memberId && row.memberId !== 'custom' && (
+                                <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-100/70 px-1.5 py-0.2 rounded-full">
+                                  ✓ Company Staff
+                                </span>
+                              )}
+                            </label>
+                            <select
+                              value={row.memberId || ''}
+                              onChange={e => handleSelectDriverForRow(row.rowId, e.target.value)}
+                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
+                            >
+                              <option value="">-- Choose Added Company Driver / Staff --</option>
+                              {driverList.length > 0 && (
+                                <optgroup label="🚚 Company Drivers & Operators">
+                                  {driverList.map(m => (
+                                    <option key={m.id} value={String(m.id)}>
+                                      {m.name} • {m.role} {m.mobile ? `(${m.mobile})` : ''}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              )}
+                              {otherStaffList.length > 0 && (
+                                <optgroup label="👷 Other Company Personnel">
+                                  {otherStaffList.map(m => (
+                                    <option key={m.id} value={String(m.id)}>
+                                      {m.name} • {m.role} {m.mobile ? `(${m.mobile})` : ''}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              )}
+                              <option value="custom">✏️ Enter Custom / Third-Party Driver</option>
+                            </select>
+                          </div>
                         </div>
 
-                        {/* Driver / Operator Name */}
-                        <div className="sm:col-span-4">
-                          <label className="text-[10px] font-semibold text-slate-500 block mb-0.5">
-                            {row.assetType === 'equipment' ? 'Operator Name' : 'Driver Name'}
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="e.g. Ramesh Kumar"
-                            value={row.assignedToName}
-                            onChange={e => handleUpdateRow(row.rowId, { assignedToName: e.target.value })}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
-                          />
-                        </div>
+                        {/* Bottom Tier: Role Type, Personnel Name, Contact Phone */}
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 bg-slate-50/70 p-2.5 rounded-lg border border-slate-100">
+                          {/* Role Type */}
+                          <div className="sm:col-span-3">
+                            <label className="text-[10px] font-semibold text-slate-500 block mb-0.5">
+                              Role Type
+                            </label>
+                            <select
+                              value={row.assignedToType}
+                              onChange={e => handleUpdateRow(row.rowId, { assignedToType: e.target.value as any })}
+                              className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
+                            >
+                              <option value="driver">Driver</option>
+                              <option value="operator">Heavy Operator</option>
+                              <option value="subcontractor">Subcontractor</option>
+                            </select>
+                          </div>
 
-                        {/* Phone */}
-                        <div className="sm:col-span-3">
-                          <label className="text-[10px] font-semibold text-slate-500 block mb-0.5">
-                            Contact Phone
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="+91 98765 43210"
-                            value={row.assignedToPhone}
-                            onChange={e => handleUpdateRow(row.rowId, { assignedToPhone: e.target.value })}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
-                          />
+                          {/* Personnel Name */}
+                          <div className="sm:col-span-5">
+                            <label className="text-[10px] font-semibold text-slate-500 block mb-0.5">
+                              Personnel Name <span className="text-rose-500">*</span>
+                            </label>
+                            <div className="relative">
+                              <input
+                                type="text"
+                                required
+                                placeholder="e.g. Ramesh Kumar"
+                                value={row.assignedToName}
+                                onChange={e =>
+                                  handleUpdateRow(row.rowId, {
+                                    assignedToName: e.target.value,
+                                    memberId: row.memberId === 'custom' ? 'custom' : ''
+                                  })
+                                }
+                                className="w-full bg-white border border-slate-200 rounded-lg pl-2.5 pr-6 py-1.5 text-xs text-slate-800 font-medium focus:outline-none focus:ring-1 focus:ring-[#46B351]"
+                              />
+                              <User size={12} className="absolute right-2.5 top-2.5 text-slate-400 pointer-events-none" />
+                            </div>
+                          </div>
+
+                          {/* Contact Phone */}
+                          <div className="sm:col-span-4">
+                            <label className="text-[10px] font-semibold text-slate-500 block mb-0.5">
+                              Contact Phone
+                            </label>
+                            <div className="relative">
+                              <input
+                                type="text"
+                                placeholder="+91 98765 43210"
+                                value={row.assignedToPhone}
+                                onChange={e => handleUpdateRow(row.rowId, { assignedToPhone: e.target.value })}
+                                className="w-full bg-white border border-slate-200 rounded-lg pl-2.5 pr-6 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
+                              />
+                              <Phone size={12} className="absolute right-2.5 top-2.5 text-slate-400 pointer-events-none" />
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
