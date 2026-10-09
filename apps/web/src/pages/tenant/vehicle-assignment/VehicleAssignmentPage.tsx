@@ -446,7 +446,7 @@ export default function VehicleAssignmentPage() {
       handleUpdateRow(rowId, {
         helperId: String(member.id),
         helperName: member.name,
-        helperRole: member.role || 'Helper',
+        helperRole: member.role || 'Staff',
         helperPhone: member.mobile || ''
       });
     }
@@ -887,7 +887,7 @@ export default function VehicleAssignmentPage() {
                 <tr className="border-b border-slate-200 bg-slate-50/90 text-[9px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                   <th className="py-2.5 px-3">Asset & Identifier</th>
                   <th className="py-2.5 px-3">Project & Worksite</th>
-                  <th className="py-2.5 px-3">Assigned Driver / Operator</th>
+                  <th className="py-2.5 px-3">Assigned Personnel</th>
                   <th className="py-2.5 px-3">Deployment Timeline</th>
                   <th className="py-2.5 px-3">Status</th>
                   <th className="py-2.5 px-3 text-right">Actions</th>
@@ -940,16 +940,37 @@ export default function VehicleAssignmentPage() {
                       <div className="flex items-center gap-1.5">
                         <User size={12} className="text-slate-400 shrink-0" />
                         <span className="font-bold text-slate-800">{a.assignedToName || 'Unassigned'}</span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
-                        <span className="capitalize font-medium">{a.assignedToType || 'driver'}</span>
-                        {a.assignedToPhone && (
-                          <span className="flex items-center gap-0.5">
-                            <Phone size={9} />
-                            {a.assignedToPhone}
+                        {a.assignedToType && (
+                          <span className="text-[9px] font-semibold text-slate-600 bg-slate-100 px-1 py-0.2 rounded border border-slate-200">
+                            {a.assignedToType}
                           </span>
                         )}
                       </div>
+                      {a.assignedToPhone && (
+                        <div className="flex items-center gap-1 mt-0.5 text-[10px] text-slate-400">
+                          <Phone size={9} />
+                          {a.assignedToPhone}
+                        </div>
+                      )}
+                      {a.helperName && (
+                        <div className="mt-1 pt-1 border-t border-slate-100 flex flex-col gap-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <User size={11} className="text-blue-500 shrink-0" />
+                            <span className="font-semibold text-slate-700">{a.helperName}</span>
+                            {a.helperRole && (
+                              <span className="text-[9px] font-semibold text-blue-700 bg-blue-50 px-1 py-0.2 rounded border border-blue-200/60">
+                                {a.helperRole}
+                              </span>
+                            )}
+                          </div>
+                          {a.helperPhone && (
+                            <div className="flex items-center gap-1 text-[10px] text-slate-400">
+                              <Phone size={9} />
+                              {a.helperPhone}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </td>
 
                     {/* Timeline */}
@@ -1229,12 +1250,12 @@ export default function VehicleAssignmentPage() {
                         </select>
                       </div>
 
-                      {/* Section 1: Primary Driver / Operator */}
+                      {/* Section 1: Assigned Driver / Operator */}
                       <div className="bg-slate-50/70 p-2.5 rounded-lg border border-slate-200/70 space-y-1.5">
                         <div className="flex items-center justify-between">
                           <span className="text-[10.5px] font-bold text-slate-700 flex items-center gap-1">
                             <Users size={12} className="text-[#46B351]" />
-                            <span>1. Primary Driver / Operator <span className="text-rose-500">*</span></span>
+                            <span>1. Assigned Driver / Operator <span className="text-rose-500">*</span></span>
                           </span>
                           {row.assignedToName && (
                             <span className="text-[9.5px] font-semibold text-emerald-700 bg-emerald-100/70 px-1.5 py-0.2 rounded">
@@ -1308,32 +1329,32 @@ export default function VehicleAssignmentPage() {
                         </div>
                       </div>
 
-                      {/* Section 2: Helper / Co-Driver / Assistant (Optional) */}
+                      {/* Section 2: Second Assigned Personnel (Optional) */}
                       <div className="bg-slate-50/70 p-2.5 rounded-lg border border-slate-200/70 space-y-1.5">
                         <div className="flex items-center justify-between">
                           <span className="text-[10.5px] font-bold text-slate-700 flex items-center gap-1">
                             <User size={12} className="text-blue-600" />
-                            <span>2. Helper / Co-Driver / Assistant (Optional)</span>
+                            <span>2. Second Assigned Personnel (Optional)</span>
                           </span>
                           {row.helperName && (
                             <span className="text-[9.5px] font-semibold text-blue-700 bg-blue-100/70 px-1.5 py-0.2 rounded">
-                              ✓ Helper Assigned
+                              ✓ 2nd Personnel Assigned
                             </span>
                           )}
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
-                          {/* Helper Select */}
+                          {/* Second Personnel Select */}
                           <div className="sm:col-span-5">
                             <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
-                              Helper / Second Crew
+                              Second Personnel Name
                             </label>
                             <select
                               value={row.helperId || ''}
                               onChange={e => handleSelectHelperForRow(row.rowId, e.target.value)}
                               className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
                             >
-                              <option value="">-- None / No Helper --</option>
+                              <option value="">-- None (Single Driver Only) --</option>
                               {teamMembers
                                 .filter(m => String(m.id) !== String(row.memberId))
                                 .map(m => (
@@ -1344,30 +1365,30 @@ export default function VehicleAssignmentPage() {
                             </select>
                           </div>
 
-                          {/* Helper Role */}
+                          {/* Second Personnel Role */}
                           <div className="sm:col-span-3">
                             <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
-                              Helper Role
+                              Role Type
                             </label>
                             <input
                               type="text"
                               readOnly
                               value={row.helperRole || ''}
-                              placeholder="None"
+                              placeholder="Auto-filled"
                               className="w-full bg-slate-100/80 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-700 cursor-default"
                             />
                           </div>
 
-                          {/* Helper Phone */}
+                          {/* Second Personnel Phone */}
                           <div className="sm:col-span-4">
                             <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
-                              Helper Phone
+                              Contact Phone
                             </label>
                             <input
                               type="text"
                               readOnly
                               value={row.helperPhone || ''}
-                              placeholder="None"
+                              placeholder="Auto-filled"
                               className="w-full bg-slate-100/80 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-700 cursor-default"
                             />
                           </div>
@@ -1494,18 +1515,36 @@ export default function VehicleAssignmentPage() {
                 </div>
 
                 <div className="p-2 bg-slate-50 rounded-lg border border-slate-100">
-                  <span className="text-[9px] text-slate-400 font-semibold block">Assigned Personnel</span>
+                  <span className="text-[9px] text-slate-400 font-semibold block">1. Assigned Driver / Operator</span>
                   <span className="font-bold text-slate-800 text-[11px] truncate mt-0.5 block">
-                    {viewingAssignment.assignedToName || 'Unassigned'} ({viewingAssignment.assignedToType || 'driver'})
+                    {viewingAssignment.assignedToName || 'Unassigned'} ({viewingAssignment.assignedToType || 'Driver'})
                   </span>
                 </div>
 
                 <div className="p-2 bg-slate-50 rounded-lg border border-slate-100">
-                  <span className="text-[9px] text-slate-400 font-semibold block">Contact Phone</span>
+                  <span className="text-[9px] text-slate-400 font-semibold block">Driver Contact Phone</span>
                   <span className="font-bold text-slate-800 text-[11px] truncate mt-0.5 block">
                     {viewingAssignment.assignedToPhone || '—'}
                   </span>
                 </div>
+
+                {viewingAssignment.helperName && (
+                  <>
+                    <div className="p-2 bg-blue-50/50 rounded-lg border border-blue-100">
+                      <span className="text-[9px] text-blue-600 font-semibold block">2. Second Assigned Personnel</span>
+                      <span className="font-bold text-slate-800 text-[11px] truncate mt-0.5 block">
+                        {viewingAssignment.helperName} ({viewingAssignment.helperRole || 'Staff'})
+                      </span>
+                    </div>
+
+                    <div className="p-2 bg-blue-50/50 rounded-lg border border-blue-100">
+                      <span className="text-[9px] text-blue-600 font-semibold block">Second Personnel Phone</span>
+                      <span className="font-bold text-slate-800 text-[11px] truncate mt-0.5 block">
+                        {viewingAssignment.helperPhone || '—'}
+                      </span>
+                    </div>
+                  </>
+                )}
 
                 <div className="p-2 bg-slate-50 rounded-lg border border-slate-100">
                   <span className="text-[9px] text-slate-400 font-semibold block">Start Date</span>
