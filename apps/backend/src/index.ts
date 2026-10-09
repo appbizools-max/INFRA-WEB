@@ -5222,10 +5222,21 @@ app.post('/api/tenant/fleet-logs', async (req, res) => {
     const startOdo = parseFloat(b.startOdometer) || 0;
     const endOdo = parseFloat(b.endOdometer) || 0;
     const distRun = b.distanceRun !== undefined ? parseFloat(b.distanceRun) : Math.max(0, endOdo - startOdo);
+    const engHoursStart = parseFloat(b.engineHoursStart) || 0;
+    const engHoursEnd = parseFloat(b.engineHoursEnd) || 0;
+    const engHoursTotal = b.engineHoursTotal !== undefined ? parseFloat(b.engineHoursTotal) : Math.max(0, engHoursEnd - engHoursStart);
     const fuelLiters = parseFloat(b.fuelFilledLiters) || 0;
     const fuelRate = parseFloat(b.fuelRatePerLiter) || 0;
     const fuelCost = b.fuelTotalCost !== undefined ? parseFloat(b.fuelTotalCost) : (fuelLiters * fuelRate);
-    const efficiency = fuelLiters > 0 && distRun > 0 ? parseFloat((distRun / fuelLiters).toFixed(2)) : 0;
+
+    let efficiency = 0;
+    if (b.fuelEfficiency !== undefined && parseFloat(b.fuelEfficiency) > 0) {
+      efficiency = parseFloat(b.fuelEfficiency);
+    } else if (b.assetType === 'equipment') {
+      efficiency = fuelLiters > 0 && engHoursTotal > 0 ? parseFloat((fuelLiters / engHoursTotal).toFixed(2)) : 0;
+    } else {
+      efficiency = fuelLiters > 0 && distRun > 0 ? parseFloat((distRun / fuelLiters).toFixed(2)) : 0;
+    }
 
     const insRes = await pool.query(`
       INSERT INTO tenant_fleet_daily_logs (
@@ -5258,9 +5269,9 @@ app.post('/api/tenant/fleet-logs', async (req, res) => {
       b.projectId || null, b.projectName || null, b.worksiteId || null, b.worksiteName || null,
       b.driverId || null, b.driverName || null, b.driverPhone || null,
       b.helperId || null, b.helperName || null, b.helperRole || null, b.helperPhone || null,
-      b.logDate || new Date().toISOString().split('T')[0], b.shift || 'Day', b.stage || 'Working at Site',
+      b.logDate || new Date().toISOString().split('T')[0], b.shift || 'Day', b.stage || 'Working',
       startOdo, endOdo, distRun,
-      parseFloat(b.engineHoursStart) || 0, parseFloat(b.engineHoursEnd) || 0, parseFloat(b.engineHoursTotal) || 0,
+      engHoursStart, engHoursEnd, engHoursTotal,
       fuelLiters, fuelRate, fuelCost,
       b.fuelStation || null, b.fuelBillNumber || null, efficiency,
       parseFloat(b.tollAmount) || 0, parseFloat(b.fastagDeduction) || 0, parseFloat(b.otherExpenses) || 0,
@@ -5268,12 +5279,14 @@ app.post('/api/tenant/fleet-logs', async (req, res) => {
     ]);
 
     // Also update assignment status/odometer if assignmentId is present
-    if (b.assignmentId && endOdo > 0) {
+    if (b.assignmentId && (endOdo > 0 || engHoursEnd > 0)) {
+      const closingVal = b.assetType === 'equipment' && engHoursEnd > 0 ? engHoursEnd : endOdo;
+      const progressVal = b.assetType === 'equipment' && engHoursTotal > 0 ? engHoursTotal : distRun;
       await pool.query(`
         UPDATE tenant_vehicle_assignments
         SET odometer_closing_km = $1, distance_travelled = COALESCE(distance_travelled, 0) + $2, updated_at = NOW()
         WHERE id = $3;
-      `, [endOdo, distRun, b.assignmentId]);
+      `, [closingVal, progressVal, b.assignmentId]);
     }
 
     res.status(201).json(insRes.rows[0]);

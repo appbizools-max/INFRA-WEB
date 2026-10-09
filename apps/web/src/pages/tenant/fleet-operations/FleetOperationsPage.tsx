@@ -61,7 +61,7 @@ interface FleetDailyLog {
   helperPhone?: string;
   logDate: string;
   shift: 'Day' | 'Night' | string;
-  stage: 'Working at Site' | 'On Trip / In Transit' | 'Idle / Standby' | 'Refueling' | 'Breakdown / Maintenance' | string;
+  stage: 'Working' | 'Transit' | 'Idle' | 'Maintenance' | string;
   startOdometer: number | string;
   endOdometer: number | string;
   distanceRun: number | string;
@@ -81,7 +81,6 @@ interface FleetDailyLog {
   remarks?: string;
   createdAt?: string;
 }
-
 interface OperationalStats {
   summary: {
     activeAssetsCount: string | number;
@@ -101,6 +100,19 @@ interface OperationalStats {
     totalToll: string | number;
   }>;
 }
+
+
+export const FLEET_STAGES = ['All', 'Working', 'Transit', 'Idle', 'Maintenance'] as const;
+
+export const normalizeStage = (st: string) => {
+  if (!st) return 'Working';
+  const lower = st.toLowerCase();
+  if (lower.includes('work') || lower.includes('site')) return 'Working';
+  if (lower.includes('transit') || lower.includes('trip')) return 'Transit';
+  if (lower.includes('idle') || lower.includes('standby')) return 'Idle';
+  if (lower.includes('breakdown') || lower.includes('maintenance')) return 'Maintenance';
+  return st;
+};
 
 export default function FleetOperationsPage() {
   const { currentUser } = useAuth();
@@ -154,7 +166,8 @@ export default function FleetOperationsPage() {
     helperPhone: '',
     logDate: new Date().toISOString().split('T')[0],
     shift: 'Day',
-    stage: 'Working at Site',
+    stage: 'Working',
+    tollApplicable: false,
     startOdometer: '',
     endOdometer: '',
     distanceRun: '',
@@ -221,13 +234,14 @@ export default function FleetOperationsPage() {
   const handleSelectAssignmentInForm = (assignId: string) => {
     const selected = assignments.find(a => String(a.id) === String(assignId));
     if (selected) {
+      const isEq = selected.assetType === 'equipment';
       const lastEnd = selected.odometerClosingKm || selected.meterReadingAtAssign || 0;
       setLogForm(prev => ({
         ...prev,
         assignmentId: String(selected.id),
         assetNumber: selected.assetNumber,
         assetTitle: selected.assetTitle || selected.assetType,
-        assetType: selected.assetType || 'vehicle',
+        assetType: isEq ? 'equipment' : 'vehicle',
         projectId: selected.projectId || '',
         projectName: selected.projectName || '',
         worksiteId: selected.worksiteId || '',
@@ -237,7 +251,9 @@ export default function FleetOperationsPage() {
         helperName: selected.helperName || '',
         helperRole: selected.helperRole || '',
         helperPhone: selected.helperPhone || '',
-        startOdometer: lastEnd > 0 ? String(lastEnd) : prev.startOdometer
+        startOdometer: !isEq && lastEnd > 0 ? String(lastEnd) : prev.startOdometer,
+        engineHoursStart: isEq && lastEnd > 0 ? String(lastEnd) : prev.engineHoursStart,
+        tollApplicable: !isEq
       }));
     } else {
       setLogForm(prev => ({
@@ -256,7 +272,7 @@ export default function FleetOperationsPage() {
     }
   };
 
-  // Auto-calculate distance run
+  // Auto-calculate distance run (for vehicles)
   const calculatedDistance = useMemo(() => {
     const start = parseFloat(logForm.startOdometer) || 0;
     const end = parseFloat(logForm.endOdometer) || 0;
@@ -265,6 +281,16 @@ export default function FleetOperationsPage() {
     }
     return '';
   }, [logForm.startOdometer, logForm.endOdometer]);
+
+  // Auto-calculate engine hours (for heavy machinery)
+  const calculatedEngineHours = useMemo(() => {
+    const start = parseFloat(logForm.engineHoursStart) || 0;
+    const end = parseFloat(logForm.engineHoursEnd) || 0;
+    if (end > start) {
+      return (end - start).toFixed(1);
+    }
+    return '';
+  }, [logForm.engineHoursStart, logForm.engineHoursEnd]);
 
   // Auto-calculate fuel total cost
   const calculatedFuelCost = useMemo(() => {
@@ -276,7 +302,7 @@ export default function FleetOperationsPage() {
     return '';
   }, [logForm.fuelFilledLiters, logForm.fuelRatePerLiter]);
 
-  // Live estimated mileage
+  // Live estimated mileage (KM / L) for vehicles
   const calculatedMileage = useMemo(() => {
     const dist = parseFloat(calculatedDistance || logForm.distanceRun) || 0;
     const fuel = parseFloat(logForm.fuelFilledLiters) || 0;
@@ -285,6 +311,26 @@ export default function FleetOperationsPage() {
     }
     return null;
   }, [calculatedDistance, logForm.distanceRun, logForm.fuelFilledLiters]);
+
+  // Live estimated hourly fuel burn (L / Hr) for equipment
+  const calculatedHourlyFuelBurn = useMemo(() => {
+    const hours = parseFloat(calculatedEngineHours || logForm.engineHoursTotal) || 0;
+    const fuel = parseFloat(logForm.fuelFilledLiters) || 0;
+    if (hours > 0 && fuel > 0) {
+      return (fuel / hours).toFixed(2);
+    }
+    return null;
+  }, [calculatedEngineHours, logForm.engineHoursTotal, logForm.fuelFilledLiters]);
+
+  // Live estimated hourly operating cost (₹ / Hr) for equipment
+  const calculatedHourlyCost = useMemo(() => {
+    const hours = parseFloat(calculatedEngineHours || logForm.engineHoursTotal) || 0;
+    const cost = parseFloat(calculatedFuelCost || logForm.fuelTotalCost) || 0;
+    if (hours > 0 && cost > 0) {
+      return (cost / hours).toFixed(2);
+    }
+    return null;
+  }, [calculatedEngineHours, logForm.engineHoursTotal, calculatedFuelCost, logForm.fuelTotalCost]);
 
   // Submit New Daily Log
   const handleCreateLog = async (e: React.FormEvent) => {
@@ -296,13 +342,26 @@ export default function FleetOperationsPage() {
 
     setSaving(true);
     try {
-      const dist = calculatedDistance ? parseFloat(calculatedDistance) : (parseFloat(logForm.distanceRun) || 0);
+      const isEq = logForm.assetType === 'equipment';
+      const dist = isEq ? 0 : (calculatedDistance ? parseFloat(calculatedDistance) : (parseFloat(logForm.distanceRun) || 0));
+      const engHours = isEq ? (calculatedEngineHours ? parseFloat(calculatedEngineHours) : (parseFloat(logForm.engineHoursTotal) || 0)) : 0;
       const fuelCost = calculatedFuelCost ? parseFloat(calculatedFuelCost) : (parseFloat(logForm.fuelTotalCost) || 0);
+      const efficiency = isEq
+        ? (calculatedHourlyFuelBurn ? parseFloat(calculatedHourlyFuelBurn) : 0)
+        : (calculatedMileage ? parseFloat(calculatedMileage) : 0);
+
+      const tollPaid = (isEq && !logForm.tollApplicable) ? 0 : (parseFloat(logForm.tollAmount) || 0);
+      const fastagPaid = (isEq && !logForm.tollApplicable) ? 0 : (parseFloat(logForm.fastagDeduction) || 0);
 
       const payload = {
         ...logForm,
+        stage: normalizeStage(logForm.stage),
         distanceRun: dist,
+        engineHoursTotal: engHours,
         fuelTotalCost: fuelCost,
+        fuelEfficiency: efficiency,
+        tollAmount: tollPaid,
+        fastagDeduction: fastagPaid,
         tenantId: currentUser?.uid || 'demo-tenant'
       };
 
@@ -355,7 +414,7 @@ export default function FleetOperationsPage() {
         (l.fuelBillNumber || '').toLowerCase().includes(q);
 
       const matchesProject = selectedProject === 'All' || l.projectName === selectedProject;
-      const matchesStage = stageFilter === 'All' || l.stage === stageFilter;
+      const matchesStage = stageFilter === 'All' || normalizeStage(l.stage) === stageFilter;
       const matchesType = assetTypeFilter === 'All' || l.assetType === assetTypeFilter;
 
       return matchesSearch && matchesProject && matchesStage && matchesType;
@@ -363,37 +422,31 @@ export default function FleetOperationsPage() {
   }, [logs, searchQuery, selectedProject, stageFilter, assetTypeFilter]);
 
   // Stage Badge Helper
-  const getStageBadge = (stage: string) => {
+  const getStageBadge = (rawStage: string) => {
+    const stage = normalizeStage(rawStage);
     switch (stage) {
-      case 'Working at Site':
+      case 'Working':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Working at Site
+            Working
           </span>
         );
-      case 'On Trip / In Transit':
+      case 'Transit':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
             <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
-            On Trip / Transit
+            Transit
           </span>
         );
-      case 'Idle / Standby':
+      case 'Idle':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-            Idle / Standby
+            Idle
           </span>
         );
-      case 'Refueling':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
-            <Fuel size={10} className="text-purple-600" />
-            Refueling
-          </span>
-        );
-      case 'Breakdown / Maintenance':
+      case 'Maintenance':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
             <AlertTriangle size={10} className="text-rose-600" />
@@ -426,13 +479,12 @@ export default function FleetOperationsPage() {
       {/* Toast Alert */}
       {toast && (
         <div
-          className={`fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-xl shadow-lg border text-xs font-semibold animate-in slide-in-from-bottom-5 duration-200 ${
-            toast.type === 'success'
-              ? 'bg-emerald-900/95 text-white border-emerald-500/30'
-              : toast.type === 'error'
+          className={`fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-xl shadow-lg border text-xs font-semibold animate-in slide-in-from-bottom-5 duration-200 ${toast.type === 'success'
+            ? 'bg-emerald-900/95 text-white border-emerald-500/30'
+            : toast.type === 'error'
               ? 'bg-rose-900/95 text-white border-rose-500/30'
               : 'bg-slate-900/95 text-white border-slate-700'
-          }`}
+            }`}
         >
           {toast.type === 'success' ? <CheckCircle2 size={15} /> : <AlertCircle size={15} />}
           <span>{toast.message}</span>
@@ -688,11 +740,10 @@ export default function FleetOperationsPage() {
               className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
             >
               <option value="All">All Stages</option>
-              <option value="Working at Site">Working at Site</option>
-              <option value="On Trip / In Transit">On Trip / In Transit</option>
-              <option value="Idle / Standby">Idle / Standby</option>
-              <option value="Refueling">Refueling</option>
-              <option value="Breakdown / Maintenance">Maintenance</option>
+              <option value="Working">Working</option>
+              <option value="Transit">Transit</option>
+              <option value="Idle">Idle</option>
+              <option value="Maintenance">Maintenance</option>
             </select>
           </div>
         </div>
@@ -707,11 +758,10 @@ export default function FleetOperationsPage() {
               <button
                 key={st}
                 onClick={() => setStageFilter(st)}
-                className={`px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                  isSel
-                    ? 'bg-slate-900 text-white font-bold'
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60'
-                }`}
+                className={`px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${isSel
+                  ? 'bg-slate-900 text-white font-bold'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60'
+                  }`}
               >
                 <span>{st}</span>
                 <span className={`px-1.5 py-0.2 rounded-full text-[9px] ${isSel ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'}`}>
@@ -777,11 +827,10 @@ export default function FleetOperationsPage() {
                     <td className="py-2.5 px-3.5">
                       <div className="flex items-center gap-2.5">
                         <div
-                          className={`h-8 w-8 rounded-xl flex items-center justify-center font-bold shrink-0 shadow-2xs ${
-                            l.assetType === 'equipment'
-                              ? 'bg-amber-50 text-amber-600 border border-amber-200/60'
-                              : 'bg-emerald-50 text-[#46B351] border border-emerald-200/60'
-                          }`}
+                          className={`h-8 w-8 rounded-xl flex items-center justify-center font-bold shrink-0 shadow-2xs ${l.assetType === 'equipment'
+                            ? 'bg-amber-50 text-amber-600 border border-amber-200/60'
+                            : 'bg-emerald-50 text-[#46B351] border border-emerald-200/60'
+                            }`}
                         >
                           {l.assetType === 'equipment' ? <HardHat size={14} /> : <Truck size={14} />}
                         </div>
@@ -915,10 +964,38 @@ export default function FleetOperationsPage() {
 
             {/* Form Body */}
             <form onSubmit={handleCreateLog} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs">
+              {/* Asset Category Mode Switcher */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setLogForm(prev => ({ ...prev, assetType: 'vehicle', tollApplicable: true }))}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+                    logForm.assetType === 'vehicle'
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <Truck size={14} />
+                  <span>Commercial Vehicle / Truck</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLogForm(prev => ({ ...prev, assetType: 'equipment', tollApplicable: false }))}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+                    logForm.assetType === 'equipment'
+                      ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <HardHat size={14} />
+                  <span>Heavy Machinery / Equipment</span>
+                </button>
+              </div>
+
               {/* Section 1: Vehicle & Shift Assignment */}
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2.5">
                 <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
-                  1. Vehicle & Deployment Assignment
+                  1. {logForm.assetType === 'equipment' ? 'Equipment' : 'Vehicle'} & Deployment Assignment
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
@@ -931,12 +1008,22 @@ export default function FleetOperationsPage() {
                       onChange={e => handleSelectAssignmentInForm(e.target.value)}
                       className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
                     >
-                      <option value="">-- Choose Assigned Vehicle / Equipment --</option>
-                      {assignments.map(a => (
-                        <option key={a.id} value={String(a.id)}>
-                          {a.assetNumber} • {a.assetTitle || a.assetType} ({a.projectName || 'General'})
-                        </option>
-                      ))}
+                      <option value="">-- Choose Assigned {logForm.assetType === 'equipment' ? 'Equipment' : 'Vehicle'} --</option>
+                      {assignments
+                        .filter(a => logForm.assetType === 'equipment' ? a.assetType === 'equipment' : a.assetType !== 'equipment')
+                        .map(a => (
+                          <option key={a.id} value={String(a.id)}>
+                            {a.assetNumber} • {a.assetTitle || a.assetType} ({a.projectName || 'General'})
+                          </option>
+                        ))}
+                      {/* Fallback to show all if category filter matches none */}
+                      {assignments.filter(a => logForm.assetType === 'equipment' ? a.assetType === 'equipment' : a.assetType !== 'equipment').length === 0 && (
+                        assignments.map(a => (
+                          <option key={a.id} value={String(a.id)}>
+                            {a.assetNumber} • {a.assetTitle || a.assetType} ({a.projectName || 'General'})
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
 
@@ -949,11 +1036,10 @@ export default function FleetOperationsPage() {
                       onChange={e => setLogForm(prev => ({ ...prev, stage: e.target.value }))}
                       className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
                     >
-                      <option value="Working at Site">Working at Site</option>
-                      <option value="On Trip / In Transit">On Trip / In Transit</option>
-                      <option value="Idle / Standby">Idle / Standby</option>
-                      <option value="Refueling">Refueling</option>
-                      <option value="Breakdown / Maintenance">Breakdown / Maintenance</option>
+                      <option value="Working">Working</option>
+                      <option value="Transit">Transit</option>
+                      <option value="Idle">Idle</option>
+                      <option value="Maintenance">Maintenance</option>
                     </select>
                   </div>
                 </div>
@@ -976,81 +1062,152 @@ export default function FleetOperationsPage() {
                 )}
               </div>
 
-              {/* Section 2: Shift Date & Odometer Readings */}
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
-                    2. Date, Shift & Odometer Mileage
-                  </span>
-                  {calculatedDistance && (
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
-                      +{calculatedDistance} KM Run
+              {/* Section 2: Shift Date & Meter Readings */}
+              {logForm.assetType === 'equipment' ? (
+                /* Heavy Machinery: Operating Engine Hours */
+                <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-200/80 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wider block">
+                      2. Date, Shift & Engine Hours Meter
                     </span>
-                  )}
+                    {calculatedEngineHours && (
+                      <span className="text-[10px] font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded">
+                        +{calculatedEngineHours} Operating Hours
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <div>
+                      <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">Log Date</label>
+                      <input
+                        type="date"
+                        required
+                        value={logForm.logDate}
+                        onChange={e => setLogForm(prev => ({ ...prev, logDate: e.target.value }))}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">Shift</label>
+                      <select
+                        value={logForm.shift}
+                        onChange={e => setLogForm(prev => ({ ...prev, shift: e.target.value }))}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800"
+                      >
+                        <option value="Day">Day Shift</option>
+                        <option value="Night">Night Shift</option>
+                        <option value="Full Day">Full Day (24h)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">Start Engine Hours (Hrs)</label>
+                      <input
+                        type="number"
+                        step="any"
+                        placeholder="e.g. 1240.5"
+                        value={logForm.engineHoursStart}
+                        onChange={e => setLogForm(prev => ({ ...prev, engineHoursStart: e.target.value }))}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-800"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">End Engine Hours (Hrs)</label>
+                      <input
+                        type="number"
+                        step="any"
+                        placeholder="e.g. 1248.5"
+                        value={logForm.engineHoursEnd}
+                        onChange={e => setLogForm(prev => ({ ...prev, engineHoursEnd: e.target.value }))}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-800"
+                      />
+                    </div>
+                  </div>
                 </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  <div>
-                    <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">Log Date</label>
-                    <input
-                      type="date"
-                      required
-                      value={logForm.logDate}
-                      onChange={e => setLogForm(prev => ({ ...prev, logDate: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800"
-                    />
+              ) : (
+                /* Commercial Vehicles: Odometer Mileage */
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
+                      2. Date, Shift & Odometer Mileage
+                    </span>
+                    {calculatedDistance && (
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
+                        +{calculatedDistance} KM Run
+                      </span>
+                    )}
                   </div>
 
-                  <div>
-                    <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">Shift</label>
-                    <select
-                      value={logForm.shift}
-                      onChange={e => setLogForm(prev => ({ ...prev, shift: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800"
-                    >
-                      <option value="Day">Day Shift</option>
-                      <option value="Night">Night Shift</option>
-                      <option value="Full Day">Full Day (24h)</option>
-                    </select>
-                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <div>
+                      <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">Log Date</label>
+                      <input
+                        type="date"
+                        required
+                        value={logForm.logDate}
+                        onChange={e => setLogForm(prev => ({ ...prev, logDate: e.target.value }))}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">Start Odometer (KM)</label>
-                    <input
-                      type="number"
-                      step="any"
-                      placeholder="e.g. 45120"
-                      value={logForm.startOdometer}
-                      onChange={e => setLogForm(prev => ({ ...prev, startOdometer: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-800"
-                    />
-                  </div>
+                    <div>
+                      <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">Shift</label>
+                      <select
+                        value={logForm.shift}
+                        onChange={e => setLogForm(prev => ({ ...prev, shift: e.target.value }))}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800"
+                      >
+                        <option value="Day">Day Shift</option>
+                        <option value="Night">Night Shift</option>
+                        <option value="Full Day">Full Day (24h)</option>
+                      </select>
+                    </div>
 
-                  <div>
-                    <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">End Odometer (KM)</label>
-                    <input
-                      type="number"
-                      step="any"
-                      placeholder="e.g. 45365"
-                      value={logForm.endOdometer}
-                      onChange={e => setLogForm(prev => ({ ...prev, endOdometer: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-800"
-                    />
+                    <div>
+                      <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">Start Odometer (KM)</label>
+                      <input
+                        type="number"
+                        step="any"
+                        placeholder="e.g. 45120"
+                        value={logForm.startOdometer}
+                        onChange={e => setLogForm(prev => ({ ...prev, startOdometer: e.target.value }))}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-800"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">End Odometer (KM)</label>
+                      <input
+                        type="number"
+                        step="any"
+                        placeholder="e.g. 45365"
+                        value={logForm.endOdometer}
+                        onChange={e => setLogForm(prev => ({ ...prev, endOdometer: e.target.value }))}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-800"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Section 3: Fuel Fill-up (Optional/When refueled) */}
+              {/* Section 3: Fuel Fill-up & Burn Rate / Mileage */}
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
-                    3. Fuel Refill (Diesel / Petrol)
+                    {logForm.assetType === 'equipment' ? '3. Fuel Refill & Hourly Consumption' : '3. Fuel Refill (Diesel / Petrol)'}
                   </span>
-                  {calculatedMileage && (
+                  {logForm.assetType === 'equipment' && calculatedHourlyFuelBurn ? (
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded">
+                      ⚡ Burn: {calculatedHourlyFuelBurn} L/Hr {calculatedHourlyCost ? `(₹${calculatedHourlyCost}/Hr)` : ''}
+                    </span>
+                  ) : logForm.assetType === 'vehicle' && calculatedMileage ? (
                     <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded">
-                      ⚡ Efficiency: {calculatedMileage} KM / L
+                      ⚡ Mileage: {calculatedMileage} KM / L
                     </span>
-                  )}
+                  ) : null}
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -1106,56 +1263,116 @@ export default function FleetOperationsPage() {
                   <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">Fuel Station / Tanker Bowser Name</label>
                   <input
                     type="text"
-                    placeholder="e.g. Indian Oil NH-53 Pump or Site Fuel Bowser #2"
+                    placeholder="e.g. Site Fuel Bowser #2 or Indian Oil NH-53 Pump"
                     value={logForm.fuelStation}
                     onChange={e => setLogForm(prev => ({ ...prev, fuelStation: e.target.value }))}
                     className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800"
                   />
                 </div>
+
+                {/* Equipment Live Hourly Burn Breakdown */}
+                {logForm.assetType === 'equipment' && (calculatedHourlyFuelBurn || calculatedHourlyCost) && (
+                  <div className="p-2.5 bg-amber-50/80 rounded-lg border border-amber-200/80 grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10.5px]">
+                    <div>
+                      <span className="text-amber-800 font-semibold block">Hourly Consumption:</span>
+                      <strong className="text-amber-950 font-black text-xs">{calculatedHourlyFuelBurn || '0'} Liters / Hour</strong>
+                    </div>
+                    <div>
+                      <span className="text-amber-800 font-semibold block">Machine Hourly Cost:</span>
+                      <strong className="text-amber-950 font-black text-xs">₹{calculatedHourlyCost || '0'} / Hour</strong>
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <span className="text-amber-800 font-semibold block">Operating Duration:</span>
+                      <strong className="text-amber-950 font-black text-xs">{calculatedEngineHours || logForm.engineHoursTotal || '0'} Hours</strong>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Section 4: Toll & En-Route Expenses */}
+              {/* Section 4: Toll & Relocation Expenses */}
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2.5">
-                <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
-                  4. Toll, FASTag & Other Road Expenses
-                </span>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                  <div>
-                    <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">Cash Toll Paid (₹)</label>
-                    <input
-                      type="number"
-                      step="any"
-                      placeholder="0.00"
-                      value={logForm.tollAmount}
-                      onChange={e => setLogForm(prev => ({ ...prev, tollAmount: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">FASTag Deduction (₹)</label>
-                    <input
-                      type="number"
-                      step="any"
-                      placeholder="0.00"
-                      value={logForm.fastagDeduction}
-                      onChange={e => setLogForm(prev => ({ ...prev, fastagDeduction: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">Trips Completed</label>
-                    <input
-                      type="number"
-                      min="1"
-                      placeholder="1"
-                      value={logForm.tripsCount}
-                      onChange={e => setLogForm(prev => ({ ...prev, tripsCount: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800"
-                    />
-                  </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
+                    4. Toll, FASTag & Relocation Expenses
+                  </span>
+                  {logForm.assetType === 'equipment' && !logForm.tollApplicable && (
+                    <span className="text-[10px] font-semibold text-slate-500 bg-slate-200/70 px-2 py-0.5 rounded">
+                      On-Site Machinery (No Toll)
+                    </span>
+                  )}
                 </div>
+
+                {logForm.assetType === 'equipment' && (
+                  <div className="p-2.5 bg-white rounded-lg border border-slate-200 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">Road Toll / Highway Transit Applicable?</span>
+                      <span className="text-[10px] text-slate-500 block">
+                        {logForm.tollApplicable
+                          ? 'Equipment was relocated via highway trailer or public toll road'
+                          : 'Machinery operated on-site only — no road toll charges applicable'}
+                      </span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer ml-3 shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={logForm.tollApplicable}
+                        onChange={e => {
+                          const val = e.target.checked;
+                          setLogForm(prev => ({
+                            ...prev,
+                            tollApplicable: val,
+                            tollAmount: val ? prev.tollAmount : '',
+                            fastagDeduction: val ? prev.fastagDeduction : ''
+                          }));
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-600"></div>
+                    </label>
+                  </div>
+                )}
+
+                {(logForm.assetType === 'vehicle' || logForm.tollApplicable) && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">Cash Toll Paid (₹)</label>
+                      <input
+                        type="number"
+                        step="any"
+                        placeholder="0.00"
+                        value={logForm.tollAmount}
+                        onChange={e => setLogForm(prev => ({ ...prev, tollAmount: e.target.value }))}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">FASTag Deduction (₹)</label>
+                      <input
+                        type="number"
+                        step="any"
+                        placeholder="0.00"
+                        value={logForm.fastagDeduction}
+                        onChange={e => setLogForm(prev => ({ ...prev, fastagDeduction: e.target.value }))}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">
+                        {logForm.assetType === 'equipment' ? 'Transit / Relocations' : 'Trips Completed'}
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="1"
+                        value={logForm.tripsCount}
+                        onChange={e => setLogForm(prev => ({ ...prev, tripsCount: e.target.value }))}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Remarks */}
@@ -1223,11 +1440,10 @@ export default function FleetOperationsPage() {
             <div className="p-4 border-b border-slate-100 bg-gradient-to-b from-slate-50/90 to-white space-y-2.5">
               <div className="flex items-center gap-3">
                 <div
-                  className={`h-11 w-11 rounded-2xl flex items-center justify-center font-bold shrink-0 shadow-2xs ${
-                    viewingLog.assetType === 'equipment'
-                      ? 'bg-amber-50 text-amber-600 border border-amber-200/60'
-                      : 'bg-emerald-50 text-[#46B351] border border-emerald-200/60'
-                  }`}
+                  className={`h-11 w-11 rounded-2xl flex items-center justify-center font-bold shrink-0 shadow-2xs ${viewingLog.assetType === 'equipment'
+                    ? 'bg-amber-50 text-amber-600 border border-amber-200/60'
+                    : 'bg-emerald-50 text-[#46B351] border border-emerald-200/60'
+                    }`}
                 >
                   {viewingLog.assetType === 'equipment' ? <HardHat size={22} /> : <Truck size={22} />}
                 </div>
@@ -1260,7 +1476,7 @@ export default function FleetOperationsPage() {
                 className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-2.5 transition-colors cursor-pointer"
               >
                 <Gauge size={14} className="text-emerald-600" />
-                <span>Distance & Odometer</span>
+                <span>{viewingLog.assetType === 'equipment' ? 'Engine Hours & Output' : 'Distance & Odometer'}</span>
               </button>
               <button
                 type="button"
@@ -1320,11 +1536,10 @@ export default function FleetOperationsPage() {
                     key={l.id}
                     type="button"
                     onClick={() => setViewingLog(l)}
-                    className={`w-full text-left p-2.5 rounded-xl text-xs flex items-center justify-between transition-all cursor-pointer ${
-                      l.id === viewingLog.id
-                        ? 'bg-slate-900 text-white font-bold shadow-xs'
-                        : 'hover:bg-slate-100 text-slate-700'
-                    }`}
+                    className={`w-full text-left p-2.5 rounded-xl text-xs flex items-center justify-between transition-all cursor-pointer ${l.id === viewingLog.id
+                      ? 'bg-slate-900 text-white font-bold shadow-xs'
+                      : 'hover:bg-slate-100 text-slate-700'
+                      }`}
                   >
                     <div className="min-w-0 pr-2">
                       <span className="block font-bold truncate">{l.assetNumber}</span>
@@ -1333,7 +1548,11 @@ export default function FleetOperationsPage() {
                       </span>
                     </div>
                     <div className="text-right shrink-0">
-                      {Number(l.distanceRun) > 0 ? (
+                      {l.assetType === 'equipment' && Number(l.engineHoursTotal) > 0 ? (
+                        <span className={`text-[11px] font-bold ${l.id === viewingLog.id ? 'text-amber-300' : 'text-amber-600'}`}>
+                          +{Number(l.engineHoursTotal).toFixed(1)} Hrs
+                        </span>
+                      ) : Number(l.distanceRun) > 0 ? (
                         <span className={`text-[11px] font-bold ${l.id === viewingLog.id ? 'text-emerald-300' : 'text-emerald-600'}`}>
                           +{Number(l.distanceRun).toFixed(0)} KM
                         </span>
@@ -1380,21 +1599,38 @@ export default function FleetOperationsPage() {
 
             {/* Telemetry High-Impact Ribbon */}
             <div id="section-telemetry" className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              {/* 1. Distance Run */}
-              <div className="bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-200/80 p-4 rounded-2xl">
-                <div className="flex items-center justify-between text-emerald-800">
-                  <span className="text-[10.5px] font-bold uppercase tracking-wider">Distance Run</span>
-                  <Gauge size={16} />
+              {/* 1. Distance Run or Engine Hours */}
+              {viewingLog.assetType === 'equipment' ? (
+                <div className="bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-200/80 p-4 rounded-2xl">
+                  <div className="flex items-center justify-between text-amber-800">
+                    <span className="text-[10.5px] font-bold uppercase tracking-wider">Engine Hours Run</span>
+                    <HardHat size={16} />
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-2xl font-black text-slate-900 tracking-tight text-amber-700">
+                      +{Number(viewingLog.engineHoursTotal || 0).toFixed(1)} Hrs
+                    </span>
+                    <p className="text-[10px] text-slate-500 mt-0.5">
+                      Meter: {viewingLog.engineHoursStart || 0} → {viewingLog.engineHoursEnd || 0} Hrs
+                    </p>
+                  </div>
                 </div>
-                <div className="mt-2">
-                  <span className="text-2xl font-black text-slate-900 tracking-tight text-emerald-700">
-                    +{Number(viewingLog.distanceRun).toFixed(0)} KM
-                  </span>
-                  <p className="text-[10px] text-slate-500 mt-0.5">
-                    {Number(viewingLog.startOdometer).toLocaleString()} → {Number(viewingLog.endOdometer).toLocaleString()} KM
-                  </p>
+              ) : (
+                <div className="bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-200/80 p-4 rounded-2xl">
+                  <div className="flex items-center justify-between text-emerald-800">
+                    <span className="text-[10.5px] font-bold uppercase tracking-wider">Distance Run</span>
+                    <Gauge size={16} />
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-2xl font-black text-slate-900 tracking-tight text-emerald-700">
+                      +{Number(viewingLog.distanceRun).toFixed(0)} KM
+                    </span>
+                    <p className="text-[10px] text-slate-500 mt-0.5">
+                      {Number(viewingLog.startOdometer).toLocaleString()} → {Number(viewingLog.endOdometer).toLocaleString()} KM
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* 2. Fuel Refill */}
               <div id="section-fuel" className="bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent border border-purple-200/80 p-4 rounded-2xl">
@@ -1414,20 +1650,26 @@ export default function FleetOperationsPage() {
                 </div>
               </div>
 
-              {/* 3. Fuel Efficiency */}
+              {/* 3. Fuel Efficiency or Hourly Burn */}
               <div className="bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent border border-blue-200/80 p-4 rounded-2xl">
                 <div className="flex items-center justify-between text-blue-800">
-                  <span className="text-[10.5px] font-bold uppercase tracking-wider">Fuel Efficiency</span>
+                  <span className="text-[10.5px] font-bold uppercase tracking-wider">
+                    {viewingLog.assetType === 'equipment' ? 'Hourly Consumption' : 'Fuel Efficiency'}
+                  </span>
                   <TrendingUp size={16} />
                 </div>
                 <div className="mt-2">
                   <span className="text-2xl font-black text-slate-900 tracking-tight text-blue-700">
-                    {Number(viewingLog.fuelEfficiency) > 0 ? `${viewingLog.fuelEfficiency} km/l` : '—'}
+                    {Number(viewingLog.fuelEfficiency) > 0
+                      ? (viewingLog.assetType === 'equipment' ? `${viewingLog.fuelEfficiency} L/Hr` : `${viewingLog.fuelEfficiency} km/l`)
+                      : '—'}
                   </span>
                   <p className="text-[10px] text-slate-500 mt-0.5">
-                    {Number(viewingLog.fuelEfficiency) > 0
-                      ? 'Operational consumption mileage'
-                      : 'Telemetry pending refill ratio'}
+                    {viewingLog.assetType === 'equipment' && Number(viewingLog.engineHoursTotal) > 0 && Number(viewingLog.fuelTotalCost) > 0
+                      ? `Machine cost: ₹${(Number(viewingLog.fuelTotalCost) / Number(viewingLog.engineHoursTotal)).toFixed(2)} / Hr`
+                      : viewingLog.assetType === 'equipment'
+                      ? 'Operating fuel burn rate per hour'
+                      : 'Operational consumption mileage'}
                   </p>
                 </div>
               </div>
@@ -1443,7 +1685,9 @@ export default function FleetOperationsPage() {
                     ₹{(Number(viewingLog.tollAmount) + Number(viewingLog.fastagDeduction)).toFixed(0)}
                   </span>
                   <p className="text-[10px] text-slate-500 mt-0.5">
-                    FASTag: ₹{Number(viewingLog.fastagDeduction).toFixed(0)} • Cash: ₹{Number(viewingLog.tollAmount).toFixed(0)}
+                    {viewingLog.assetType === 'equipment' && (Number(viewingLog.tollAmount) + Number(viewingLog.fastagDeduction)) === 0
+                      ? 'On-Site Machinery (No Toll)'
+                      : `FASTag: ₹${Number(viewingLog.fastagDeduction).toFixed(0)} • Cash: ₹${Number(viewingLog.tollAmount).toFixed(0)}`}
                   </p>
                 </div>
               </div>
@@ -1580,42 +1824,51 @@ export default function FleetOperationsPage() {
               {/* Panel 4: Odometer & Run Telemetry */}
               <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-2xs">
                 <div className="flex items-center gap-2 text-slate-700 font-bold text-xs pb-2 border-b border-slate-100">
-                  <Gauge size={14} className="text-emerald-600" />
-                  <span>Odometer & Engine Hours</span>
+                  <Gauge size={14} className={viewingLog.assetType === 'equipment' ? 'text-amber-600' : 'text-emerald-600'} />
+                  <span>{viewingLog.assetType === 'equipment' ? 'Engine Operating Hours Meter' : 'Odometer & Travel Telemetry'}</span>
                 </div>
                 <div className="space-y-2 text-xs">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-semibold block">Opening Odometer</span>
-                      <span className="font-bold text-slate-900 block mt-0.5">
-                        {Number(viewingLog.startOdometer).toLocaleString()} KM
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-semibold block">Closing Odometer</span>
-                      <span className="font-bold text-slate-900 block mt-0.5">
-                        {Number(viewingLog.endOdometer).toLocaleString()} KM
-                      </span>
-                    </div>
-                  </div>
-                  {Number(viewingLog.engineHoursTotal) > 0 && (
-                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                  {viewingLog.assetType === 'equipment' ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-[10px] text-slate-400 font-semibold block">Start Engine Hours</span>
+                          <span className="font-bold text-slate-900 block mt-0.5">
+                            {viewingLog.engineHoursStart || '0'} Hrs
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-400 font-semibold block">End Engine Hours</span>
+                          <span className="font-bold text-slate-900 block mt-0.5">
+                            {viewingLog.engineHoursEnd || '0'} Hrs
+                          </span>
+                        </div>
+                      </div>
+                      <div className="pt-1 border-t border-slate-100 flex items-center justify-between">
+                        <span className="text-[10px] text-slate-400 font-semibold">Net Operating Run:</span>
+                        <span className="font-black text-amber-700">
+                          {Number(viewingLog.engineHoursTotal || 0).toFixed(1)} Hours
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <span className="text-[10px] text-slate-400 font-semibold block">Engine Hours Start</span>
-                        <span className="text-slate-700 block mt-0.5">
-                          {viewingLog.engineHoursStart || '—'}
+                        <span className="text-[10px] text-slate-400 font-semibold block">Opening Odometer</span>
+                        <span className="font-bold text-slate-900 block mt-0.5">
+                          {Number(viewingLog.startOdometer).toLocaleString()} KM
                         </span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400 font-semibold block">Engine Hours End</span>
-                        <span className="text-slate-700 block mt-0.5">
-                          {viewingLog.engineHoursEnd || '—'}
+                        <span className="text-[10px] text-slate-400 font-semibold block">Closing Odometer</span>
+                        <span className="font-bold text-slate-900 block mt-0.5">
+                          {Number(viewingLog.endOdometer).toLocaleString()} KM
                         </span>
                       </div>
                     </div>
                   )}
                   <div>
-                    <span className="text-[10px] text-slate-400 font-semibold block">Total Trips Completed</span>
+                    <span className="text-[10px] text-slate-400 font-semibold block">Total Shifts / Trips Completed</span>
                     <span className="font-semibold text-slate-800 block mt-0.5">
                       {viewingLog.tripsCount || 1} Trip(s)
                     </span>
