@@ -120,8 +120,20 @@ export default function TenantLayout() {
       String(userDesignation).toUpperCase().includes('ACCOUNT') ||
       String(userDesignation).toUpperCase().includes('FINANCE')
     );
+  const isDriverOrFms =
+    userType === 'team_member' && (
+      String(userDepartment).toUpperCase().includes('FMS') ||
+      String(userDepartment).toUpperCase().includes('FLEET') ||
+      String(userDesignation).toUpperCase().includes('DRIVER') ||
+      String(userDesignation).toUpperCase().includes('OPERATOR') ||
+      String(userDesignation).toUpperCase().includes('PILOT') ||
+      String(userDesignation).toUpperCase().includes('FMS')
+    );
 
   const mainNavItems = [
+    ...(isDriverOrFms ? [
+      { name: 'My Vehicle & Shifts', path: '/tenant/fms-employee', icon: Truck }
+    ] : []),
     { name: 'Dashboard', path: '/tenant/dashboard', icon: Home },
     {
       name: 'Projects & Work sites',
@@ -162,6 +174,7 @@ export default function TenantLayout() {
       subItems: [
         { name: 'Fleet Hub & Deployments', path: '/tenant/vehicle-master', icon: Layers },
         { name: 'Fuel, Trips & Running Logs', path: '/tenant/fleet-operations', icon: Gauge },
+        { name: 'FMS Employees Portal', path: '/tenant/fms-employee', icon: UserCheck },
       ]
     },
   ];

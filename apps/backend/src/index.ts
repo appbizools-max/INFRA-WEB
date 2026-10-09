@@ -5311,6 +5311,151 @@ app.delete('/api/tenant/fleet-logs/:id', async (req, res) => {
   }
 });
 
+// GET Driver Context & My Assigned Vehicles for FMS Employee Portal
+app.get(['/api/tenant/fms-employee/driver-portal/:firebaseUid', '/api/tenant/fms-employee/driver-portal'], async (req, res) => {
+  const firebaseUid = req.params.firebaseUid || req.query.firebaseUid || req.query.uid;
+  const { driverPhone, driverName } = req.query;
+  try {
+    let tenantId = null;
+    let employeeProfile: any = null;
+
+    if (firebaseUid) {
+      const adminRes = await pool.query('SELECT tenant_id, admin_name, mobile, email, designation FROM tenant_admins WHERE firebase_uid = $1', [firebaseUid]);
+      if (adminRes.rows.length > 0) {
+        tenantId = adminRes.rows[0].tenant_id;
+        employeeProfile = {
+          name: adminRes.rows[0].admin_name,
+          mobile: adminRes.rows[0].mobile,
+          email: adminRes.rows[0].email,
+          role: adminRes.rows[0].designation || 'Admin',
+          department: 'Management',
+          isAdmin: true
+        };
+      } else {
+        const userRes = await pool.query('SELECT tenant_id, name, mobile, email, role, department, member_id FROM tenant_users WHERE firebase_uid = $1', [firebaseUid]);
+        if (userRes.rows.length > 0) {
+          tenantId = userRes.rows[0].tenant_id;
+          employeeProfile = {
+            name: userRes.rows[0].name,
+            mobile: userRes.rows[0].mobile,
+            email: userRes.rows[0].email,
+            role: userRes.rows[0].role,
+            department: userRes.rows[0].department,
+            memberId: userRes.rows[0].member_id,
+            isAdmin: false
+          };
+        }
+      }
+    }
+
+    if (!tenantId) {
+      const firstTenant = await pool.query('SELECT tenant_id FROM tenant_admins ORDER BY id ASC LIMIT 1');
+      if (firstTenant.rows.length > 0) tenantId = firstTenant.rows[0].tenant_id;
+    }
+    if (!tenantId) tenantId = '1';
+
+    // Fetch all drivers/operators in this tenant (for switcher or matching)
+    const driversListRes = await pool.query(`
+      SELECT id, name, mobile, role, department, member_id as "memberId"
+      FROM tenant_users
+      WHERE tenant_id = $1
+        AND (
+          LOWER(department) LIKE '%fms%' OR 
+          LOWER(department) LIKE '%fleet%' OR 
+          LOWER(department) LIKE '%operat%' OR 
+          LOWER(role) LIKE '%driver%' OR 
+          LOWER(role) LIKE '%operator%' OR 
+          LOWER(role) LIKE '%pilot%'
+        )
+      ORDER BY name ASC
+    `, [tenantId]);
+
+    // Target phone/name
+    const targetPhone = driverPhone || employeeProfile?.mobile || '';
+    const targetName = driverName || employeeProfile?.name || '';
+    const cleanPhone = String(targetPhone).replace(/\D/g, '');
+
+    let assignmentQuery = `
+      SELECT 
+        a.id,
+        a.tenant_id as "tenantId",
+        a.asset_type as "assetType",
+        a.asset_id as "assetId",
+        a.asset_number as "assetNumber",
+        a.asset_title as "assetTitle",
+        a.project_id as "projectId",
+        a.project_name as "projectName",
+        a.worksite_id as "worksiteId",
+        a.worksite_name as "worksiteName",
+        a.assigned_to_type as "assignedToType",
+        a.assigned_to_name as "assignedToName",
+        a.assigned_to_phone as "assignedToPhone",
+        a.helper_name as "helperName",
+        a.helper_phone as "helperPhone",
+        a.helper_role as "helperRole",
+        a.start_date as "startDate",
+        a.meter_reading_at_assign as "meterReadingAtAssign",
+        a.odometer_closing_km as "odometerClosingKm",
+        a.distance_travelled as "distanceTravelled",
+        a.status,
+        a.notes
+      FROM tenant_vehicle_assignments a
+      WHERE a.tenant_id = $1
+    `;
+    const assignParams: any[] = [tenantId];
+
+    if (cleanPhone || targetName) {
+      assignParams.push(`%${cleanPhone || targetName}%`);
+      assignmentQuery += ` AND (
+        a.assigned_to_phone LIKE $${assignParams.length} OR 
+        LOWER(a.assigned_to_name) LIKE LOWER($${assignParams.length}) OR 
+        a.helper_phone LIKE $${assignParams.length} OR 
+        LOWER(a.helper_name) LIKE LOWER($${assignParams.length})
+      )`;
+    }
+
+    assignmentQuery += ` ORDER BY a.status ASC, a.id DESC`;
+    const assignmentsRes = await pool.query(assignmentQuery, assignParams);
+
+    // Fetch shift logs for this driver
+    let logsQuery = `
+      SELECT 
+        id, asset_number as "assetNumber", asset_title as "assetTitle", asset_type as "assetType",
+        assignment_id as "assignmentId", project_name as "projectName", worksite_name as "worksiteName",
+        driver_name as "driverName", driver_phone as "driverPhone",
+        log_date as "logDate", shift, stage,
+        start_odometer as "startOdometer", end_odometer as "endOdometer", distance_run as "distanceRun",
+        engine_hours_start as "engineHoursStart", engine_hours_end as "engineHoursEnd", engine_hours_total as "engineHoursTotal",
+        fuel_filled_liters as "fuelFilledLiters", fuel_rate_per_liter as "fuelRatePerLiter", fuel_total_cost as "fuelTotalCost",
+        fuel_station as "fuelStation", fuel_bill_number as "fuelBillNumber", fuel_efficiency as "fuelEfficiency",
+        toll_amount as "tollAmount", fastag_deduction as "fastagDeduction", other_expenses as "otherExpenses",
+        trips_count as "tripsCount", remarks, created_at as "createdAt"
+      FROM tenant_fleet_daily_logs
+      WHERE tenant_id = $1
+    `;
+    const logsParams: any[] = [tenantId];
+    if (cleanPhone || targetName) {
+      logsParams.push(`%${cleanPhone || targetName}%`);
+      logsQuery += ` AND (
+        driver_phone LIKE $${logsParams.length} OR 
+        LOWER(driver_name) LIKE LOWER($${logsParams.length})
+      )`;
+    }
+    logsQuery += ` ORDER BY log_date DESC, id DESC LIMIT 50`;
+    const logsRes = await pool.query(logsQuery, logsParams);
+
+    res.json({
+      profile: employeeProfile,
+      driversList: driversListRes.rows,
+      myAssignments: assignmentsRes.rows,
+      myLogs: logsRes.rows
+    });
+  } catch (err: any) {
+    console.error('[GET /api/tenant/fms-employee/driver-portal] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── DIVISIONS HELPERS & ENDPOINTS ──────────────────────────────────────────
 async function getTenantIdForUser(userUid: string): Promise<number | null> {
   const adminRes = await pool.query('SELECT tenant_id FROM tenant_admins WHERE firebase_uid = $1', [userUid]);

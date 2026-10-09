@@ -1129,6 +1129,8 @@ export default function TeamPage() {
                               setNewRole('Accountant');
                             } else if (deptLower === 'hr' || deptLower === 'human resources') {
                               setNewRole('HR');
+                            } else if (deptLower === 'fms' || deptLower === 'fleet' || deptLower === 'fleet management') {
+                              setNewRole('Driver');
                             } else {
                               // Auto-select first role of this department if available
                               const dRoles = roles.filter(r => (r.department || '').trim().toLowerCase() === deptLower);
@@ -1169,6 +1171,14 @@ export default function TeamPage() {
                       if ((deptLower === 'hr' || deptLower === 'human resources') && !dRoles.some(r => r.name.toLowerCase() === 'hr')) {
                         dRoles = [{ id: 'hr-role', name: 'HR', access_level: 'HR', department: 'HR' }, ...dRoles];
                       }
+                      if ((deptLower === 'fms' || deptLower === 'fleet' || deptLower === 'fleet management') && !dRoles.some(r => r.name.toLowerCase() === 'driver')) {
+                        dRoles = [
+                          { id: 'driver-role', name: 'Driver', access_level: 'Operator', department: 'FMS' },
+                          { id: 'operator-role', name: 'Heavy Equipment Operator', access_level: 'Operator', department: 'FMS' },
+                          { id: 'fleet-sup-role', name: 'Fleet Supervisor', access_level: 'Operations', department: 'FMS' },
+                          ...dRoles
+                        ];
+                      }
                       return dRoles.length > 0 ? (
                         <span className="text-[10px] text-emerald-600 font-bold">
                           {dRoles.length} Available Roles
@@ -1185,6 +1195,14 @@ export default function TeamPage() {
                     }
                     if ((deptLower === 'hr' || deptLower === 'human resources') && !dRoles.some(r => r.name.toLowerCase() === 'hr')) {
                       dRoles = [{ id: 'hr-role', name: 'HR', access_level: 'HR', department: 'HR' }, ...dRoles];
+                    }
+                    if ((deptLower === 'fms' || deptLower === 'fleet' || deptLower === 'fleet management') && !dRoles.some(r => r.name.toLowerCase() === 'driver')) {
+                      dRoles = [
+                        { id: 'driver-role', name: 'Driver', access_level: 'Operator', department: 'FMS' },
+                        { id: 'operator-role', name: 'Heavy Equipment Operator', access_level: 'Operator', department: 'FMS' },
+                        { id: 'fleet-sup-role', name: 'Fleet Supervisor', access_level: 'Operations', department: 'FMS' },
+                        ...dRoles
+                      ];
                     }
                     
                     if (dRoles.length > 0) {

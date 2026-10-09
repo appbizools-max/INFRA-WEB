@@ -1,12 +1,9 @@
 import { auth } from './firebase';
-
 const getBaseUrl = (): string => {
   const envUrl = import.meta.env.VITE_API_URL || 'https://infra-web-q8tb.onrender.com';
   return envUrl.startsWith('http://localhost:3001') ? 'http://localhost:5000' : envUrl;
 };
-
 export const API_BASE_URL = getBaseUrl();
-
 /**
  * Helper for making authenticated fetch requests to tenant endpoints.
  * Automatically attaches the Firebase ID token in the Authorization header.
@@ -116,6 +113,12 @@ export function getRoleDashboardPath(
     desig.includes('LOGISTICS') || desig.includes('SITE MANAGER') ||
     desig.includes('SUPERVISOR') || desig.includes('COORDINATOR');
 
+  const isFmsOrDriver =
+    dept.includes('FMS') || dept.includes('FLEET') ||
+    desig.includes('DRIVER') || desig.includes('OPERATOR') ||
+    desig.includes('PILOT') || desig.includes('FMS');
+
+  if (isFmsOrDriver) return '/tenant/fms-employee';
   if (isHR) return '/tenant/hr-dashboard';
   if (isAccountant) return '/tenant/accountant-dashboard';
   if (isOperations) return '/tenant/operations-dashboard';
