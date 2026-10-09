@@ -26,7 +26,8 @@ import {
   Sparkles,
   ArrowRightCircle,
   Users,
-  Shield
+  Shield,
+  UserPlus
 } from 'lucide-react';
 
 interface WorkSite {
@@ -96,9 +97,15 @@ interface AssignmentRow {
   assetNumber: string;
   assetTitle: string;
   assetType: 'vehicle' | 'equipment';
-  assignedToType: 'driver' | 'operator' | 'subcontractor';
+  memberId?: string;
+  assignedToType: string;
   assignedToName: string;
   assignedToPhone: string;
+  helperId?: string;
+  helperName?: string;
+  helperRole?: string;
+  helperPhone?: string;
+  showPerson2?: boolean;
 }
 
 const createNewRow = (): AssignmentRow => ({
@@ -114,7 +121,8 @@ const createNewRow = (): AssignmentRow => ({
   helperId: '',
   helperName: '',
   helperRole: '',
-  helperPhone: ''
+  helperPhone: '',
+  showPerson2: false
 });
 
 export default function VehicleAssignmentPage() {
@@ -938,7 +946,9 @@ export default function VehicleAssignmentPage() {
                     {/* Personnel */}
                     <td className="py-2.5 px-3">
                       <div className="flex items-center gap-1.5">
-                        <User size={12} className="text-slate-400 shrink-0" />
+                        <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200/60 shrink-0">
+                          P1
+                        </span>
                         <span className="font-bold text-slate-800">{a.assignedToName || 'Unassigned'}</span>
                         {a.assignedToType && (
                           <span className="text-[9px] font-semibold text-slate-600 bg-slate-100 px-1 py-0.2 rounded border border-slate-200">
@@ -947,7 +957,7 @@ export default function VehicleAssignmentPage() {
                         )}
                       </div>
                       {a.assignedToPhone && (
-                        <div className="flex items-center gap-1 mt-0.5 text-[10px] text-slate-400">
+                        <div className="flex items-center gap-1 mt-0.5 text-[10px] text-slate-400 ml-6">
                           <Phone size={9} />
                           {a.assignedToPhone}
                         </div>
@@ -955,7 +965,9 @@ export default function VehicleAssignmentPage() {
                       {a.helperName && (
                         <div className="mt-1 pt-1 border-t border-slate-100 flex flex-col gap-0.5">
                           <div className="flex items-center gap-1.5">
-                            <User size={11} className="text-blue-500 shrink-0" />
+                            <span className="text-[9px] font-bold text-blue-700 bg-blue-50 px-1 py-0.2 rounded border border-blue-200/60 shrink-0">
+                              P2
+                            </span>
                             <span className="font-semibold text-slate-700">{a.helperName}</span>
                             {a.helperRole && (
                               <span className="text-[9px] font-semibold text-blue-700 bg-blue-50 px-1 py-0.2 rounded border border-blue-200/60">
@@ -964,7 +976,7 @@ export default function VehicleAssignmentPage() {
                             )}
                           </div>
                           {a.helperPhone && (
-                            <div className="flex items-center gap-1 text-[10px] text-slate-400">
+                            <div className="flex items-center gap-1 text-[10px] text-slate-400 ml-6">
                               <Phone size={9} />
                               {a.helperPhone}
                             </div>
@@ -1250,25 +1262,25 @@ export default function VehicleAssignmentPage() {
                         </select>
                       </div>
 
-                      {/* Section 1: Assigned Driver / Operator */}
+                      {/* Section 1: Person 1 */}
                       <div className="bg-slate-50/70 p-2.5 rounded-lg border border-slate-200/70 space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10.5px] font-bold text-slate-700 flex items-center gap-1">
-                            <Users size={12} className="text-[#46B351]" />
-                            <span>1. Assigned Driver / Operator <span className="text-rose-500">*</span></span>
+                          <span className="text-[10.5px] font-bold text-slate-700 flex items-center gap-1.5">
+                            <User size={13} className="text-[#46B351]" />
+                            <span>Person 1 <span className="text-rose-500">*</span></span>
                           </span>
                           {row.assignedToName && (
                             <span className="text-[9.5px] font-semibold text-emerald-700 bg-emerald-100/70 px-1.5 py-0.2 rounded">
-                              ✓ Driver Assigned
+                              ✓ Person 1 Assigned
                             </span>
                           )}
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
-                          {/* Driver Select */}
+                          {/* Person 1 Select */}
                           <div className="sm:col-span-5">
                             <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
-                              Driver / Operator Name
+                              Select Person 1
                             </label>
                             <select
                               required
@@ -1276,7 +1288,7 @@ export default function VehicleAssignmentPage() {
                               onChange={e => handleSelectDriverForRow(row.rowId, e.target.value)}
                               className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
                             >
-                              <option value="">-- Select Driver --</option>
+                              <option value="">-- Select Person 1 --</option>
                               {driverList.map(m => {
                                 const isP2P =
                                   (Array.isArray(m.allowed_modules) &&
@@ -1299,7 +1311,7 @@ export default function VehicleAssignmentPage() {
                             </select>
                           </div>
 
-                          {/* Driver Role Type */}
+                          {/* Person 1 Role Type */}
                           <div className="sm:col-span-3">
                             <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
                               Role Type
@@ -1313,7 +1325,7 @@ export default function VehicleAssignmentPage() {
                             />
                           </div>
 
-                          {/* Driver Phone */}
+                          {/* Person 1 Phone */}
                           <div className="sm:col-span-4">
                             <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
                               Contact Phone
@@ -1329,71 +1341,102 @@ export default function VehicleAssignmentPage() {
                         </div>
                       </div>
 
-                      {/* Section 2: Second Assigned Personnel (Optional) */}
-                      <div className="bg-slate-50/70 p-2.5 rounded-lg border border-slate-200/70 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10.5px] font-bold text-slate-700 flex items-center gap-1">
-                            <User size={12} className="text-blue-600" />
-                            <span>2. Second Assigned Personnel (Optional)</span>
-                          </span>
-                          {row.helperName && (
-                            <span className="text-[9.5px] font-semibold text-blue-700 bg-blue-100/70 px-1.5 py-0.2 rounded">
-                              ✓ 2nd Personnel Assigned
+                      {/* Section 2: Person 2 (Addable / Optional) */}
+                      {row.showPerson2 || row.helperId ? (
+                        <div className="bg-slate-50/70 p-2.5 rounded-lg border border-slate-200/70 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10.5px] font-bold text-slate-700 flex items-center gap-1.5">
+                              <User size={13} className="text-blue-600" />
+                              <span>Person 2 <span className="text-[10px] font-normal text-slate-400">(Optional)</span></span>
                             </span>
-                          )}
+                            <div className="flex items-center gap-2">
+                              {row.helperName && (
+                                <span className="text-[9.5px] font-semibold text-blue-700 bg-blue-100/70 px-1.5 py-0.2 rounded">
+                                  ✓ Person 2 Assigned
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleUpdateRow(row.rowId, {
+                                    helperId: '',
+                                    helperName: '',
+                                    helperRole: '',
+                                    helperPhone: '',
+                                    showPerson2: false
+                                  });
+                                }}
+                                className="text-[10px] text-rose-500 hover:text-rose-700 font-semibold hover:underline flex items-center gap-0.5 cursor-pointer"
+                              >
+                                <Trash2 size={10} />
+                                Remove Person 2
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
+                            {/* Person 2 Select */}
+                            <div className="sm:col-span-5">
+                              <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
+                                Select Person 2
+                              </label>
+                              <select
+                                value={row.helperId || ''}
+                                onChange={e => handleSelectHelperForRow(row.rowId, e.target.value)}
+                                className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              >
+                                <option value="">-- Choose Person 2 --</option>
+                                {teamMembers
+                                  .filter(m => String(m.id) !== String(row.memberId))
+                                  .map(m => (
+                                    <option key={m.id} value={String(m.id)}>
+                                      {m.name} • {m.role || 'Staff'} {m.mobile ? `(${m.mobile})` : ''}
+                                    </option>
+                                  ))}
+                              </select>
+                            </div>
+
+                            {/* Person 2 Role */}
+                            <div className="sm:col-span-3">
+                              <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
+                                Role Type
+                              </label>
+                              <input
+                                type="text"
+                                readOnly
+                                value={row.helperRole || ''}
+                                placeholder="Auto-filled"
+                                className="w-full bg-slate-100/80 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-700 cursor-default"
+                              />
+                            </div>
+
+                            {/* Person 2 Phone */}
+                            <div className="sm:col-span-4">
+                              <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
+                                Contact Phone
+                              </label>
+                              <input
+                                type="text"
+                                readOnly
+                                value={row.helperPhone || ''}
+                                placeholder="Auto-filled"
+                                className="w-full bg-slate-100/80 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-700 cursor-default"
+                              />
+                            </div>
+                          </div>
                         </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
-                          {/* Second Personnel Select */}
-                          <div className="sm:col-span-5">
-                            <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
-                              Second Personnel Name
-                            </label>
-                            <select
-                              value={row.helperId || ''}
-                              onChange={e => handleSelectHelperForRow(row.rowId, e.target.value)}
-                              className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            >
-                              <option value="">-- None (Single Driver Only) --</option>
-                              {teamMembers
-                                .filter(m => String(m.id) !== String(row.memberId))
-                                .map(m => (
-                                  <option key={m.id} value={String(m.id)}>
-                                    {m.name} • {m.role || 'Staff'} {m.mobile ? `(${m.mobile})` : ''}
-                                  </option>
-                                ))}
-                            </select>
-                          </div>
-
-                          {/* Second Personnel Role */}
-                          <div className="sm:col-span-3">
-                            <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
-                              Role Type
-                            </label>
-                            <input
-                              type="text"
-                              readOnly
-                              value={row.helperRole || ''}
-                              placeholder="Auto-filled"
-                              className="w-full bg-slate-100/80 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-700 cursor-default"
-                            />
-                          </div>
-
-                          {/* Second Personnel Phone */}
-                          <div className="sm:col-span-4">
-                            <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
-                              Contact Phone
-                            </label>
-                            <input
-                              type="text"
-                              readOnly
-                              value={row.helperPhone || ''}
-                              placeholder="Auto-filled"
-                              className="w-full bg-slate-100/80 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-700 cursor-default"
-                            />
-                          </div>
+                      ) : (
+                        <div className="flex items-center justify-start pt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateRow(row.rowId, { showPerson2: true })}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100/80 border border-blue-200/80 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <UserPlus size={13} className="text-blue-600" />
+                            <span>+ Add Person 2</span>
+                          </button>
                         </div>
-                      </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1515,14 +1558,14 @@ export default function VehicleAssignmentPage() {
                 </div>
 
                 <div className="p-2 bg-slate-50 rounded-lg border border-slate-100">
-                  <span className="text-[9px] text-slate-400 font-semibold block">1. Assigned Driver / Operator</span>
+                  <span className="text-[9px] text-slate-400 font-semibold block">Person 1</span>
                   <span className="font-bold text-slate-800 text-[11px] truncate mt-0.5 block">
                     {viewingAssignment.assignedToName || 'Unassigned'} ({viewingAssignment.assignedToType || 'Driver'})
                   </span>
                 </div>
 
                 <div className="p-2 bg-slate-50 rounded-lg border border-slate-100">
-                  <span className="text-[9px] text-slate-400 font-semibold block">Driver Contact Phone</span>
+                  <span className="text-[9px] text-slate-400 font-semibold block">Person 1 Contact Phone</span>
                   <span className="font-bold text-slate-800 text-[11px] truncate mt-0.5 block">
                     {viewingAssignment.assignedToPhone || '—'}
                   </span>
@@ -1531,14 +1574,14 @@ export default function VehicleAssignmentPage() {
                 {viewingAssignment.helperName && (
                   <>
                     <div className="p-2 bg-blue-50/50 rounded-lg border border-blue-100">
-                      <span className="text-[9px] text-blue-600 font-semibold block">2. Second Assigned Personnel</span>
+                      <span className="text-[9px] text-blue-600 font-semibold block">Person 2</span>
                       <span className="font-bold text-slate-800 text-[11px] truncate mt-0.5 block">
                         {viewingAssignment.helperName} ({viewingAssignment.helperRole || 'Staff'})
                       </span>
                     </div>
 
                     <div className="p-2 bg-blue-50/50 rounded-lg border border-blue-100">
-                      <span className="text-[9px] text-blue-600 font-semibold block">Second Personnel Phone</span>
+                      <span className="text-[9px] text-blue-600 font-semibold block">Person 2 Contact Phone</span>
                       <span className="font-bold text-slate-800 text-[11px] truncate mt-0.5 block">
                         {viewingAssignment.helperPhone || '—'}
                       </span>
