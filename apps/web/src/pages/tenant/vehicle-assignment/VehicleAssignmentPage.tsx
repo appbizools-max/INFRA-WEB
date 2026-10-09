@@ -54,6 +54,10 @@ interface VehicleAssignment {
   assignedToType: 'driver' | 'operator' | 'subcontractor' | string;
   assignedToName?: string;
   assignedToPhone?: string;
+  helperId?: string;
+  helperName?: string;
+  helperRole?: string;
+  helperPhone?: string;
   startDate?: string;
   expectedEndDate?: string;
   actualEndDate?: string;
@@ -106,7 +110,11 @@ const createNewRow = (): AssignmentRow => ({
   memberId: '',
   assignedToType: '',
   assignedToName: '',
-  assignedToPhone: ''
+  assignedToPhone: '',
+  helperId: '',
+  helperName: '',
+  helperRole: '',
+  helperPhone: ''
 });
 
 export default function VehicleAssignmentPage() {
@@ -421,6 +429,28 @@ export default function VehicleAssignmentPage() {
       return isDesignatedDriver || hasPersonToPersonDriverAccess;
     });
   }, [teamMembers]);
+
+  const handleSelectHelperForRow = (rowId: string, helperId: string) => {
+    if (!helperId) {
+      handleUpdateRow(rowId, {
+        helperId: '',
+        helperName: '',
+        helperRole: '',
+        helperPhone: ''
+      });
+      return;
+    }
+
+    const member = teamMembers.find(m => String(m.id) === String(helperId));
+    if (member) {
+      handleUpdateRow(rowId, {
+        helperId: String(member.id),
+        helperName: member.name,
+        helperRole: member.role || 'Helper',
+        helperPhone: member.mobile || ''
+      });
+    }
+  };
 
   const handleSelectDriverForRow = (rowId: string, memberId: string) => {
     if (!memberId) {
@@ -1144,7 +1174,7 @@ export default function VehicleAssignmentPage() {
                   {assignmentRows.map((row, index) => (
                     <div
                       key={row.rowId}
-                      className="p-3.5 bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:border-slate-300 transition-all text-xs space-y-2.5"
+                      className="p-3.5 bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:border-slate-300 transition-all text-xs space-y-3"
                     >
                       {/* Row Header */}
                       <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
@@ -1170,97 +1200,177 @@ export default function VehicleAssignmentPage() {
                         )}
                       </div>
 
-                      {/* Clean 4-Column Form Layout */}
-                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
-                        {/* 1. Vehicle / Equipment */}
-                        <div className="sm:col-span-4">
-                          <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">
-                            Select Vehicle / Equipment <span className="text-rose-500">*</span>
-                          </label>
-                          <select
-                            required
-                            value={row.assetId}
-                            onChange={e => handleSelectAssetForRow(row.rowId, e.target.value)}
-                            className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
-                          >
-                            <option value="">-- Choose Asset --</option>
-                            <optgroup label="🚚 Vehicles">
-                              {fleetOptions.filter(f => f.type === 'vehicle').map(f => (
-                                <option key={f.id} value={String(f.id)}>
-                                  {f.number} • {f.title}
-                                </option>
-                              ))}
-                            </optgroup>
-                            <optgroup label="🚜 Heavy Equipment">
-                              {fleetOptions.filter(f => f.type === 'equipment').map(f => (
-                                <option key={f.id} value={String(f.id)}>
-                                  {f.number} • {f.title}
-                                </option>
-                              ))}
-                            </optgroup>
-                          </select>
+                      {/* Select Vehicle / Equipment Asset */}
+                      <div>
+                        <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">
+                          Select Vehicle / Equipment <span className="text-rose-500">*</span>
+                        </label>
+                        <select
+                          required
+                          value={row.assetId}
+                          onChange={e => handleSelectAssetForRow(row.rowId, e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
+                        >
+                          <option value="">-- Choose Asset --</option>
+                          <optgroup label="🚚 Vehicles">
+                            {fleetOptions.filter(f => f.type === 'vehicle').map(f => (
+                              <option key={f.id} value={String(f.id)}>
+                                {f.number} • {f.title}
+                              </option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="🚜 Heavy Equipment">
+                            {fleetOptions.filter(f => f.type === 'equipment').map(f => (
+                              <option key={f.id} value={String(f.id)}>
+                                {f.number} • {f.title}
+                              </option>
+                            ))}
+                          </optgroup>
+                        </select>
+                      </div>
+
+                      {/* Section 1: Primary Driver / Operator */}
+                      <div className="bg-slate-50/70 p-2.5 rounded-lg border border-slate-200/70 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10.5px] font-bold text-slate-700 flex items-center gap-1">
+                            <Users size={12} className="text-[#46B351]" />
+                            <span>1. Primary Driver / Operator <span className="text-rose-500">*</span></span>
+                          </span>
+                          {row.assignedToName && (
+                            <span className="text-[9.5px] font-semibold text-emerald-700 bg-emerald-100/70 px-1.5 py-0.2 rounded">
+                              ✓ Driver Assigned
+                            </span>
+                          )}
                         </div>
 
-                        {/* 2. Driver / Operator */}
-                        <div className="sm:col-span-3">
-                          <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">
-                            Driver / Operator <span className="text-rose-500">*</span>
-                          </label>
-                          <select
-                            required
-                            value={row.memberId || ''}
-                            onChange={e => handleSelectDriverForRow(row.rowId, e.target.value)}
-                            className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
-                          >
-                            <option value="">-- Select Driver --</option>
-                            {driverList.map(m => {
-                              const isP2P =
-                                (Array.isArray(m.allowed_modules) &&
-                                  m.allowed_modules.some(mod =>
-                                    ['fms_driver', 'fms_machinery', 'fms', 'fuel_logs'].includes(mod)
-                                  )) ||
-                                ['fms_driver', 'fms_machinery'].includes(m.landing_module || '') ||
-                                Boolean(m.permissions?.fms_driver || m.permissions?.fms_machinery);
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
+                          {/* Driver Select */}
+                          <div className="sm:col-span-5">
+                            <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
+                              Driver / Operator Name
+                            </label>
+                            <select
+                              required
+                              value={row.memberId || ''}
+                              onChange={e => handleSelectDriverForRow(row.rowId, e.target.value)}
+                              className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
+                            >
+                              <option value="">-- Select Driver --</option>
+                              {driverList.map(m => {
+                                const isP2P =
+                                  (Array.isArray(m.allowed_modules) &&
+                                    m.allowed_modules.some(mod =>
+                                      ['fms_driver', 'fms_machinery', 'fms', 'fuel_logs'].includes(mod)
+                                    )) ||
+                                  ['fms_driver', 'fms_machinery'].includes(m.landing_module || '') ||
+                                  Boolean(m.permissions?.fms_driver || m.permissions?.fms_machinery);
 
-                              const isNonStandardRole =
-                                !m.role?.toLowerCase().includes('driver') &&
-                                !m.role?.toLowerCase().includes('operator');
+                                const isNonStandardRole =
+                                  !m.role?.toLowerCase().includes('driver') &&
+                                  !m.role?.toLowerCase().includes('operator');
 
-                              return (
-                                <option key={m.id} value={String(m.id)}>
-                                  {m.name} • {m.role || 'Driver'}{isP2P && isNonStandardRole ? ' (Person-to-Person Access)' : ''}
-                                </option>
-                              );
-                            })}
-                          </select>
+                                return (
+                                  <option key={m.id} value={String(m.id)}>
+                                    {m.name} • {m.role || 'Driver'}{isP2P && isNonStandardRole ? ' (Person-to-Person Access)' : ''}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                          </div>
+
+                          {/* Driver Role Type */}
+                          <div className="sm:col-span-3">
+                            <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
+                              Role Type
+                            </label>
+                            <input
+                              type="text"
+                              readOnly
+                              value={row.assignedToType || ''}
+                              placeholder="Auto-filled"
+                              className="w-full bg-slate-100/80 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-700 cursor-default"
+                            />
+                          </div>
+
+                          {/* Driver Phone */}
+                          <div className="sm:col-span-4">
+                            <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
+                              Contact Phone
+                            </label>
+                            <input
+                              type="text"
+                              readOnly
+                              value={row.assignedToPhone || ''}
+                              placeholder="Auto-filled"
+                              className="w-full bg-slate-100/80 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-700 cursor-default"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Section 2: Helper / Co-Driver / Assistant (Optional) */}
+                      <div className="bg-slate-50/70 p-2.5 rounded-lg border border-slate-200/70 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10.5px] font-bold text-slate-700 flex items-center gap-1">
+                            <User size={12} className="text-blue-600" />
+                            <span>2. Helper / Co-Driver / Assistant (Optional)</span>
+                          </span>
+                          {row.helperName && (
+                            <span className="text-[9.5px] font-semibold text-blue-700 bg-blue-100/70 px-1.5 py-0.2 rounded">
+                              ✓ Helper Assigned
+                            </span>
+                          )}
                         </div>
 
-                        {/* 3. Role Type */}
-                        <div className="sm:col-span-2">
-                          <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">
-                            Role Type
-                          </label>
-                          <input
-                            type="text"
-                            readOnly
-                            value={row.assignedToType || ''}
-                            placeholder="Auto-filled"
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 cursor-default"
-                          />
-                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
+                          {/* Helper Select */}
+                          <div className="sm:col-span-5">
+                            <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
+                              Helper / Second Crew
+                            </label>
+                            <select
+                              value={row.helperId || ''}
+                              onChange={e => handleSelectHelperForRow(row.rowId, e.target.value)}
+                              className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            >
+                              <option value="">-- None / No Helper --</option>
+                              {teamMembers
+                                .filter(m => String(m.id) !== String(row.memberId))
+                                .map(m => (
+                                  <option key={m.id} value={String(m.id)}>
+                                    {m.name} • {m.role || 'Staff'} {m.mobile ? `(${m.mobile})` : ''}
+                                  </option>
+                                ))}
+                            </select>
+                          </div>
 
-                        {/* 4. Contact Phone */}
-                        <div className="sm:col-span-3">
-                          <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">
-                            Contact Phone
-                          </label>
-                          <input
-                            type="text"
-                            readOnly
-                            value={row.assignedToPhone || ''}
-                            placeholder="Auto-filled"
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-700 cursor-default"
-                          />
+                          {/* Helper Role */}
+                          <div className="sm:col-span-3">
+                            <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
+                              Helper Role
+                            </label>
+                            <input
+                              type="text"
+                              readOnly
+                              value={row.helperRole || ''}
+                              placeholder="None"
+                              className="w-full bg-slate-100/80 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-700 cursor-default"
+                            />
+                          </div>
+
+                          {/* Helper Phone */}
+                          <div className="sm:col-span-4">
+                            <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
+                              Helper Phone
+                            </label>
+                            <input
+                              type="text"
+                              readOnly
+                              value={row.helperPhone || ''}
+                              placeholder="None"
+                              className="w-full bg-slate-100/80 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-700 cursor-default"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
