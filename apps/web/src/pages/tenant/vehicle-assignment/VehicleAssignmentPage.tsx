@@ -552,6 +552,10 @@ export default function VehicleAssignmentPage() {
         assignedToType: row.assignedToType || 'driver',
         assignedToName: row.assignedToName?.trim() || null,
         assignedToPhone: row.assignedToPhone?.trim() || null,
+        helperId: row.helperId || null,
+        helperName: row.helperName?.trim() || null,
+        helperRole: row.helperRole?.trim() || null,
+        helperPhone: row.helperPhone?.trim() || null,
         startDate: siteForm.startDate,
         expectedEndDate: siteForm.expectedEndDate || null,
         notes: siteForm.notes?.trim() || null,
@@ -1452,19 +1456,7 @@ export default function VehicleAssignmentPage() {
                 </button>
               </div>
 
-              {/* Shared Notes */}
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-                <label className="text-[10px] text-slate-500 font-semibold block mb-1">
-                  Deployment Directives / Shared Notes (Optional)
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Shift notes, special instructions, or safety directives for the dispatched fleet..."
-                  value={siteForm.notes}
-                  onChange={e => setSiteForm(prev => ({ ...prev, notes: e.target.value }))}
-                  className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
-                />
-              </div>
+
 
               {/* Footer */}
               <div className="flex items-center justify-between pt-2 border-t border-slate-100">
