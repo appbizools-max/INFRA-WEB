@@ -33,6 +33,7 @@ import {
   ChevronRight,
   ShieldAlert,
   ArrowRight,
+  ArrowLeft,
   Eye,
   Maximize2,
   Minimize2,
@@ -1192,430 +1193,487 @@ export default function FleetOperationsPage() {
       )}
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          MODAL 2: FULL-SCREEN EXECUTIVE LOG TELEMETRY COMMAND VIEW
+          MODAL 2: FULL-SCREEN EXECUTIVE LOG TELEMETRY VIEW WITH SIDE NAVIGATION
           ────────────────────────────────────────────────────────────────────────── */}
       {viewingLog && (
-        <div className={`fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center ${
-          isDetailFullScreen ? 'p-0' : 'p-3 sm:p-6'
-        }`}>
-          <div className={`bg-white border border-slate-200 shadow-2xl flex flex-col overflow-hidden transition-all duration-200 ${
-            isDetailFullScreen
-              ? 'w-full h-full rounded-none'
-              : 'max-w-5xl w-full max-h-[94vh] rounded-3xl'
-          }`}>
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 p-4 px-6 bg-slate-50/80 shrink-0">
+        <div className="fixed inset-0 z-50 bg-slate-100 flex overflow-hidden animate-in fade-in duration-150">
+          {/* Left Side Navigation Panel */}
+          <div className="w-72 sm:w-80 bg-white border-r border-slate-200 flex flex-col shrink-0 h-full shadow-lg">
+            {/* 1. Header with Back button */}
+            <div className="p-3.5 px-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+              <button
+                type="button"
+                onClick={() => setViewingLog(null)}
+                className="flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-200/70 px-2.5 py-1.5 rounded-xl transition-all cursor-pointer"
+              >
+                <ArrowLeft size={16} className="text-[#46B351]" />
+                <span>Back to Fleet Logs</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewingLog(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                title="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* 2. Active Vehicle / Machinery Profile Card */}
+            <div className="p-4 border-b border-slate-100 bg-gradient-to-b from-slate-50/90 to-white space-y-2.5">
               <div className="flex items-center gap-3">
                 <div
-                  className={`h-10 w-10 rounded-2xl flex items-center justify-center font-bold shrink-0 shadow-2xs ${
+                  className={`h-11 w-11 rounded-2xl flex items-center justify-center font-bold shrink-0 shadow-2xs ${
                     viewingLog.assetType === 'equipment'
                       ? 'bg-amber-50 text-amber-600 border border-amber-200/60'
                       : 'bg-emerald-50 text-[#46B351] border border-emerald-200/60'
                   }`}
                 >
-                  {viewingLog.assetType === 'equipment' ? <HardHat size={20} /> : <Truck size={20} />}
+                  {viewingLog.assetType === 'equipment' ? <HardHat size={22} /> : <Truck size={22} />}
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                      {viewingLog.assetNumber}
-                    </h2>
-                    <span className="text-xs text-slate-400 font-medium hidden sm:inline">•</span>
-                    <span className="text-xs font-semibold text-slate-500 hidden sm:inline">
-                      {viewingLog.assetTitle || (viewingLog.assetType === 'equipment' ? 'Heavy Machinery' : 'Commercial Vehicle')}
-                    </span>
-                    {getStageBadge(viewingLog.stage)}
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
-                    <span>Shift Log #{viewingLog.id}</span>
-                    <span>•</span>
-                    <span className="font-semibold text-slate-700">{viewingLog.logDate}</span>
-                    <span>•</span>
-                    <span className="bg-slate-200/70 text-slate-700 px-1.5 py-0.2 rounded font-medium text-[10px]">
-                      {viewingLog.shift} Shift
-                    </span>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-base font-black text-slate-900 tracking-tight truncate">
+                    {viewingLog.assetNumber}
+                  </h2>
+                  <p className="text-[11px] text-slate-500 truncate">
+                    {viewingLog.assetTitle || (viewingLog.assetType === 'equipment' ? 'Heavy Machinery' : 'Commercial Vehicle')}
                   </p>
                 </div>
               </div>
 
-              {/* Controls */}
+              <div className="flex items-center justify-between pt-1 text-xs">
+                <span className="text-slate-500 font-medium text-[11px]">
+                  {viewingLog.logDate} • {viewingLog.shift}
+                </span>
+                {getStageBadge(viewingLog.stage)}
+              </div>
+            </div>
+
+            {/* 3. Side Navigation Jump Links */}
+            <div className="p-3 border-b border-slate-100 space-y-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById('section-telemetry');
+                  el?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-2.5 transition-colors cursor-pointer"
+              >
+                <Gauge size={14} className="text-emerald-600" />
+                <span>Distance & Odometer</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById('section-fuel');
+                  el?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-2.5 transition-colors cursor-pointer"
+              >
+                <Fuel size={14} className="text-purple-600" />
+                <span>Diesel Refill & Fuel Slip</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById('section-tolls');
+                  el?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-2.5 transition-colors cursor-pointer"
+              >
+                <Receipt size={14} className="text-rose-600" />
+                <span>Tolls & FASTag Deductions</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById('section-crew');
+                  el?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-2.5 transition-colors cursor-pointer"
+              >
+                <User size={14} className="text-blue-600" />
+                <span>Crew & Personnel</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const asset = viewingLog.assetNumber;
+                  setViewingLog(null);
+                  setVehicleHistoryAsset(asset);
+                }}
+                className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-blue-700 bg-blue-50/70 hover:bg-blue-100/70 flex items-center gap-2.5 transition-colors cursor-pointer"
+              >
+                <FileText size={14} className="text-blue-600" />
+                <span>Lifetime Asset History</span>
+              </button>
+            </div>
+
+            {/* 4. Quick Shift Switcher list */}
+            <div className="p-3 flex-1 overflow-y-auto flex flex-col min-h-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2 px-1">
+                Logged Shift Trips ({logs.length})
+              </span>
+              <div className="space-y-1 overflow-y-auto flex-1">
+                {logs.map(l => (
+                  <button
+                    key={l.id}
+                    type="button"
+                    onClick={() => setViewingLog(l)}
+                    className={`w-full text-left p-2.5 rounded-xl text-xs flex items-center justify-between transition-all cursor-pointer ${
+                      l.id === viewingLog.id
+                        ? 'bg-slate-900 text-white font-bold shadow-xs'
+                        : 'hover:bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    <div className="min-w-0 pr-2">
+                      <span className="block font-bold truncate">{l.assetNumber}</span>
+                      <span className={`text-[10px] block truncate ${l.id === viewingLog.id ? 'text-slate-300' : 'text-slate-400'}`}>
+                        {l.logDate} • {l.shift}
+                      </span>
+                    </div>
+                    <div className="text-right shrink-0">
+                      {Number(l.distanceRun) > 0 ? (
+                        <span className={`text-[11px] font-bold ${l.id === viewingLog.id ? 'text-emerald-300' : 'text-emerald-600'}`}>
+                          +{Number(l.distanceRun).toFixed(0)} KM
+                        </span>
+                      ) : null}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Main Telemetry Canvas */}
+          <div className="flex-1 h-full overflow-y-auto bg-slate-50 p-6 sm:p-8 space-y-6">
+            {/* Top Header Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
+              <div>
+                <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
+                  <span>Fleet Operations</span>
+                  <span>/</span>
+                  <span>Shift #{viewingLog.id}</span>
+                  <span>/</span>
+                  <span className="text-slate-700 font-bold">{viewingLog.assetNumber}</span>
+                </div>
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 mt-1">
+                  {viewingLog.assetNumber} Operational Telemetry
+                </h1>
+              </div>
+
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsDetailFullScreen(!isDetailFullScreen)}
-                  title={isDetailFullScreen ? 'Exit Full Screen' : 'Expand to Full Screen'}
-                  className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer hidden sm:flex items-center gap-1.5 text-xs font-semibold"
-                >
-                  {isDetailFullScreen ? (
-                    <>
-                      <Minimize2 size={14} />
-                      <span>Minimize</span>
-                    </>
-                  ) : (
-                    <>
-                      <Maximize2 size={14} />
-                      <span>Full Screen</span>
-                    </>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setViewingLog(null);
-                    setIsDetailFullScreen(false);
-                  }}
-                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            </div>
-
-            {/* Scrollable Body */}
-            <div className="p-5 sm:p-6 overflow-y-auto space-y-6 flex-1">
-              {/* Telemetry High-Impact Ribbon */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                {/* 1. Distance Run */}
-                <div className="bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-200/80 p-4 rounded-2xl">
-                  <div className="flex items-center justify-between text-emerald-800">
-                    <span className="text-[10.5px] font-bold uppercase tracking-wider">Distance Run</span>
-                    <Gauge size={16} />
-                  </div>
-                  <div className="mt-2">
-                    <span className="text-2xl font-black text-slate-900 tracking-tight text-emerald-700">
-                      +{Number(viewingLog.distanceRun).toFixed(0)} KM
-                    </span>
-                    <p className="text-[10px] text-slate-500 mt-0.5 ">
-                      {Number(viewingLog.startOdometer).toLocaleString()} → {Number(viewingLog.endOdometer).toLocaleString()} KM
-                    </p>
-                  </div>
-                </div>
-
-                {/* 2. Fuel Refill */}
-                <div className="bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent border border-purple-200/80 p-4 rounded-2xl">
-                  <div className="flex items-center justify-between text-purple-800">
-                    <span className="text-[10.5px] font-bold uppercase tracking-wider">Diesel Refill</span>
-                    <Fuel size={16} />
-                  </div>
-                  <div className="mt-2">
-                    <span className="text-2xl font-black text-slate-900 tracking-tight text-purple-700">
-                      {Number(viewingLog.fuelFilledLiters) > 0 ? `${viewingLog.fuelFilledLiters} L` : '0 L'}
-                    </span>
-                    <p className="text-[10px] text-slate-500 mt-0.5">
-                      {Number(viewingLog.fuelTotalCost) > 0
-                        ? `₹${Number(viewingLog.fuelTotalCost).toLocaleString('en-IN')} @ ₹${viewingLog.fuelRatePerLiter}/L`
-                        : 'No fuel logged this shift'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* 3. Fuel Efficiency */}
-                <div className="bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent border border-blue-200/80 p-4 rounded-2xl">
-                  <div className="flex items-center justify-between text-blue-800">
-                    <span className="text-[10.5px] font-bold uppercase tracking-wider">Fuel Efficiency</span>
-                    <TrendingUp size={16} />
-                  </div>
-                  <div className="mt-2">
-                    <span className="text-2xl font-black text-slate-900 tracking-tight text-blue-700">
-                      {Number(viewingLog.fuelEfficiency) > 0 ? `${viewingLog.fuelEfficiency} km/l` : '—'}
-                    </span>
-                    <p className="text-[10px] text-slate-500 mt-0.5">
-                      {Number(viewingLog.fuelEfficiency) > 0
-                        ? 'Operational consumption mileage'
-                        : 'Telemetry pending refill ratio'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* 4. Toll & FASTag */}
-                <div className="bg-gradient-to-br from-rose-500/10 via-rose-500/5 to-transparent border border-rose-200/80 p-4 rounded-2xl">
-                  <div className="flex items-center justify-between text-rose-800">
-                    <span className="text-[10.5px] font-bold uppercase tracking-wider">Tolls & FASTag</span>
-                    <Receipt size={16} />
-                  </div>
-                  <div className="mt-2">
-                    <span className="text-2xl font-black text-slate-900 tracking-tight text-rose-700">
-                      ₹{(Number(viewingLog.tollAmount) + Number(viewingLog.fastagDeduction)).toFixed(0)}
-                    </span>
-                    <p className="text-[10px] text-slate-500 mt-0.5">
-                      FASTag: ₹{Number(viewingLog.fastagDeduction).toFixed(0)} • Cash: ₹{Number(viewingLog.tollAmount).toFixed(0)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Detailed Operational Panels */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* Panel 1: Deployment & Project Context */}
-                <div className="bg-slate-50/80 rounded-2xl border border-slate-200 p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-slate-700 font-bold text-xs pb-2 border-b border-slate-200/70">
-                    <Briefcase size={14} className="text-[#46B351]" />
-                    <span>Project & Site Deployment</span>
-                  </div>
-                  <div className="space-y-2 text-xs">
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-semibold block">Active Project</span>
-                      <span className="font-bold text-slate-900 block mt-0.5">
-                        {viewingLog.projectName || 'General Fleet Pool'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-semibold block">Worksite / Station</span>
-                      <div className="flex items-center gap-1.5 mt-0.5 text-slate-800 font-medium">
-                        <MapPin size={12} className="text-[#46B351] shrink-0" />
-                        <span>{viewingLog.worksiteName || 'No specific worksite'}</span>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-semibold block">Asset Category</span>
-                        <span className="font-semibold text-slate-700 capitalize mt-0.5 block">
-                          {viewingLog.assetType === 'equipment' ? 'Heavy Machinery' : 'Commercial Vehicle'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-semibold block">Assignment ID</span>
-                        <span className="font-semibold text-slate-700 mt-0.5 block">
-                          #{viewingLog.assignmentId || viewingLog.id}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Panel 2: Crew & Operating Personnel */}
-                <div className="bg-slate-50/80 rounded-2xl border border-slate-200 p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-slate-700 font-bold text-xs pb-2 border-b border-slate-200/70">
-                    <User size={14} className="text-blue-600" />
-                    <span>Assigned Operating Crew</span>
-                  </div>
-                  <div className="space-y-2.5 text-xs">
-                    <div className="p-2.5 bg-white rounded-xl border border-slate-200/80">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
-                          Person 1 (Primary Operator)
-                        </span>
-                        {viewingLog.driverPhone && (
-                          <a
-                            href={`tel:${viewingLog.driverPhone}`}
-                            className="text-[10px] font-bold text-[#46B351] hover:underline flex items-center gap-1"
-                          >
-                            <Phone size={10} /> Call
-                          </a>
-                        )}
-                      </div>
-                      <span className="font-bold text-slate-900 block mt-1">
-                        {viewingLog.driverName || 'Unassigned'}
-                      </span>
-                      {viewingLog.driverPhone && (
-                        <span className="text-[10px] text-slate-500 block mt-0.5">
-                          {viewingLog.driverPhone}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="p-2.5 bg-white rounded-xl border border-slate-200/80">
-                      <span className="text-[9.5px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
-                        Person 2 (Co-Driver / Helper)
-                      </span>
-                      <span className="font-bold text-slate-900 block mt-1">
-                        {viewingLog.helperName || 'No helper assigned'}
-                      </span>
-                      {viewingLog.helperRole && (
-                        <span className="text-[10px] text-slate-500 block mt-0.5">
-                          Role: {viewingLog.helperRole}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Panel 3: Fuel Invoice & Pump Details */}
-                <div className="bg-slate-50/80 rounded-2xl border border-slate-200 p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-slate-700 font-bold text-xs pb-2 border-b border-slate-200/70">
-                    <Fuel size={14} className="text-purple-600" />
-                    <span>Diesel Fuel & Pump Station</span>
-                  </div>
-                  <div className="space-y-2 text-xs">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-semibold block">Quantity Filled</span>
-                        <span className="font-bold text-slate-900 block mt-0.5">
-                          {viewingLog.fuelFilledLiters ? `${viewingLog.fuelFilledLiters} Liters` : '0 Liters'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-semibold block">Rate / Liter</span>
-                        <span className="font-bold text-slate-900 block mt-0.5">
-                          ₹{viewingLog.fuelRatePerLiter || 0}
-                        </span>
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-semibold block">Total Fuel Cost</span>
-                      <span className="font-black text-emerald-600 text-sm block mt-0.5">
-                        ₹{Number(viewingLog.fuelTotalCost || 0).toLocaleString('en-IN')}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-semibold block">Fuel Station / Vendor</span>
-                      <span className="font-semibold text-slate-800 block mt-0.5">
-                        {viewingLog.fuelStation || 'Not specified'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-semibold block">Bill / Slip Receipt No</span>
-                      <span className="font-bold text-slate-800 block mt-0.5">
-                        {viewingLog.fuelBillNumber || '—'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Panel 4: Odometer & Run Telemetry */}
-                <div className="bg-slate-50/80 rounded-2xl border border-slate-200 p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-slate-700 font-bold text-xs pb-2 border-b border-slate-200/70">
-                    <Gauge size={14} className="text-emerald-600" />
-                    <span>Odometer & Engine Hours</span>
-                  </div>
-                  <div className="space-y-2 text-xs">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-semibold block">Opening Odometer</span>
-                        <span className="font-bold text-slate-900 block mt-0.5">
-                          {Number(viewingLog.startOdometer).toLocaleString()} KM
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-semibold block">Closing Odometer</span>
-                        <span className="font-bold text-slate-900 block mt-0.5">
-                          {Number(viewingLog.endOdometer).toLocaleString()} KM
-                        </span>
-                      </div>
-                    </div>
-                    {Number(viewingLog.engineHoursTotal) > 0 && (
-                      <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200/60">
-                        <div>
-                          <span className="text-[10px] text-slate-400 font-semibold block">Engine Hours Start</span>
-                          <span className="text-slate-700 block mt-0.5">
-                            {viewingLog.engineHoursStart || '—'}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-slate-400 font-semibold block">Engine Hours End</span>
-                          <span className="text-slate-700 block mt-0.5">
-                            {viewingLog.engineHoursEnd || '—'}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-semibold block">Total Trips Completed</span>
-                      <span className="font-semibold text-slate-800 block mt-0.5">
-                        {viewingLog.tripsCount || 1} Trip(s)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Panel 5: Road Tolls & Incidental Expenses */}
-                <div className="bg-slate-50/80 rounded-2xl border border-slate-200 p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-slate-700 font-bold text-xs pb-2 border-b border-slate-200/70">
-                    <Receipt size={14} className="text-rose-600" />
-                    <span>En-Route Tolls & Expenses</span>
-                  </div>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500 font-medium">FASTag Automated Toll:</span>
-                      <span className="font-bold text-slate-900">
-                        ₹{Number(viewingLog.fastagDeduction || 0).toLocaleString('en-IN')}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500 font-medium">Manual Cash Toll:</span>
-                      <span className="font-bold text-slate-900">
-                        ₹{Number(viewingLog.tollAmount || 0).toLocaleString('en-IN')}
-                      </span>
-                    </div>
-                    {Number(viewingLog.otherExpenses) > 0 && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500 font-medium">Incidental Expenses:</span>
-                        <span className="font-bold text-slate-900">
-                          ₹{Number(viewingLog.otherExpenses).toLocaleString('en-IN')}
-                        </span>
-                      </div>
-                    )}
-                    <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
-                      <span className="font-bold text-slate-800">Total Transit Expense:</span>
-                      <span className="font-black text-rose-600 text-sm">
-                        ₹{(Number(viewingLog.tollAmount || 0) + Number(viewingLog.fastagDeduction || 0) + Number(viewingLog.otherExpenses || 0)).toLocaleString('en-IN')}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Panel 6: Remarks & Shift Directives */}
-                <div className="bg-slate-50/80 rounded-2xl border border-slate-200 p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-slate-700 font-bold text-xs pb-2 border-b border-slate-200/70">
-                    <FileText size={14} className="text-amber-600" />
-                    <span>Shift Notes & Handover Directives</span>
-                  </div>
-                  <div className="text-xs">
-                    {viewingLog.remarks ? (
-                      <p className="text-slate-700 leading-relaxed bg-white p-3 rounded-xl border border-slate-200/80 whitespace-pre-line">
-                        {viewingLog.remarks}
-                      </p>
-                    ) : (
-                      <p className="text-slate-400 italic">No field handover remarks logged for this shift.</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer Actions */}
-            <div className="p-4 px-6 border-t border-slate-100 bg-slate-50/80 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={() => {
                     const asset = viewingLog.assetNumber;
                     setViewingLog(null);
-                    setIsDetailFullScreen(false);
                     setVehicleHistoryAsset(asset);
                   }}
-                  className="px-4 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer w-full sm:w-auto justify-center"
+                  className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer shadow-2xs"
                 >
-                  <FileText size={14} />
-                  <span>View Lifetime History for {viewingLog.assetNumber}</span>
+                  <FileText size={14} className="text-blue-600" />
+                  <span>Lifetime Vehicle History</span>
                 </button>
               </div>
+            </div>
 
-              <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const id = viewingLog.id;
-                    setViewingLog(null);
-                    setIsDetailFullScreen(false);
-                    handleDeleteLog(id);
-                  }}
-                  className="px-3.5 py-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
-                >
-                  <Trash2 size={13} />
-                  <span>Delete Log</span>
-                </button>
+            {/* Telemetry High-Impact Ribbon */}
+            <div id="section-telemetry" className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {/* 1. Distance Run */}
+              <div className="bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-200/80 p-4 rounded-2xl">
+                <div className="flex items-center justify-between text-emerald-800">
+                  <span className="text-[10.5px] font-bold uppercase tracking-wider">Distance Run</span>
+                  <Gauge size={16} />
+                </div>
+                <div className="mt-2">
+                  <span className="text-2xl font-black text-slate-900 tracking-tight text-emerald-700">
+                    +{Number(viewingLog.distanceRun).toFixed(0)} KM
+                  </span>
+                  <p className="text-[10px] text-slate-500 mt-0.5">
+                    {Number(viewingLog.startOdometer).toLocaleString()} → {Number(viewingLog.endOdometer).toLocaleString()} KM
+                  </p>
+                </div>
+              </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setViewingLog(null);
-                    setIsDetailFullScreen(false);
-                  }}
-                  className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer"
-                >
-                  Close
-                </button>
+              {/* 2. Fuel Refill */}
+              <div id="section-fuel" className="bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent border border-purple-200/80 p-4 rounded-2xl">
+                <div className="flex items-center justify-between text-purple-800">
+                  <span className="text-[10.5px] font-bold uppercase tracking-wider">Diesel Refill</span>
+                  <Fuel size={16} />
+                </div>
+                <div className="mt-2">
+                  <span className="text-2xl font-black text-slate-900 tracking-tight text-purple-700">
+                    {Number(viewingLog.fuelFilledLiters) > 0 ? `${viewingLog.fuelFilledLiters} L` : '0 L'}
+                  </span>
+                  <p className="text-[10px] text-slate-500 mt-0.5">
+                    {Number(viewingLog.fuelTotalCost) > 0
+                      ? `₹${Number(viewingLog.fuelTotalCost).toLocaleString('en-IN')} @ ₹${viewingLog.fuelRatePerLiter}/L`
+                      : 'No fuel logged this shift'}
+                  </p>
+                </div>
+              </div>
+
+              {/* 3. Fuel Efficiency */}
+              <div className="bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent border border-blue-200/80 p-4 rounded-2xl">
+                <div className="flex items-center justify-between text-blue-800">
+                  <span className="text-[10.5px] font-bold uppercase tracking-wider">Fuel Efficiency</span>
+                  <TrendingUp size={16} />
+                </div>
+                <div className="mt-2">
+                  <span className="text-2xl font-black text-slate-900 tracking-tight text-blue-700">
+                    {Number(viewingLog.fuelEfficiency) > 0 ? `${viewingLog.fuelEfficiency} km/l` : '—'}
+                  </span>
+                  <p className="text-[10px] text-slate-500 mt-0.5">
+                    {Number(viewingLog.fuelEfficiency) > 0
+                      ? 'Operational consumption mileage'
+                      : 'Telemetry pending refill ratio'}
+                  </p>
+                </div>
+              </div>
+
+              {/* 4. Toll & FASTag */}
+              <div id="section-tolls" className="bg-gradient-to-br from-rose-500/10 via-rose-500/5 to-transparent border border-rose-200/80 p-4 rounded-2xl">
+                <div className="flex items-center justify-between text-rose-800">
+                  <span className="text-[10.5px] font-bold uppercase tracking-wider">Tolls & FASTag</span>
+                  <Receipt size={16} />
+                </div>
+                <div className="mt-2">
+                  <span className="text-2xl font-black text-slate-900 tracking-tight text-rose-700">
+                    ₹{(Number(viewingLog.tollAmount) + Number(viewingLog.fastagDeduction)).toFixed(0)}
+                  </span>
+                  <p className="text-[10px] text-slate-500 mt-0.5">
+                    FASTag: ₹{Number(viewingLog.fastagDeduction).toFixed(0)} • Cash: ₹{Number(viewingLog.tollAmount).toFixed(0)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Detailed Operational Panels */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Panel 1: Deployment & Project Context */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-2xs">
+                <div className="flex items-center gap-2 text-slate-700 font-bold text-xs pb-2 border-b border-slate-100">
+                  <Briefcase size={14} className="text-[#46B351]" />
+                  <span>Project & Site Deployment</span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-semibold block">Active Project</span>
+                    <span className="font-bold text-slate-900 block mt-0.5">
+                      {viewingLog.projectName || 'General Fleet Pool'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-semibold block">Worksite / Station</span>
+                    <div className="flex items-center gap-1.5 mt-0.5 text-slate-800 font-medium">
+                      <MapPin size={12} className="text-[#46B351] shrink-0" />
+                      <span>{viewingLog.worksiteName || 'No specific worksite'}</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-semibold block">Asset Category</span>
+                      <span className="font-semibold text-slate-700 capitalize mt-0.5 block">
+                        {viewingLog.assetType === 'equipment' ? 'Heavy Machinery' : 'Commercial Vehicle'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-semibold block">Assignment ID</span>
+                      <span className="font-semibold text-slate-700 mt-0.5 block">
+                        #{viewingLog.assignmentId || viewingLog.id}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Panel 2: Crew & Operating Personnel */}
+              <div id="section-crew" className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-2xs">
+                <div className="flex items-center gap-2 text-slate-700 font-bold text-xs pb-2 border-b border-slate-100">
+                  <User size={14} className="text-blue-600" />
+                  <span>Assigned Operating Crew</span>
+                </div>
+                <div className="space-y-2.5 text-xs">
+                  <div className="p-2.5 bg-slate-50/70 rounded-xl border border-slate-200/80">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                        Person 1 (Primary Operator)
+                      </span>
+                      {viewingLog.driverPhone && (
+                        <a
+                          href={`tel:${viewingLog.driverPhone}`}
+                          className="text-[10px] font-bold text-[#46B351] hover:underline flex items-center gap-1"
+                        >
+                          <Phone size={10} /> Call
+                        </a>
+                      )}
+                    </div>
+                    <span className="font-bold text-slate-900 block mt-1">
+                      {viewingLog.driverName || 'Unassigned'}
+                    </span>
+                    {viewingLog.driverPhone && (
+                      <span className="text-[10px] text-slate-500 block mt-0.5">
+                        {viewingLog.driverPhone}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="p-2.5 bg-slate-50/70 rounded-xl border border-slate-200/80">
+                    <span className="text-[9.5px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
+                      Person 2 (Co-Driver / Helper)
+                    </span>
+                    <span className="font-bold text-slate-900 block mt-1">
+                      {viewingLog.helperName || 'No helper assigned'}
+                    </span>
+                    {viewingLog.helperRole && (
+                      <span className="text-[10px] text-slate-500 block mt-0.5">
+                        Role: {viewingLog.helperRole}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Panel 3: Fuel Invoice & Pump Details */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-2xs">
+                <div className="flex items-center gap-2 text-slate-700 font-bold text-xs pb-2 border-b border-slate-100">
+                  <Fuel size={14} className="text-purple-600" />
+                  <span>Diesel Fuel & Pump Station</span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-semibold block">Quantity Filled</span>
+                      <span className="font-bold text-slate-900 block mt-0.5">
+                        {viewingLog.fuelFilledLiters ? `${viewingLog.fuelFilledLiters} Liters` : '0 Liters'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-semibold block">Rate / Liter</span>
+                      <span className="font-bold text-slate-900 block mt-0.5">
+                        ₹{viewingLog.fuelRatePerLiter || 0}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-semibold block">Total Fuel Cost</span>
+                    <span className="font-black text-emerald-600 text-sm block mt-0.5">
+                      ₹{Number(viewingLog.fuelTotalCost || 0).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-semibold block">Fuel Station / Vendor</span>
+                    <span className="font-semibold text-slate-800 block mt-0.5">
+                      {viewingLog.fuelStation || 'Not specified'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-semibold block">Bill / Slip Receipt No</span>
+                    <span className="font-bold text-slate-800 block mt-0.5">
+                      {viewingLog.fuelBillNumber || '—'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Panel 4: Odometer & Run Telemetry */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-2xs">
+                <div className="flex items-center gap-2 text-slate-700 font-bold text-xs pb-2 border-b border-slate-100">
+                  <Gauge size={14} className="text-emerald-600" />
+                  <span>Odometer & Engine Hours</span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-semibold block">Opening Odometer</span>
+                      <span className="font-bold text-slate-900 block mt-0.5">
+                        {Number(viewingLog.startOdometer).toLocaleString()} KM
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-semibold block">Closing Odometer</span>
+                      <span className="font-bold text-slate-900 block mt-0.5">
+                        {Number(viewingLog.endOdometer).toLocaleString()} KM
+                      </span>
+                    </div>
+                  </div>
+                  {Number(viewingLog.engineHoursTotal) > 0 && (
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-semibold block">Engine Hours Start</span>
+                        <span className="text-slate-700 block mt-0.5">
+                          {viewingLog.engineHoursStart || '—'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-semibold block">Engine Hours End</span>
+                        <span className="text-slate-700 block mt-0.5">
+                          {viewingLog.engineHoursEnd || '—'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-semibold block">Total Trips Completed</span>
+                    <span className="font-semibold text-slate-800 block mt-0.5">
+                      {viewingLog.tripsCount || 1} Trip(s)
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Panel 5: Road Tolls & Incidental Expenses */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-2xs">
+                <div className="flex items-center gap-2 text-slate-700 font-bold text-xs pb-2 border-b border-slate-100">
+                  <Receipt size={14} className="text-rose-600" />
+                  <span>En-Route Tolls & Expenses</span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 font-medium">FASTag Automated Toll:</span>
+                    <span className="font-bold text-slate-900">
+                      ₹{Number(viewingLog.fastagDeduction || 0).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 font-medium">Manual Cash Toll:</span>
+                    <span className="font-bold text-slate-900">
+                      ₹{Number(viewingLog.tollAmount || 0).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  {Number(viewingLog.otherExpenses) > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500 font-medium">Incidental Expenses:</span>
+                      <span className="font-bold text-slate-900">
+                        ₹{Number(viewingLog.otherExpenses).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  )}
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <span className="font-bold text-slate-800">Total Transit Expense:</span>
+                    <span className="font-black text-rose-600 text-sm">
+                      ₹{(Number(viewingLog.tollAmount || 0) + Number(viewingLog.fastagDeduction || 0) + Number(viewingLog.otherExpenses || 0)).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Panel 6: Remarks & Shift Directives */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-2xs">
+                <div className="flex items-center gap-2 text-slate-700 font-bold text-xs pb-2 border-b border-slate-100">
+                  <FileText size={14} className="text-amber-600" />
+                  <span>Shift Notes & Handover Directives</span>
+                </div>
+                <div className="text-xs">
+                  {viewingLog.remarks ? (
+                    <p className="text-slate-700 leading-relaxed bg-slate-50/70 p-3 rounded-xl border border-slate-200/80 whitespace-pre-line">
+                      {viewingLog.remarks}
+                    </p>
+                  ) : (
+                    <p className="text-slate-400 italic">No field handover remarks logged for this shift.</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
