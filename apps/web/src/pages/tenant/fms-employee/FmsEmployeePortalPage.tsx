@@ -7,6 +7,25 @@ import {
 import { useAuth } from '../../../context/AuthContext';
 import { apiFetch } from '../../../lib/api';
 
+
+export const formatDateDDMMYYYY = (dateStr?: string | null): string => {
+  if (!dateStr) return '—';
+  const clean = String(dateStr).trim();
+  if (/^\d{2}-\d{2}-\d{4}$/.test(clean)) return clean;
+  const match = clean.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    return `${match[3]}-${match[2]}-${match[1]}`;
+  }
+  const d = new Date(clean);
+  if (!isNaN(d.getTime())) {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  }
+  return clean;
+};
+
 interface VehicleAssignment {
   id: number;
   tenantId: string;
@@ -649,7 +668,7 @@ export default function FmsEmployeePortalPage() {
                       <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
                         <span className="text-[9.5px] text-slate-400 font-semibold block">Assignment Date</span>
                         <span className="font-bold text-slate-800 text-xs mt-0.5 block truncate">
-                          {asset.startDate || 'Recent'}
+                          {formatDateDDMMYYYY(asset.startDate)}
                         </span>
                       </div>
                     </div>
@@ -723,7 +742,7 @@ export default function FmsEmployeePortalPage() {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-[9px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                   <th className="py-2.5 px-3.5">Asset / Vehicle</th>
-                  <th className="py-2.5 px-3">Date & Shift</th>
+                  <th className="py-2.5 px-3">Date</th>
                   <th className="py-2.5 px-3">Stage</th>
                   <th className="py-2.5 px-3">Shift Run (KM / Hrs)</th>
                   <th className="py-2.5 px-3">Fuel Refill</th>
@@ -748,13 +767,10 @@ export default function FmsEmployeePortalPage() {
                     </td>
 
                     <td className="py-2.5 px-3 whitespace-nowrap">
-                      <div className="font-semibold text-slate-800 flex items-center gap-1">
-                        <Calendar size={11} className="text-slate-400" />
-                        <span>{l.logDate}</span>
+                      <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                        <Calendar size={12} className="text-[#46B351] shrink-0" />
+                        <span>{formatDateDDMMYYYY(l.logDate)}</span>
                       </div>
-                      <span className="text-[9px] text-slate-500 bg-slate-100 px-1 py-0.2 rounded mt-0.5 inline-block">
-                        {l.shift} Shift
-                      </span>
                     </td>
 
                     <td className="py-2.5 px-3 whitespace-nowrap">
@@ -846,14 +862,14 @@ export default function FmsEmployeePortalPage() {
 
             {/* Form Body */}
             <form onSubmit={handleSubmitShift} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs">
-              {/* 1. Shift & Stage */}
+              {/* 1. Date & Stage */}
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2.5">
                 <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
-                  1. Shift & Operational Status
+                  1. Date & Operational Stage
                 </span>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
-                    <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">Shift Date</label>
+                    <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">Log Date</label>
                     <input
                       type="date"
                       required
@@ -861,19 +877,6 @@ export default function FmsEmployeePortalPage() {
                       onChange={e => setShiftForm(prev => ({ ...prev, logDate: e.target.value }))}
                       className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800"
                     />
-                  </div>
-
-                  <div>
-                    <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">Shift Timing</label>
-                    <select
-                      value={shiftForm.shift}
-                      onChange={e => setShiftForm(prev => ({ ...prev, shift: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800"
-                    >
-                      <option value="Day">Day Shift</option>
-                      <option value="Night">Night Shift</option>
-                      <option value="Full Day">Full Day (24h)</option>
-                    </select>
                   </div>
 
                   <div>
@@ -1201,7 +1204,7 @@ export default function FmsEmployeePortalPage() {
                     Shift #{viewingDetailLog.id} • {viewingDetailLog.assetNumber}
                   </h3>
                   <span className="text-[10px] text-slate-400">
-                    {viewingDetailLog.logDate} • {viewingDetailLog.shift} Shift
+                    {formatDateDDMMYYYY(viewingDetailLog.logDate)}
                   </span>
                 </div>
               </div>

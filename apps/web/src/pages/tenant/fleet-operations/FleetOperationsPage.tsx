@@ -102,6 +102,25 @@ interface OperationalStats {
 }
 
 
+
+export const formatDateDDMMYYYY = (dateStr?: string | null): string => {
+  if (!dateStr) return '—';
+  const clean = String(dateStr).trim();
+  if (/^\d{2}-\d{2}-\d{4}$/.test(clean)) return clean;
+  const match = clean.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    return `${match[3]}-${match[2]}-${match[1]}`;
+  }
+  const d = new Date(clean);
+  if (!isNaN(d.getTime())) {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  }
+  return clean;
+};
+
 export const FLEET_STAGES = ['All', 'Working', 'Transit', 'Idle', 'Maintenance'] as const;
 
 export const normalizeStage = (st: string) => {
@@ -809,11 +828,11 @@ export default function FleetOperationsPage() {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/90 text-[9px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                   <th className="py-2.5 px-3.5">Asset / Vehicle</th>
-                  <th className="py-2.5 px-3">Date & Shift</th>
+                  <th className="py-2.5 px-3">Date</th>
                   <th className="py-2.5 px-3">Project & Location</th>
                   <th className="py-2.5 px-3">Assigned Crew</th>
                   <th className="py-2.5 px-3">Running Stage</th>
-                  <th className="py-2.5 px-3">Shift Output & Fuel</th>
+                  <th className="py-2.5 px-3">Output & Fuel</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-[11px]">
@@ -845,15 +864,12 @@ export default function FleetOperationsPage() {
                       </div>
                     </td>
 
-                    {/* Date & Shift */}
+                    {/* Date (DD-MM-YYYY) */}
                     <td className="py-2.5 px-3 whitespace-nowrap">
                       <div className="font-bold text-slate-800 flex items-center gap-1.5">
-                        <Calendar size={11} className="text-slate-400 shrink-0" />
-                        <span>{l.logDate}</span>
+                        <Calendar size={12} className="text-[#46B351] shrink-0" />
+                        <span>{formatDateDDMMYYYY(l.logDate)}</span>
                       </div>
-                      <span className="inline-block mt-0.5 text-[9.5px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded">
-                        {l.shift} Shift
-                      </span>
                     </td>
 
                     {/* Project & Location */}
@@ -947,7 +963,7 @@ export default function FleetOperationsPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-sm text-slate-900 leading-tight">
-                    Log Shift Run, Fuel & Toll Expense
+                    Log Vehicle Run, Fuel & Toll Expense
                   </h3>
                   <span className="text-[10px] text-slate-500">
                     Record odometer progression, diesel refuel, and toll expenses for deployed asset
@@ -1062,13 +1078,13 @@ export default function FleetOperationsPage() {
                 )}
               </div>
 
-              {/* Section 2: Shift Date & Meter Readings */}
+              {/* Section 2: Date & Meter Readings */}
               {logForm.assetType === 'equipment' ? (
                 /* Heavy Machinery: Operating Engine Hours */
                 <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-200/80 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wider block">
-                      2. Date, Shift & Engine Hours Meter
+                      2. Date & Engine Hours Meter
                     </span>
                     {calculatedEngineHours && (
                       <span className="text-[10px] font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded">
@@ -1077,7 +1093,7 @@ export default function FleetOperationsPage() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     <div>
                       <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">Log Date</label>
                       <input
@@ -1087,19 +1103,6 @@ export default function FleetOperationsPage() {
                         onChange={e => setLogForm(prev => ({ ...prev, logDate: e.target.value }))}
                         className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800"
                       />
-                    </div>
-
-                    <div>
-                      <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">Shift</label>
-                      <select
-                        value={logForm.shift}
-                        onChange={e => setLogForm(prev => ({ ...prev, shift: e.target.value }))}
-                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800"
-                      >
-                        <option value="Day">Day Shift</option>
-                        <option value="Night">Night Shift</option>
-                        <option value="Full Day">Full Day (24h)</option>
-                      </select>
                     </div>
 
                     <div>
@@ -1132,7 +1135,7 @@ export default function FleetOperationsPage() {
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
-                      2. Date, Shift & Odometer Mileage
+                      2. Date & Odometer Mileage
                     </span>
                     {calculatedDistance && (
                       <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
@@ -1141,7 +1144,7 @@ export default function FleetOperationsPage() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     <div>
                       <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">Log Date</label>
                       <input
@@ -1151,19 +1154,6 @@ export default function FleetOperationsPage() {
                         onChange={e => setLogForm(prev => ({ ...prev, logDate: e.target.value }))}
                         className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800"
                       />
-                    </div>
-
-                    <div>
-                      <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">Shift</label>
-                      <select
-                        value={logForm.shift}
-                        onChange={e => setLogForm(prev => ({ ...prev, shift: e.target.value }))}
-                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800"
-                      >
-                        <option value="Day">Day Shift</option>
-                        <option value="Night">Night Shift</option>
-                        <option value="Full Day">Full Day (24h)</option>
-                      </select>
                     </div>
 
                     <div>
@@ -1401,7 +1391,7 @@ export default function FleetOperationsPage() {
                   disabled={saving}
                   className="px-4 py-1.5 rounded-lg bg-[#46B351] hover:bg-[#3ca046] text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {saving ? 'Saving...' : 'Save Shift Log'}
+                  {saving ? 'Saving...' : 'Save Run Log'}
                 </button>
               </div>
             </form>
@@ -1459,7 +1449,7 @@ export default function FleetOperationsPage() {
 
               <div className="flex items-center justify-between pt-1 text-xs">
                 <span className="text-slate-500 font-medium text-[11px]">
-                  {viewingLog.logDate} • {viewingLog.shift}
+                  {formatDateDDMMYYYY(viewingLog.logDate)}
                 </span>
                 {getStageBadge(viewingLog.stage)}
               </div>
@@ -1544,7 +1534,7 @@ export default function FleetOperationsPage() {
                     <div className="min-w-0 pr-2">
                       <span className="block font-bold truncate">{l.assetNumber}</span>
                       <span className={`text-[10px] block truncate ${l.id === viewingLog.id ? 'text-slate-300' : 'text-slate-400'}`}>
-                        {l.logDate} • {l.shift}
+                        {formatDateDDMMYYYY(l.logDate)}
                       </span>
                     </div>
                     <div className="text-right shrink-0">
@@ -1572,7 +1562,7 @@ export default function FleetOperationsPage() {
                 <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
                   <span>Fleet Operations</span>
                   <span>/</span>
-                  <span>Shift #{viewingLog.id}</span>
+                  <span>Log #{viewingLog.id}</span>
                   <span>/</span>
                   <span className="text-slate-700 font-bold">{viewingLog.assetNumber}</span>
                 </div>
@@ -1966,7 +1956,7 @@ export default function FleetOperationsPage() {
                       <div className="absolute -left-6 top-3 h-2.5 w-2.5 rounded-full bg-[#46B351] ring-4 ring-white" />
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-slate-900 text-xs">
-                          {h.logDate} • {h.shift} Shift
+                          {formatDateDDMMYYYY(h.logDate)}
                         </span>
                         {getStageBadge(h.stage)}
                       </div>
