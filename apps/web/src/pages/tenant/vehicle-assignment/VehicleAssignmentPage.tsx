@@ -79,6 +79,10 @@ interface TeamMemberOption {
   department?: string;
   mobile?: string;
   status?: string;
+  sub_role?: string;
+  allowed_modules?: string[];
+  landing_module?: string;
+  permissions?: any;
 }
 
 interface AssignmentRow {
@@ -370,20 +374,50 @@ export default function VehicleAssignmentPage() {
     );
   };
 
-    // Drivers and staff split
+  // Strictly filter only drivers, machinery operators, and employees granted Driver access in Staff Directory (Person-to-Person)
   const driverList = useMemo(() => {
     return teamMembers.filter(m => {
       const r = (m.role || '').toLowerCase();
       const d = (m.department || '').toLowerCase();
-      return r.includes('driver') || r.includes('operator') || d.includes('fleet') || d.includes('transport');
-    });
-  }, [teamMembers]);
+      const sub = (m.sub_role || '').toLowerCase();
 
-  const otherStaffList = useMemo(() => {
-    return teamMembers.filter(m => {
-      const r = (m.role || '').toLowerCase();
-      const d = (m.department || '').toLowerCase();
-      return !(r.includes('driver') || r.includes('operator') || d.includes('fleet') || d.includes('transport'));
+      // 1. Check if designated as driver or machinery operator
+      const isDesignatedDriver =
+        r.includes('driver') ||
+        r.includes('operator') ||
+        r.includes('chauffeur') ||
+        r.includes('pilot') ||
+        r.includes('crane') ||
+        r.includes('dozer') ||
+        r.includes('dumper') ||
+        r.includes('jcb') ||
+        r.includes('tipper') ||
+        r.includes('loader') ||
+        r.includes('excavator') ||
+        r.includes('machinery') ||
+        r.includes('transporter') ||
+        sub.includes('driver') ||
+        sub.includes('operator') ||
+        d.includes('fleet') ||
+        d.includes('transport') ||
+        d.includes('machinery');
+
+      // 2. Check if granted Driver / Machinery access via Staff Directory & Person-to-Person Access
+      const hasPersonToPersonDriverAccess =
+        (Array.isArray(m.allowed_modules) &&
+          m.allowed_modules.some(mod =>
+            ['fms_driver', 'fms_machinery', 'fms', 'fuel_logs'].includes(mod)
+          )) ||
+        ['fms_driver', 'fms_machinery'].includes(m.landing_module || '') ||
+        Boolean(
+          m.permissions &&
+          (m.permissions.fms_driver ||
+           m.permissions.fms_machinery ||
+           m.permissions.driver ||
+           m.permissions.operator)
+        );
+
+      return isDesignatedDriver || hasPersonToPersonDriverAccess;
     });
   }, [teamMembers]);
 
@@ -1168,9 +1202,14 @@ export default function VehicleAssignmentPage() {
 
                         {/* 2. Driver / Operator Dropdown */}
                         <div className="sm:col-span-4">
-                          <label className="text-[10.5px] font-semibold text-slate-600 mb-1 flex items-center gap-1">
-                            <Users size={12} className="text-[#46B351]" />
-                            <span>Assign Driver / Operator <span className="text-rose-500">*</span></span>
+                          <label className="text-[10.5px] font-semibold text-slate-600 mb-1 flex items-center justify-between">
+                            <span className="flex items-center gap-1">
+                              <Users size={12} className="text-[#46B351]" />
+                              <span>Assign Driver / Operator <span className="text-rose-500">*</span></span>
+                            </span>
+                            <span className="text-[9.5px] text-slate-400 font-medium">
+                              {driverList.length} Available
+                            </span>
                           </label>
                           <select
                             required
@@ -1179,25 +1218,31 @@ export default function VehicleAssignmentPage() {
                             className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
                           >
                             <option value="">-- Select Driver / Operator --</option>
-                            {driverList.length > 0 && (
-                              <optgroup label="🚚 Drivers & Operators">
-                                {driverList.map(m => (
-                                  <option key={m.id} value={String(m.id)}>
-                                    {m.name} • {m.role} {m.mobile ? `(${m.mobile})` : ''}
-                                  </option>
-                                ))}
-                              </optgroup>
-                            )}
-                            {otherStaffList.length > 0 && (
-                              <optgroup label="👷 Company Staff">
-                                {otherStaffList.map(m => (
-                                  <option key={m.id} value={String(m.id)}>
-                                    {m.name} • {m.role} {m.mobile ? `(${m.mobile})` : ''}
-                                  </option>
-                                ))}
-                              </optgroup>
-                            )}
+                            {driverList.map(m => {
+                              const isP2P =
+                                (Array.isArray(m.allowed_modules) &&
+                                  m.allowed_modules.some(mod =>
+                                    ['fms_driver', 'fms_machinery', 'fms', 'fuel_logs'].includes(mod)
+                                  )) ||
+                                ['fms_driver', 'fms_machinery'].includes(m.landing_module || '') ||
+                                Boolean(m.permissions?.fms_driver || m.permissions?.fms_machinery);
+
+                              const isNonStandardRole =
+                                !m.role?.toLowerCase().includes('driver') &&
+                                !m.role?.toLowerCase().includes('operator');
+
+                              return (
+                                <option key={m.id} value={String(m.id)}>
+                                  {m.name} • {m.role || 'Driver'}{isP2P && isNonStandardRole ? ' (Person-to-Person Access)' : ''} {m.mobile ? `(${m.mobile})` : ''}
+                                </option>
+                              );
+                            })}
                           </select>
+                          {driverList.length === 0 && (
+                            <p className="text-[10px] text-amber-600 mt-1">
+                              ⚠️ No drivers found. Add drivers in Team or grant driver access via Staff Directory & Person-to-Person Access.
+                            </p>
+                          )}
                         </div>
 
                         {/* 3. Role Type */}

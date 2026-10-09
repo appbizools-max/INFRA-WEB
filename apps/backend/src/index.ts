@@ -2135,7 +2135,8 @@ app.get('/api/tenant/team', async (req, res) => {
              u.profile_photo, u.salary, u.mobile_verified,
              u.bank_name, u.bank_account_number, u.ifsc_code, u.account_holder_name,
              u.sub_role, u.employee_type, u.joining_date,
-             d.name AS division_name 
+             u.permissions, u.allowed_modules, u.landing_module,
+              d.name AS division_name 
       FROM tenant_users u
       LEFT JOIN tenant_divisions d ON d.id = u.division_id
     `;
@@ -2194,6 +2195,7 @@ app.get('/api/tenant/team/:firebaseUid', async (req, res) => {
               u.profile_photo, u.salary, u.mobile_verified,
               u.bank_name, u.bank_account_number, u.ifsc_code, u.account_holder_name,
               u.sub_role, u.employee_type, u.joining_date,
+              u.permissions, u.allowed_modules, u.landing_module,
               d.name AS division_name 
        FROM tenant_users u
        LEFT JOIN tenant_divisions d ON d.id = u.division_id
@@ -2228,6 +2230,7 @@ app.get('/api/tenant/team/tenant/:tenantId', async (req, res) => {
               u.profile_photo, u.salary, u.mobile_verified,
               u.bank_name, u.bank_account_number, u.ifsc_code, u.account_holder_name,
               u.sub_role, u.employee_type, u.joining_date,
+              u.permissions, u.allowed_modules, u.landing_module,
               d.name AS division_name 
        FROM tenant_users u
        LEFT JOIN tenant_divisions d ON d.id = u.division_id
