@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { apiFetch } from '../../../lib/api';
+import VehicleAssignmentPage from '../vehicle-assignment/VehicleAssignmentPage';
 import {
   Truck,
   HardHat,
@@ -35,7 +37,8 @@ import {
   Building2,
   Briefcase,
   Zap,
-  Tag
+  Tag,
+  UserCheck
 } from 'lucide-react';
 
 export interface InsuranceHistoryRecord {
@@ -163,9 +166,23 @@ const FUEL_POWER_TYPES = [
   'Other'
 ];
 
-export default function VehicleMasterPage() {
+interface VehicleMasterPageProps {
+  initialTab?: 'vehicles' | 'equipment' | 'deployments';
+}
+
+export default function VehicleMasterPage({ initialTab }: VehicleMasterPageProps = {}) {
   const { currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'vehicles' | 'equipment'>('vehicles');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get('tab') as 'vehicles' | 'equipment' | 'deployments' | null;
+  const [activeTab, setActiveTab] = useState<'vehicles' | 'equipment' | 'deployments'>(
+    initialTab || urlTab || 'vehicles'
+  );
+
+  useEffect(() => {
+    if (initialTab && initialTab !== activeTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   // Data states
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -1975,89 +1992,94 @@ export default function VehicleMasterPage() {
             <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
           </button>
 
-          <button
-            onClick={handleOpenCreate}
-            className="px-4 py-2.5 rounded-xl bg-[#46B351] hover:bg-[#3ca046] text-white text-xs font-bold shadow-xs flex items-center gap-2 transition-all cursor-pointer"
-          >
-            <Plus size={16} />
-            {activeTab === 'vehicles' ? 'Add Vehicle' : 'Add Heavy Equipment'}
-          </button>
+          {activeTab !== 'deployments' && (
+            <button
+              onClick={handleOpenCreate}
+              className="px-4 py-2.5 rounded-xl bg-[#46B351] hover:bg-[#3ca046] text-white text-xs font-bold shadow-xs flex items-center gap-2 transition-all cursor-pointer"
+            >
+              <Plus size={16} />
+              {activeTab === 'vehicles' ? 'Add Vehicle' : 'Add Heavy Equipment'}
+            </button>
+          )}
         </div>
       </div>
 
       {/* KPI Stats Overview */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Metric 1 */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Fleet Assets</span>
-            <div className="p-2 rounded-xl bg-slate-100 text-slate-700">
-              <Layers size={14} />
+      {activeTab !== 'deployments' && (
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Metric 1 */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs">
+            <div className="flex items-center justify-between text-slate-400 mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Fleet Assets</span>
+              <div className="p-2 rounded-xl bg-slate-100 text-slate-700">
+                <Layers size={14} />
+              </div>
             </div>
+            <p className="text-2xl font-black text-slate-900">{totalFleetCount}</p>
+            <p className="text-[11px] text-slate-400 mt-1">
+              {vehicles.length} Vehicles • {equipmentList.length} Heavy Machinery
+            </p>
           </div>
-          <p className="text-2xl font-black text-slate-900">{totalFleetCount}</p>
-          <p className="text-[11px] text-slate-400 mt-1">
-            {vehicles.length} Vehicles • {equipmentList.length} Heavy Machinery
-          </p>
-        </div>
 
-        {/* Metric 2 */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Active Fleet</span>
-            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
-              <Truck size={14} />
+          {/* Metric 2 */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs">
+            <div className="flex items-center justify-between text-slate-400 mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Active Fleet</span>
+              <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+                <Truck size={14} />
+              </div>
             </div>
+            <p className="text-2xl font-black text-emerald-600">{totalActiveVehicles + totalActiveEquipment}</p>
+            <p className="text-[11px] text-slate-400 mt-1">
+              {totalPayloadTonnage.toLocaleString()} MT Total Capacity
+            </p>
           </div>
-          <p className="text-2xl font-black text-emerald-600">{totalActiveVehicles + totalActiveEquipment}</p>
-          <p className="text-[11px] text-slate-400 mt-1">
-            {totalPayloadTonnage.toLocaleString()} MT Total Capacity
-          </p>
-        </div>
 
-        {/* Metric 3 */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Machinery Run Hours</span>
-            <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
-              <Gauge size={14} />
+          {/* Metric 3 */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs">
+            <div className="flex items-center justify-between text-slate-400 mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Machinery Run Hours</span>
+              <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
+                <Gauge size={14} />
+              </div>
             </div>
+            <p className="text-2xl font-black text-amber-600">
+              {Math.round(totalRunningHours).toLocaleString()}
+              <span className="text-xs font-normal text-slate-400 ml-1">hrs</span>
+            </p>
+            <p className="text-[11px] text-slate-400 mt-1">
+              {equipmentList.filter(eq => eq.status === 'In Operation').length} Assets actively deployed
+            </p>
           </div>
-          <p className="text-2xl font-black text-amber-600">
-            {Math.round(totalRunningHours).toLocaleString()}
-            <span className="text-xs font-normal text-slate-400 ml-1">hrs</span>
-          </p>
-          <p className="text-[11px] text-slate-400 mt-1">
-            {equipmentList.filter(eq => eq.status === 'In Operation').length} Assets actively deployed
-          </p>
-        </div>
 
-        {/* Metric 4 */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Asset Valuation</span>
-            <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
-              <IndianRupee size={14} />
+          {/* Metric 4 */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs">
+            <div className="flex items-center justify-between text-slate-400 mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Asset Valuation</span>
+              <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+                <IndianRupee size={14} />
+              </div>
             </div>
+            <p className="text-2xl font-black text-slate-900">
+              ₹{(totalAssetValuation / 10000000).toFixed(2)}
+              <span className="text-xs font-bold text-slate-400 ml-1">Cr</span>
+            </p>
+            <p className="text-[11px] text-slate-400 mt-1">
+              {totalMaintenance} Units in Maintenance / Breakdown
+            </p>
           </div>
-          <p className="text-2xl font-black text-slate-900">
-            ₹{(totalAssetValuation / 10000000).toFixed(2)}
-            <span className="text-xs font-bold text-slate-400 ml-1">Cr</span>
-          </p>
-          <p className="text-[11px] text-slate-400 mt-1">
-            {totalMaintenance} Units in Maintenance / Breakdown
-          </p>
         </div>
-      </div>
+      )}
 
       {/* Segmented Tab Switcher */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-1.5 shadow-2xs flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
+      <div className="bg-white rounded-2xl border border-slate-200 p-1.5 shadow-2xs flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <button
             type="button"
             onClick={() => {
               setActiveTab('vehicles');
               setTypeFilter('All');
+              setSearchParams({ tab: 'vehicles' });
             }}
             className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${activeTab === 'vehicles'
                 ? 'bg-slate-900 text-white shadow-xs'
@@ -2065,7 +2087,7 @@ export default function VehicleMasterPage() {
               }`}
           >
             <Truck size={14} className={activeTab === 'vehicles' ? 'text-[#46B351]' : 'text-slate-400'} />
-            <span>MODULE 1: Vehicle Master</span>
+            <span>Trucks & Vehicles</span>
             <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'vehicles' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
               }`}>
               {vehicles.length}
@@ -2077,6 +2099,7 @@ export default function VehicleMasterPage() {
             onClick={() => {
               setActiveTab('equipment');
               setTypeFilter('All');
+              setSearchParams({ tab: 'equipment' });
             }}
             className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${activeTab === 'equipment'
                 ? 'bg-slate-900 text-white shadow-xs'
@@ -2084,63 +2107,82 @@ export default function VehicleMasterPage() {
               }`}
           >
             <HardHat size={14} className={activeTab === 'equipment' ? 'text-amber-400' : 'text-slate-400'} />
-            <span>MODULE 2: Heavy Equipment Master</span>
+            <span>Heavy Machinery</span>
             <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'equipment' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
               }`}>
               {equipmentList.length}
             </span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('deployments');
+              setSearchParams({ tab: 'deployments' });
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${activeTab === 'deployments'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+          >
+            <UserCheck size={14} className={activeTab === 'deployments' ? 'text-blue-400' : 'text-slate-400'} />
+            <span>Site Deployments & Personnel</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'deployments' ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-700 font-bold'
+              }`}>
+              Active
+            </span>
+          </button>
         </div>
-
-
       </div>
 
       {/* Search and Filters Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-3">
-        <div className="relative w-full md:w-80">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder={
-              activeTab === 'vehicles'
-                ? 'Search vehicle number, fleet code, brand...'
-                : 'Search equipment ID, number, model, brand...'
-            }
-            className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:border-[#46B351] font-medium"
-          />
-          <Search size={14} className="absolute left-3 top-2.5 text-slate-400 pointer-events-none" />
-        </div>
+      {activeTab !== 'deployments' && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-3">
+          <div className="relative w-full md:w-80">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder={
+                activeTab === 'vehicles'
+                  ? 'Search vehicle number, fleet code, brand...'
+                  : 'Search equipment ID, number, model, brand...'
+              }
+              className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:border-[#46B351] font-medium"
+            />
+            <Search size={14} className="absolute left-3 top-2.5 text-slate-400 pointer-events-none" />
+          </div>
 
-        <div className="flex items-center gap-2.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-          {/* Classification Type Filter */}
-          <select
-            value={typeFilter}
-            onChange={e => setTypeFilter(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 focus:outline-none"
-          >
-            <option value="All">All Types</option>
-            {activeTab === 'vehicles'
-              ? allVehicleTypes.map(t => <option key={t} value={t}>{t}</option>)
-              : allEquipmentTypes.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
+          <div className="flex items-center gap-2.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+            {/* Classification Type Filter */}
+            <select
+              value={typeFilter}
+              onChange={e => setTypeFilter(e.target.value)}
+              className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 focus:outline-none"
+            >
+              <option value="All">All Types</option>
+              {activeTab === 'vehicles'
+                ? allVehicleTypes.map(t => <option key={t} value={t}>{t}</option>)
+                : allEquipmentTypes.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
 
-          {/* Status Filter */}
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 focus:outline-none"
-          >
-            <option value="All">All Statuses</option>
-            <option value="Active">Active</option>
-            {activeTab === 'equipment' && <option value="In Operation">In Operation</option>}
-            <option value="Under Maintenance">Under Maintenance</option>
-            <option value="Breakdown">Breakdown</option>
-            <option value="Idle">Idle</option>
-            <option value="Decommissioned">Decommissioned</option>
-          </select>
+            {/* Status Filter */}
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 focus:outline-none"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Active">Active</option>
+              {activeTab === 'equipment' && <option value="In Operation">In Operation</option>}
+              <option value="Under Maintenance">Under Maintenance</option>
+              <option value="Breakdown">Breakdown</option>
+              <option value="Idle">Idle</option>
+              <option value="Decommissioned">Decommissioned</option>
+            </select>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ──────────────────────────────────────────────────────────────────────────
           MODULE 1: VEHICLE MASTER TABLE / GRID
@@ -2437,6 +2479,15 @@ export default function VehicleMasterPage() {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          MODULE 3: SITE DEPLOYMENTS & PERSONNEL
+          ────────────────────────────────────────────────────────────────────────── */}
+      {activeTab === 'deployments' && (
+        <div className="w-full">
+          <VehicleAssignmentPage />
         </div>
       )}
 

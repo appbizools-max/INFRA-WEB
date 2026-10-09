@@ -5085,6 +5085,219 @@ app.delete('/api/tenant/vehicle-assignments/:id', async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// FLEET DAILY LOGS, FUEL TELEMETRY & RUNNING LOGS ENDPOINTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// GET Fleet Operational Stats (Rollup by project and overall fleet KPI)
+app.get('/api/tenant/fleet-logs/stats', async (req, res) => {
+  try {
+    const statsRes = await pool.query(`
+      SELECT 
+        COUNT(DISTINCT asset_number) AS "activeAssetsCount",
+        COALESCE(SUM(distance_run), 0) AS "totalKmRun",
+        COALESCE(SUM(fuel_filled_liters), 0) AS "totalFuelLiters",
+        COALESCE(SUM(fuel_total_cost), 0) AS "totalFuelCost",
+        COALESCE(SUM(toll_amount + fastag_deduction), 0) AS "totalTollExpenses",
+        COALESCE(SUM(trips_count), 0) AS "totalTripsCount",
+        CASE 
+          WHEN SUM(fuel_filled_liters) > 0 THEN ROUND(SUM(distance_run) / SUM(fuel_filled_liters), 2)
+          ELSE 0 
+        END AS "avgMileageKmPerLiter"
+      FROM tenant_fleet_daily_logs
+    `);
+
+    // Project breakdown
+    const projRes = await pool.query(`
+      SELECT 
+        COALESCE(project_name, 'Unassigned Project') AS "projectName",
+        COUNT(*) AS "logsCount",
+        COALESCE(SUM(distance_run), 0) AS "totalKm",
+        COALESCE(SUM(fuel_filled_liters), 0) AS "totalFuelLiters",
+        COALESCE(SUM(fuel_total_cost), 0) AS "totalFuelCost",
+        COALESCE(SUM(toll_amount + fastag_deduction), 0) AS "totalToll"
+      FROM tenant_fleet_daily_logs
+      GROUP BY project_name
+      ORDER BY "totalKm" DESC
+    `);
+
+    res.json({
+      summary: statsRes.rows[0],
+      projectRollup: projRes.rows
+    });
+  } catch (err: any) {
+    console.error('[GET /api/tenant/fleet-logs/stats] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// GET Fleet Daily Logs
+app.get(['/api/tenant/fleet-logs/:firebaseUid', '/api/tenant/fleet-logs'], async (req, res) => {
+  try {
+    const { projectId, assetNumber, stage, dateFrom, dateTo } = req.query;
+    let query = `
+      SELECT 
+        id,
+        tenant_id AS "tenantId",
+        asset_id AS "assetId",
+        asset_type AS "assetType",
+        asset_number AS "assetNumber",
+        asset_title AS "assetTitle",
+        assignment_id AS "assignmentId",
+        project_id AS "projectId",
+        project_name AS "projectName",
+        worksite_id AS "worksiteId",
+        worksite_name AS "worksiteName",
+        driver_id AS "driverId",
+        driver_name AS "driverName",
+        driver_phone AS "driverPhone",
+        helper_id AS "helperId",
+        helper_name AS "helperName",
+        helper_role AS "helperRole",
+        helper_phone AS "helperPhone",
+        TO_CHAR(log_date, 'YYYY-MM-DD') AS "logDate",
+        shift,
+        stage,
+        start_odometer AS "startOdometer",
+        end_odometer AS "endOdometer",
+        distance_run AS "distanceRun",
+        engine_hours_start AS "engineHoursStart",
+        engine_hours_end AS "engineHoursEnd",
+        engine_hours_total AS "engineHoursTotal",
+        fuel_filled_liters AS "fuelFilledLiters",
+        fuel_rate_per_liter AS "fuelRatePerLiter",
+        fuel_total_cost AS "fuelTotalCost",
+        fuel_station AS "fuelStation",
+        fuel_bill_number AS "fuelBillNumber",
+        fuel_efficiency AS "fuelEfficiency",
+        toll_amount AS "tollAmount",
+        fastag_deduction AS "fastagDeduction",
+        other_expenses AS "otherExpenses",
+        trips_count AS "tripsCount",
+        remarks,
+        created_at AS "createdAt",
+        updated_at AS "updatedAt"
+      FROM tenant_fleet_daily_logs
+      WHERE 1=1
+    `;
+    const params: any[] = [];
+    let pIdx = 1;
+
+    if (projectId && projectId !== 'All') {
+      query += ` AND project_name = ${pIdx++}`;
+      params.push(projectId);
+    }
+    if (assetNumber && assetNumber !== 'All') {
+      query += ` AND asset_number = ${pIdx++}`;
+      params.push(assetNumber);
+    }
+    if (stage && stage !== 'All') {
+      query += ` AND stage = ${pIdx++}`;
+      params.push(stage);
+    }
+    if (dateFrom) {
+      query += ` AND log_date >= ${pIdx++}`;
+      params.push(dateFrom);
+    }
+    if (dateTo) {
+      query += ` AND log_date <= ${pIdx++}`;
+      params.push(dateTo);
+    }
+
+    query += ` ORDER BY log_date DESC, id DESC`;
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err: any) {
+    console.error('[GET /api/tenant/fleet-logs] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST Create Fleet Daily Log
+app.post('/api/tenant/fleet-logs', async (req, res) => {
+  try {
+    const b = req.body;
+    const startOdo = parseFloat(b.startOdometer) || 0;
+    const endOdo = parseFloat(b.endOdometer) || 0;
+    const distRun = b.distanceRun !== undefined ? parseFloat(b.distanceRun) : Math.max(0, endOdo - startOdo);
+    const fuelLiters = parseFloat(b.fuelFilledLiters) || 0;
+    const fuelRate = parseFloat(b.fuelRatePerLiter) || 0;
+    const fuelCost = b.fuelTotalCost !== undefined ? parseFloat(b.fuelTotalCost) : (fuelLiters * fuelRate);
+    const efficiency = fuelLiters > 0 && distRun > 0 ? parseFloat((distRun / fuelLiters).toFixed(2)) : 0;
+
+    const insRes = await pool.query(`
+      INSERT INTO tenant_fleet_daily_logs (
+        tenant_id, asset_id, asset_type, asset_number, asset_title, assignment_id,
+        project_id, project_name, worksite_id, worksite_name,
+        driver_id, driver_name, driver_phone,
+        helper_id, helper_name, helper_role, helper_phone,
+        log_date, shift, stage,
+        start_odometer, end_odometer, distance_run,
+        engine_hours_start, engine_hours_end, engine_hours_total,
+        fuel_filled_liters, fuel_rate_per_liter, fuel_total_cost,
+        fuel_station, fuel_bill_number, fuel_efficiency,
+        toll_amount, fastag_deduction, other_expenses,
+        trips_count, remarks
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6,
+        $7, $8, $9, $10,
+        $11, $12, $13,
+        $14, $15, $16, $17,
+        $18, $19, $20,
+        $21, $22, $23,
+        $24, $25, $26,
+        $27, $28, $29,
+        $30, $31, $32,
+        $33, $34, $35,
+        $36, $37
+      ) RETURNING *;
+    `, [
+      b.tenantId || 'demo-tenant', b.assetId || null, b.assetType || 'vehicle', b.assetNumber, b.assetTitle || null, b.assignmentId || null,
+      b.projectId || null, b.projectName || null, b.worksiteId || null, b.worksiteName || null,
+      b.driverId || null, b.driverName || null, b.driverPhone || null,
+      b.helperId || null, b.helperName || null, b.helperRole || null, b.helperPhone || null,
+      b.logDate || new Date().toISOString().split('T')[0], b.shift || 'Day', b.stage || 'Working at Site',
+      startOdo, endOdo, distRun,
+      parseFloat(b.engineHoursStart) || 0, parseFloat(b.engineHoursEnd) || 0, parseFloat(b.engineHoursTotal) || 0,
+      fuelLiters, fuelRate, fuelCost,
+      b.fuelStation || null, b.fuelBillNumber || null, efficiency,
+      parseFloat(b.tollAmount) || 0, parseFloat(b.fastagDeduction) || 0, parseFloat(b.otherExpenses) || 0,
+      parseInt(b.tripsCount, 10) || 1, b.remarks || null
+    ]);
+
+    // Also update assignment status/odometer if assignmentId is present
+    if (b.assignmentId && endOdo > 0) {
+      await pool.query(`
+        UPDATE tenant_vehicle_assignments
+        SET odometer_closing_km = $1, distance_travelled = COALESCE(distance_travelled, 0) + $2, updated_at = NOW()
+        WHERE id = $3;
+      `, [endOdo, distRun, b.assignmentId]);
+    }
+
+    res.status(201).json(insRes.rows[0]);
+  } catch (err: any) {
+    console.error('[POST /api/tenant/fleet-logs] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE Fleet Daily Log
+app.delete('/api/tenant/fleet-logs/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const delRes = await pool.query('DELETE FROM tenant_fleet_daily_logs WHERE id = $1 RETURNING *', [id]);
+    if (delRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Log not found' });
+    }
+    res.json({ message: 'Fleet log deleted', log: delRes.rows[0] });
+  } catch (err: any) {
+    console.error('[DELETE /api/tenant/fleet-logs/:id] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── DIVISIONS HELPERS & ENDPOINTS ──────────────────────────────────────────
 async function getTenantIdForUser(userUid: string): Promise<number | null> {
   const adminRes = await pool.query('SELECT tenant_id FROM tenant_admins WHERE firebase_uid = $1', [userUid]);
