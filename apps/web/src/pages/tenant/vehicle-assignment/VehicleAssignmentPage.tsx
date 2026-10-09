@@ -900,7 +900,7 @@ export default function VehicleAssignmentPage() {
                   <th className="py-2.5 px-3">Asset & Identifier</th>
                   <th className="py-2.5 px-3">Project & Worksite</th>
                   <th className="py-2.5 px-3">Assigned Personnel</th>
-                  <th className="py-2.5 px-3">Deployment Timeline</th>
+                  <th className="py-2.5 px-3">Assignment Date</th>
                   <th className="py-2.5 px-3">Status</th>
                   <th className="py-2.5 px-3 text-right">Actions</th>
                 </tr>
@@ -989,18 +989,11 @@ export default function VehicleAssignmentPage() {
                       )}
                     </td>
 
-                    {/* Timeline */}
+                    {/* Assignment Date */}
                     <td className="py-2.5 px-3 text-[10.5px]">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-1 text-slate-700">
-                          <Calendar size={10} className="text-slate-400" />
-                          <span>From: <strong>{a.startDate || '—'}</strong></span>
-                        </div>
-                        {a.expectedEndDate ? (
-                          <div className="text-[10px] text-slate-400">
-                            Due: {a.expectedEndDate}
-                          </div>
-                        ) : null}
+                      <div className="flex items-center gap-1.5 text-slate-700 font-semibold">
+                        <Calendar size={11} className="text-slate-400" />
+                        <span>{a.startDate || '—'}</span>
                       </div>
                     </td>
 
@@ -1097,7 +1090,7 @@ export default function VehicleAssignmentPage() {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                   {/* Worksite Location Dropdown */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
@@ -1165,31 +1158,22 @@ export default function VehicleAssignmentPage() {
                       ))}
                     </select>
                   </div>
-                </div>
 
-                {/* Dates */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
+                  {/* Assignment Date */}
                   <div>
-                    <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">
-                      Deployment Start Date <span className="text-rose-500">*</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[10.5px] font-semibold text-slate-700 flex items-center gap-1">
+                        <Calendar size={11} className="text-[#46B351]" />
+                        <span>Assignment Date</span>
+                        <span className="text-rose-500">*</span>
+                      </label>
+                    </div>
                     <input
                       type="date"
                       required
                       value={siteForm.startDate}
                       onChange={e => setSiteForm(prev => ({ ...prev, startDate: e.target.value }))}
                       className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">
-                      Expected End Date (Optional)
-                    </label>
-                    <input
-                      type="date"
-                      value={siteForm.expectedEndDate}
-                      onChange={e => setSiteForm(prev => ({ ...prev, expectedEndDate: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
                     />
                   </div>
                 </div>
@@ -1581,17 +1565,10 @@ export default function VehicleAssignmentPage() {
                   </>
                 )}
 
-                <div className="p-2 bg-slate-50 rounded-lg border border-slate-100">
-                  <span className="text-[9px] text-slate-400 font-semibold block">Start Date</span>
+                <div className="p-2 bg-slate-50 rounded-lg border border-slate-100 col-span-2">
+                  <span className="text-[9px] text-slate-400 font-semibold block">Assignment Date</span>
                   <span className="font-bold text-slate-800 text-[11px] mt-0.5 block">
                     {viewingAssignment.startDate || '—'}
-                  </span>
-                </div>
-
-                <div className="p-2 bg-slate-50 rounded-lg border border-slate-100">
-                  <span className="text-[9px] text-slate-400 font-semibold block">Expected End Date</span>
-                  <span className="font-bold text-slate-800 text-[11px] mt-0.5 block">
-                    {viewingAssignment.expectedEndDate || 'Ongoing'}
                   </span>
                 </div>
               </div>
