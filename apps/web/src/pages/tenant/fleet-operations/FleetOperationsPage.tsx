@@ -513,7 +513,7 @@ export default function FleetOperationsPage() {
             </div>
           </div>
           <div className="mt-1.5 flex items-baseline gap-1">
-            <span className="text-xl font-black text-slate-900 font-mono tracking-tight">
+            <span className="text-xl font-black text-slate-900 tracking-tight">
               {Number(stats?.summary?.totalKmRun || 0).toLocaleString('en-IN')}
             </span>
             <span className="text-[11px] font-bold text-slate-500">KM</span>
@@ -532,7 +532,7 @@ export default function FleetOperationsPage() {
             </div>
           </div>
           <div className="mt-1.5 flex items-baseline gap-1">
-            <span className="text-xl font-black text-slate-900 font-mono tracking-tight">
+            <span className="text-xl font-black text-slate-900 tracking-tight">
               {Number(stats?.summary?.totalFuelLiters || 0).toLocaleString('en-IN')}
             </span>
             <span className="text-[11px] font-bold text-slate-500">Liters</span>
@@ -551,7 +551,7 @@ export default function FleetOperationsPage() {
             </div>
           </div>
           <div className="mt-1.5 flex items-baseline gap-1">
-            <span className="text-xl font-black text-slate-900 font-mono tracking-tight">
+            <span className="text-xl font-black text-slate-900 tracking-tight">
               {stats?.summary?.avgMileageKmPerLiter || '3.45'}
             </span>
             <span className="text-[11px] font-bold text-slate-500">KM / L</span>
@@ -571,7 +571,7 @@ export default function FleetOperationsPage() {
             </div>
           </div>
           <div className="mt-1.5 flex items-baseline gap-1">
-            <span className="text-xl font-black text-slate-900 font-mono tracking-tight">
+            <span className="text-xl font-black text-slate-900 tracking-tight">
               ₹{Number(stats?.summary?.totalTollExpenses || 0).toLocaleString('en-IN')}
             </span>
           </div>
@@ -602,25 +602,25 @@ export default function FleetOperationsPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white/5 p-3 rounded-xl border border-white/10 shrink-0">
             <div>
               <span className="text-[9.5px] text-slate-400 block font-semibold">Total Distance</span>
-              <span className="text-sm font-bold font-mono text-white block mt-0.5">
+              <span className="text-sm font-bold text-white block mt-0.5">
                 {Number(currentProjectStats.totalKm).toLocaleString('en-IN')} KM
               </span>
             </div>
             <div>
               <span className="text-[9.5px] text-slate-400 block font-semibold">Fuel Burned</span>
-              <span className="text-sm font-bold font-mono text-white block mt-0.5">
+              <span className="text-sm font-bold text-white block mt-0.5">
                 {Number(currentProjectStats.totalFuelLiters).toLocaleString('en-IN')} L
               </span>
             </div>
             <div>
               <span className="text-[9.5px] text-slate-400 block font-semibold">Fuel Expense</span>
-              <span className="text-sm font-bold font-mono text-emerald-400 block mt-0.5">
+              <span className="text-sm font-bold text-emerald-400 block mt-0.5">
                 ₹{Number(currentProjectStats.totalFuelCost).toLocaleString('en-IN')}
               </span>
             </div>
             <div>
               <span className="text-[9.5px] text-slate-400 block font-semibold">Tolls & En-Route</span>
-              <span className="text-sm font-bold font-mono text-amber-300 block mt-0.5">
+              <span className="text-sm font-bold text-amber-300 block mt-0.5">
                 ₹{Number(currentProjectStats.totalToll).toLocaleString('en-IN')}
               </span>
             </div>
@@ -763,7 +763,6 @@ export default function FleetOperationsPage() {
                   <th className="py-2.5 px-3">Assigned Crew</th>
                   <th className="py-2.5 px-3">Running Stage</th>
                   <th className="py-2.5 px-3">Shift Output & Fuel</th>
-                  <th className="py-2.5 px-3.5 text-right">Trip Details</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-[11px]">
@@ -771,7 +770,7 @@ export default function FleetOperationsPage() {
                   <tr
                     key={l.id}
                     onClick={() => setViewingLog(l)}
-                    className="hover:bg-slate-50/90 transition-all cursor-pointer group"
+                    className="hover:bg-slate-50/90 transition-all cursor-pointer group" title="Click anywhere on this row to open full-screen telemetry details"
                   >
                     {/* Asset & Vehicle */}
                     <td className="py-2.5 px-3.5">
@@ -786,7 +785,7 @@ export default function FleetOperationsPage() {
                           {l.assetType === 'equipment' ? <HardHat size={14} /> : <Truck size={14} />}
                         </div>
                         <div>
-                          <span className="font-bold text-xs text-slate-900 font-mono block group-hover:text-[#46B351] transition-colors">
+                          <span className="font-bold text-xs text-slate-900 block group-hover:text-[#46B351] transition-colors">
                             {l.assetNumber}
                           </span>
                           <span className="text-[10px] text-slate-400 truncate max-w-[150px] block font-medium">
@@ -850,11 +849,11 @@ export default function FleetOperationsPage() {
                     <td className="py-2.5 px-3 whitespace-nowrap">
                       <div className="space-y-1">
                         {Number(l.distanceRun) > 0 ? (
-                          <div className="font-black text-slate-900 font-mono text-xs text-emerald-700 flex items-center gap-1">
+                          <div className="font-black text-slate-900 text-xs text-emerald-700 flex items-center gap-1">
                             +{Number(l.distanceRun).toFixed(0)} KM
                           </div>
                         ) : Number(l.engineHoursTotal) > 0 ? (
-                          <div className="font-black text-slate-900 font-mono text-xs text-amber-700">
+                          <div className="font-black text-slate-900 text-xs text-amber-700">
                             {Number(l.engineHoursTotal).toFixed(1)} Hrs
                           </div>
                         ) : (
@@ -874,35 +873,6 @@ export default function FleetOperationsPage() {
                             </span>
                           )}
                         </div>
-                      </div>
-                    </td>
-
-                    {/* Actions / View Full Screen */}
-                    <td className="py-2.5 px-3.5 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setViewingLog(l);
-                          }}
-                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer group-hover:bg-[#46B351] group-hover:text-white"
-                          title="View full screen trip details"
-                        >
-                          <Eye size={12} />
-                          <span>View Details</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteLog(l.id);
-                          }}
-                          title="Delete Log"
-                          className="p-1 rounded-lg text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                        >
-                          <Trash2 size={13} />
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -1051,7 +1021,7 @@ export default function FleetOperationsPage() {
                       placeholder="e.g. 45120"
                       value={logForm.startOdometer}
                       onChange={e => setLogForm(prev => ({ ...prev, startOdometer: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono font-semibold text-slate-800"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-800"
                     />
                   </div>
 
@@ -1063,7 +1033,7 @@ export default function FleetOperationsPage() {
                       placeholder="e.g. 45365"
                       value={logForm.endOdometer}
                       onChange={e => setLogForm(prev => ({ ...prev, endOdometer: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono font-semibold text-slate-800"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-800"
                     />
                   </div>
                 </div>
@@ -1091,7 +1061,7 @@ export default function FleetOperationsPage() {
                       placeholder="e.g. 70"
                       value={logForm.fuelFilledLiters}
                       onChange={e => setLogForm(prev => ({ ...prev, fuelFilledLiters: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono font-semibold text-slate-800"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-800"
                     />
                   </div>
 
@@ -1103,7 +1073,7 @@ export default function FleetOperationsPage() {
                       placeholder="e.g. 94.50"
                       value={logForm.fuelRatePerLiter}
                       onChange={e => setLogForm(prev => ({ ...prev, fuelRatePerLiter: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-800"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800"
                     />
                   </div>
 
@@ -1115,7 +1085,7 @@ export default function FleetOperationsPage() {
                       readOnly
                       placeholder="Auto"
                       value={calculatedFuelCost || logForm.fuelTotalCost}
-                      className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono font-bold text-emerald-700 cursor-default"
+                      className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold text-emerald-700 cursor-default"
                     />
                   </div>
 
@@ -1157,7 +1127,7 @@ export default function FleetOperationsPage() {
                       placeholder="0.00"
                       value={logForm.tollAmount}
                       onChange={e => setLogForm(prev => ({ ...prev, tollAmount: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-800"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800"
                     />
                   </div>
 
@@ -1169,7 +1139,7 @@ export default function FleetOperationsPage() {
                       placeholder="0.00"
                       value={logForm.fastagDeduction}
                       onChange={e => setLogForm(prev => ({ ...prev, fastagDeduction: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-800"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800"
                     />
                   </div>
 
@@ -1181,7 +1151,7 @@ export default function FleetOperationsPage() {
                       placeholder="1"
                       value={logForm.tripsCount}
                       onChange={e => setLogForm(prev => ({ ...prev, tripsCount: e.target.value }))}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-800"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800"
                     />
                   </div>
                 </div>
@@ -1247,7 +1217,7 @@ export default function FleetOperationsPage() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-base sm:text-lg font-black text-slate-900 font-mono tracking-tight">
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
                       {viewingLog.assetNumber}
                     </h2>
                     <span className="text-xs text-slate-400 font-medium hidden sm:inline">•</span>
@@ -1312,10 +1282,10 @@ export default function FleetOperationsPage() {
                     <Gauge size={16} />
                   </div>
                   <div className="mt-2">
-                    <span className="text-2xl font-black text-slate-900 font-mono tracking-tight text-emerald-700">
+                    <span className="text-2xl font-black text-slate-900 tracking-tight text-emerald-700">
                       +{Number(viewingLog.distanceRun).toFixed(0)} KM
                     </span>
-                    <p className="text-[10px] text-slate-500 mt-0.5 font-mono">
+                    <p className="text-[10px] text-slate-500 mt-0.5 ">
                       {Number(viewingLog.startOdometer).toLocaleString()} → {Number(viewingLog.endOdometer).toLocaleString()} KM
                     </p>
                   </div>
@@ -1328,7 +1298,7 @@ export default function FleetOperationsPage() {
                     <Fuel size={16} />
                   </div>
                   <div className="mt-2">
-                    <span className="text-2xl font-black text-slate-900 font-mono tracking-tight text-purple-700">
+                    <span className="text-2xl font-black text-slate-900 tracking-tight text-purple-700">
                       {Number(viewingLog.fuelFilledLiters) > 0 ? `${viewingLog.fuelFilledLiters} L` : '0 L'}
                     </span>
                     <p className="text-[10px] text-slate-500 mt-0.5">
@@ -1346,7 +1316,7 @@ export default function FleetOperationsPage() {
                     <TrendingUp size={16} />
                   </div>
                   <div className="mt-2">
-                    <span className="text-2xl font-black text-slate-900 font-mono tracking-tight text-blue-700">
+                    <span className="text-2xl font-black text-slate-900 tracking-tight text-blue-700">
                       {Number(viewingLog.fuelEfficiency) > 0 ? `${viewingLog.fuelEfficiency} km/l` : '—'}
                     </span>
                     <p className="text-[10px] text-slate-500 mt-0.5">
@@ -1364,7 +1334,7 @@ export default function FleetOperationsPage() {
                     <Receipt size={16} />
                   </div>
                   <div className="mt-2">
-                    <span className="text-2xl font-black text-slate-900 font-mono tracking-tight text-rose-700">
+                    <span className="text-2xl font-black text-slate-900 tracking-tight text-rose-700">
                       ₹{(Number(viewingLog.tollAmount) + Number(viewingLog.fastagDeduction)).toFixed(0)}
                     </span>
                     <p className="text-[10px] text-slate-500 mt-0.5">
@@ -1405,7 +1375,7 @@ export default function FleetOperationsPage() {
                       </div>
                       <div>
                         <span className="text-[10px] text-slate-400 font-semibold block">Assignment ID</span>
-                        <span className="font-mono font-semibold text-slate-700 mt-0.5 block">
+                        <span className="font-semibold text-slate-700 mt-0.5 block">
                           #{viewingLog.assignmentId || viewingLog.id}
                         </span>
                       </div>
@@ -1438,7 +1408,7 @@ export default function FleetOperationsPage() {
                         {viewingLog.driverName || 'Unassigned'}
                       </span>
                       {viewingLog.driverPhone && (
-                        <span className="text-[10px] text-slate-500 font-mono block mt-0.5">
+                        <span className="text-[10px] text-slate-500 block mt-0.5">
                           {viewingLog.driverPhone}
                         </span>
                       )}
@@ -1470,20 +1440,20 @@ export default function FleetOperationsPage() {
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <span className="text-[10px] text-slate-400 font-semibold block">Quantity Filled</span>
-                        <span className="font-bold font-mono text-slate-900 block mt-0.5">
+                        <span className="font-bold text-slate-900 block mt-0.5">
                           {viewingLog.fuelFilledLiters ? `${viewingLog.fuelFilledLiters} Liters` : '0 Liters'}
                         </span>
                       </div>
                       <div>
                         <span className="text-[10px] text-slate-400 font-semibold block">Rate / Liter</span>
-                        <span className="font-bold font-mono text-slate-900 block mt-0.5">
+                        <span className="font-bold text-slate-900 block mt-0.5">
                           ₹{viewingLog.fuelRatePerLiter || 0}
                         </span>
                       </div>
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 font-semibold block">Total Fuel Cost</span>
-                      <span className="font-black font-mono text-emerald-600 text-sm block mt-0.5">
+                      <span className="font-black text-emerald-600 text-sm block mt-0.5">
                         ₹{Number(viewingLog.fuelTotalCost || 0).toLocaleString('en-IN')}
                       </span>
                     </div>
@@ -1495,7 +1465,7 @@ export default function FleetOperationsPage() {
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 font-semibold block">Bill / Slip Receipt No</span>
-                      <span className="font-mono font-bold text-slate-800 block mt-0.5">
+                      <span className="font-bold text-slate-800 block mt-0.5">
                         {viewingLog.fuelBillNumber || '—'}
                       </span>
                     </div>
@@ -1512,13 +1482,13 @@ export default function FleetOperationsPage() {
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <span className="text-[10px] text-slate-400 font-semibold block">Opening Odometer</span>
-                        <span className="font-bold font-mono text-slate-900 block mt-0.5">
+                        <span className="font-bold text-slate-900 block mt-0.5">
                           {Number(viewingLog.startOdometer).toLocaleString()} KM
                         </span>
                       </div>
                       <div>
                         <span className="text-[10px] text-slate-400 font-semibold block">Closing Odometer</span>
-                        <span className="font-bold font-mono text-slate-900 block mt-0.5">
+                        <span className="font-bold text-slate-900 block mt-0.5">
                           {Number(viewingLog.endOdometer).toLocaleString()} KM
                         </span>
                       </div>
@@ -1527,13 +1497,13 @@ export default function FleetOperationsPage() {
                       <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200/60">
                         <div>
                           <span className="text-[10px] text-slate-400 font-semibold block">Engine Hours Start</span>
-                          <span className="font-mono text-slate-700 block mt-0.5">
+                          <span className="text-slate-700 block mt-0.5">
                             {viewingLog.engineHoursStart || '—'}
                           </span>
                         </div>
                         <div>
                           <span className="text-[10px] text-slate-400 font-semibold block">Engine Hours End</span>
-                          <span className="font-mono text-slate-700 block mt-0.5">
+                          <span className="text-slate-700 block mt-0.5">
                             {viewingLog.engineHoursEnd || '—'}
                           </span>
                         </div>
@@ -1557,27 +1527,27 @@ export default function FleetOperationsPage() {
                   <div className="space-y-2 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="text-slate-500 font-medium">FASTag Automated Toll:</span>
-                      <span className="font-bold font-mono text-slate-900">
+                      <span className="font-bold text-slate-900">
                         ₹{Number(viewingLog.fastagDeduction || 0).toLocaleString('en-IN')}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-slate-500 font-medium">Manual Cash Toll:</span>
-                      <span className="font-bold font-mono text-slate-900">
+                      <span className="font-bold text-slate-900">
                         ₹{Number(viewingLog.tollAmount || 0).toLocaleString('en-IN')}
                       </span>
                     </div>
                     {Number(viewingLog.otherExpenses) > 0 && (
                       <div className="flex items-center justify-between">
                         <span className="text-slate-500 font-medium">Incidental Expenses:</span>
-                        <span className="font-bold font-mono text-slate-900">
+                        <span className="font-bold text-slate-900">
                           ₹{Number(viewingLog.otherExpenses).toLocaleString('en-IN')}
                         </span>
                       </div>
                     )}
                     <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
                       <span className="font-bold text-slate-800">Total Transit Expense:</span>
-                      <span className="font-black font-mono text-rose-600 text-sm">
+                      <span className="font-black text-rose-600 text-sm">
                         ₹{(Number(viewingLog.tollAmount || 0) + Number(viewingLog.fastagDeduction || 0) + Number(viewingLog.otherExpenses || 0)).toLocaleString('en-IN')}
                       </span>
                     </div>
@@ -1693,19 +1663,19 @@ export default function FleetOperationsPage() {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-slate-200/60 text-[10.5px]">
                         <div>
                           <span className="text-[9px] text-slate-400 block font-semibold">Distance</span>
-                          <span className="font-bold font-mono text-emerald-700">+{h.distanceRun} KM</span>
+                          <span className="font-bold text-emerald-700">+{h.distanceRun} KM</span>
                         </div>
                         <div>
                           <span className="text-[9px] text-slate-400 block font-semibold">Fuel Filled</span>
-                          <span className="font-bold font-mono text-slate-800">{h.fuelFilledLiters} L</span>
+                          <span className="font-bold text-slate-800">{h.fuelFilledLiters} L</span>
                         </div>
                         <div>
                           <span className="text-[9px] text-slate-400 block font-semibold">Fuel Cost</span>
-                          <span className="font-bold font-mono text-slate-800">₹{h.fuelTotalCost}</span>
+                          <span className="font-bold text-slate-800">₹{h.fuelTotalCost}</span>
                         </div>
                         <div>
                           <span className="text-[9px] text-slate-400 block font-semibold">Toll</span>
-                          <span className="font-bold font-mono text-slate-800">₹{(Number(h.tollAmount) + Number(h.fastagDeduction)).toFixed(0)}</span>
+                          <span className="font-bold text-slate-800">₹{(Number(h.tollAmount) + Number(h.fastagDeduction)).toFixed(0)}</span>
                         </div>
                       </div>
 
