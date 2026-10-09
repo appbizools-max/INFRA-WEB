@@ -8222,48 +8222,6 @@ app.listen(Number(port), '0.0.0.0', async () => {
 
   // Auto-create tenant_vehicles & tenant_heavy_equipment tables on server startup
   await pool.query(`
-    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS fuel_power_type VARCHAR(100); 
-    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS fuel_consumption VARCHAR(100); 
-    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS insurance_start_date VARCHAR(50);
-    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS insurance_expiry_date VARCHAR(50);
-    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS insurance_cost NUMERIC(15,2) DEFAULT 0;
-    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS insurance_duration VARCHAR(50);
-    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS insurance_policy_number VARCHAR(100);
-    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS fuel_power_type VARCHAR(100); 
-    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS fuel_consumption VARCHAR(100);
-    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_start_date VARCHAR(50);
-    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_expiry_date VARCHAR(50);
-    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_cost NUMERIC(15,2) DEFAULT 0;
-    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_duration VARCHAR(50);
-    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_policy_number VARCHAR(100);
-    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS insurance_history JSONB DEFAULT '[]'::jsonb;
-    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_history JSONB DEFAULT '[]'::jsonb;
-    CREATE TABLE IF NOT EXISTS tenant_vehicle_assignments (
-      id SERIAL PRIMARY KEY,
-      tenant_id VARCHAR(100) NOT NULL,
-      asset_type VARCHAR(50) NOT NULL DEFAULT 'vehicle',
-      asset_id VARCHAR(100) NOT NULL,
-      asset_number VARCHAR(100) NOT NULL,
-      asset_title VARCHAR(255),
-      project_id VARCHAR(100),
-      project_name VARCHAR(255),
-      worksite_id VARCHAR(100),
-      worksite_name VARCHAR(255),
-      assigned_to_type VARCHAR(50) DEFAULT 'driver',
-      assigned_to_name VARCHAR(255),
-      assigned_to_phone VARCHAR(50),
-      start_date VARCHAR(50),
-      expected_end_date VARCHAR(50),
-      actual_end_date VARCHAR(50),
-      meter_reading_at_assign NUMERIC(15,2) DEFAULT 0,
-      meter_reading_at_release NUMERIC(15,2),
-      status VARCHAR(50) DEFAULT 'Active',
-      notes TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-  await pool.query(`
     CREATE TABLE IF NOT EXISTS tenant_vehicles (
       id SERIAL PRIMARY KEY,
       tenant_id VARCHAR(100) NOT NULL,
@@ -8330,6 +8288,50 @@ app.listen(Number(port), '0.0.0.0', async () => {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tenant_vehicle_assignments (
+      id SERIAL PRIMARY KEY,
+      tenant_id VARCHAR(100) NOT NULL,
+      asset_type VARCHAR(50) NOT NULL DEFAULT 'vehicle',
+      asset_id VARCHAR(100) NOT NULL,
+      asset_number VARCHAR(100) NOT NULL,
+      asset_title VARCHAR(255),
+      project_id VARCHAR(100),
+      project_name VARCHAR(255),
+      worksite_id VARCHAR(100),
+      worksite_name VARCHAR(255),
+      assigned_to_type VARCHAR(50) DEFAULT 'driver',
+      assigned_to_name VARCHAR(255),
+      assigned_to_phone VARCHAR(50),
+      start_date VARCHAR(50),
+      expected_end_date VARCHAR(50),
+      actual_end_date VARCHAR(50),
+      meter_reading_at_assign NUMERIC(15,2) DEFAULT 0,
+      meter_reading_at_release NUMERIC(15,2),
+      status VARCHAR(50) DEFAULT 'Active',
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  await pool.query(`
+    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS fuel_power_type VARCHAR(100); 
+    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS fuel_consumption VARCHAR(100); 
+    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS insurance_start_date VARCHAR(50);
+    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS insurance_expiry_date VARCHAR(50);
+    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS insurance_cost NUMERIC(15,2) DEFAULT 0;
+    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS insurance_duration VARCHAR(50);
+    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS insurance_policy_number VARCHAR(100);
+    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS fuel_power_type VARCHAR(100); 
+    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS fuel_consumption VARCHAR(100);
+    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_start_date VARCHAR(50);
+    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_expiry_date VARCHAR(50);
+    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_cost NUMERIC(15,2) DEFAULT 0;
+    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_duration VARCHAR(50);
+    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_policy_number VARCHAR(100);
+    ALTER TABLE tenant_vehicles ADD COLUMN IF NOT EXISTS insurance_history JSONB DEFAULT '[]'::jsonb;
+    ALTER TABLE tenant_heavy_equipment ADD COLUMN IF NOT EXISTS insurance_history JSONB DEFAULT '[]'::jsonb;
   `);
   console.log('✅ Auto-created/verified tenant_vehicles & tenant_heavy_equipment tables on server startup');
 
