@@ -1141,187 +1141,130 @@ export default function VehicleAssignmentPage() {
                 </div>
 
                 <div className="space-y-2">
-                  {assignmentRows.map((row, index) => {
-                    const initials = row.assignedToName
-                      ? row.assignedToName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
-                      : 'DR';
-
-                    return (
-                      <div
-                        key={row.rowId}
-                        className="p-3.5 bg-gradient-to-b from-white to-slate-50/40 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all text-xs space-y-3 relative overflow-hidden"
-                      >
-                        {/* Header: Asset # Badge + Asset Summary + Status Pill */}
-                        <div className="flex items-center justify-between pb-2 border-b border-slate-100 flex-wrap gap-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-lg bg-slate-900 text-white text-[10.5px] font-extrabold tracking-wide shadow-2xs">
-                              Vehicle #{index + 1}
+                  {assignmentRows.map((row, index) => (
+                    <div
+                      key={row.rowId}
+                      className="p-3.5 bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:border-slate-300 transition-all text-xs space-y-2.5"
+                    >
+                      {/* Row Header */}
+                      <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md bg-slate-100 text-[10.5px] font-bold text-slate-700">
+                            Vehicle #{index + 1}
+                          </span>
+                          {row.assetNumber && (
+                            <span className="text-[10.5px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60 font-mono">
+                              {row.assetNumber} {row.assetTitle ? `• ${row.assetTitle}` : ''}
                             </span>
-                            {row.assetNumber ? (
-                              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-[11px] font-bold">
-                                <span>{row.assetType === 'equipment' ? '🚜' : '🚚'}</span>
-                                <span className="font-mono">{row.assetNumber}</span>
-                                {row.assetTitle && (
-                                  <span className="font-normal text-emerald-600 truncate max-w-[240px]">
-                                    ({row.assetTitle})
-                                  </span>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-[10px] text-slate-400 italic">No asset selected yet</span>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            {row.assignedToName ? (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                                Crew Assigned
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200/50">
-                                Pending Driver
-                              </span>
-                            )}
-                            {assignmentRows.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveRow(row.rowId)}
-                                className="p-1 rounded-lg text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                                title="Remove this vehicle"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            )}
-                          </div>
+                          )}
                         </div>
-
-                        {/* Top Tier: Two Primary Dropdowns */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {/* 1. Vehicle / Equipment Selector */}
-                          <div>
-                            <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                              Select Vehicle / Equipment <span className="text-rose-500">*</span>
-                            </label>
-                            <select
-                              required
-                              value={row.assetId}
-                              onChange={e => handleSelectAssetForRow(row.rowId, e.target.value)}
-                              className="w-full bg-slate-50 hover:bg-white border border-slate-200 focus:border-[#46B351] rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 transition-all cursor-pointer"
-                            >
-                              <option value="">-- Choose Fleet Asset --</option>
-                              <optgroup label="🚚 Vehicles">
-                                {fleetOptions.filter(f => f.type === 'vehicle').map(f => (
-                                  <option key={f.id} value={String(f.id)}>
-                                    {f.number} • {f.title}
-                                  </option>
-                                ))}
-                              </optgroup>
-                              <optgroup label="🚜 Heavy Equipment">
-                                {fleetOptions.filter(f => f.type === 'equipment').map(f => (
-                                  <option key={f.id} value={String(f.id)}>
-                                    {f.number} • {f.title}
-                                  </option>
-                                ))}
-                              </optgroup>
-                            </select>
-                          </div>
-
-                          {/* 2. Driver / Operator Dropdown */}
-                          <div>
-                            <div className="flex items-center justify-between mb-1">
-                              <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-                                <Users size={12} className="text-[#46B351]" />
-                                <span>Assign Driver / Operator</span>
-                                <span className="text-rose-500">*</span>
-                              </label>
-                              <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200/50">
-                                {driverList.length} Available
-                              </span>
-                            </div>
-                            <select
-                              required
-                              value={row.memberId || ''}
-                              onChange={e => handleSelectDriverForRow(row.rowId, e.target.value)}
-                              className="w-full bg-slate-50 hover:bg-white border border-slate-200 focus:border-[#46B351] rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#46B351]/20 transition-all cursor-pointer"
-                            >
-                              <option value="">-- Select Driver / Operator --</option>
-                              {driverList.map(m => {
-                                const isP2P =
-                                  (Array.isArray(m.allowed_modules) &&
-                                    m.allowed_modules.some(mod =>
-                                      ['fms_driver', 'fms_machinery', 'fms', 'fuel_logs'].includes(mod)
-                                    )) ||
-                                  ['fms_driver', 'fms_machinery'].includes(m.landing_module || '') ||
-                                  Boolean(m.permissions?.fms_driver || m.permissions?.fms_machinery);
-
-                                const isNonStandardRole =
-                                  !m.role?.toLowerCase().includes('driver') &&
-                                  !m.role?.toLowerCase().includes('operator');
-
-                                return (
-                                  <option key={m.id} value={String(m.id)}>
-                                    {m.name} • {m.role || 'Driver'}{isP2P && isNonStandardRole ? ' (Person-to-Person Access)' : ''} {m.mobile ? `(${m.mobile})` : ''}
-                                  </option>
-                                );
-                              })}
-                            </select>
-                            {driverList.length === 0 && (
-                              <p className="text-[10px] text-amber-600 mt-1">
-                                ⚠️ No drivers found. Add drivers in Team or grant access via Staff Directory & Person-to-Person Access.
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Executive Assigned Crew Card (when driver chosen) */}
-                        {row.assignedToName ? (
-                          <div className="p-3 rounded-xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white border border-slate-700/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div className="flex items-center gap-3">
-                              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#46B351] to-emerald-700 text-white flex items-center justify-center font-black text-xs shadow-xs shrink-0 border border-emerald-400/30">
-                                {initials}
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <h5 className="font-bold text-xs text-white tracking-wide">
-                                    {row.assignedToName}
-                                  </h5>
-                                  <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                                    ✓ Authorized Crew
-                                  </span>
-                                </div>
-                                {row.assignedToPhone ? (
-                                  <div className="flex items-center gap-1.5 text-[11px] text-slate-300 mt-0.5 font-mono">
-                                    <Phone size={10} className="text-emerald-400" />
-                                    <span>{row.assignedToPhone}</span>
-                                  </div>
-                                ) : (
-                                  <span className="text-[10px] text-slate-400 italic">No phone on file</span>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2 self-start sm:self-center">
-                              <div className="bg-slate-800/90 border border-slate-600/80 rounded-lg px-2.5 py-1 text-right">
-                                <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400 block leading-tight">
-                                  Team Role
-                                </span>
-                                <span className="text-xs font-bold text-emerald-400 inline-flex items-center gap-1">
-                                  <Shield size={11} className="text-emerald-400" />
-                                  <span>{row.assignedToType || 'Driver'}</span>
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="p-2.5 rounded-xl bg-slate-50 border border-dashed border-slate-200 flex items-center justify-center gap-2 text-slate-400 text-xs">
-                            <User size={13} className="text-slate-400" />
-                            <span>Select an authorized driver or operator above to bind to this vehicle</span>
-                          </div>
+                        {assignmentRows.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveRow(row.rowId)}
+                            className="p-1 rounded text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            title="Remove this vehicle"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         )}
                       </div>
-                    );
-                  })}
+
+                      {/* Clean 4-Column Form Layout */}
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
+                        {/* 1. Vehicle / Equipment */}
+                        <div className="sm:col-span-4">
+                          <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">
+                            Select Vehicle / Equipment <span className="text-rose-500">*</span>
+                          </label>
+                          <select
+                            required
+                            value={row.assetId}
+                            onChange={e => handleSelectAssetForRow(row.rowId, e.target.value)}
+                            className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
+                          >
+                            <option value="">-- Choose Asset --</option>
+                            <optgroup label="🚚 Vehicles">
+                              {fleetOptions.filter(f => f.type === 'vehicle').map(f => (
+                                <option key={f.id} value={String(f.id)}>
+                                  {f.number} • {f.title}
+                                </option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="🚜 Heavy Equipment">
+                              {fleetOptions.filter(f => f.type === 'equipment').map(f => (
+                                <option key={f.id} value={String(f.id)}>
+                                  {f.number} • {f.title}
+                                </option>
+                              ))}
+                            </optgroup>
+                          </select>
+                        </div>
+
+                        {/* 2. Driver / Operator */}
+                        <div className="sm:col-span-3">
+                          <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">
+                            Driver / Operator <span className="text-rose-500">*</span>
+                          </label>
+                          <select
+                            required
+                            value={row.memberId || ''}
+                            onChange={e => handleSelectDriverForRow(row.rowId, e.target.value)}
+                            className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
+                          >
+                            <option value="">-- Select Driver --</option>
+                            {driverList.map(m => {
+                              const isP2P =
+                                (Array.isArray(m.allowed_modules) &&
+                                  m.allowed_modules.some(mod =>
+                                    ['fms_driver', 'fms_machinery', 'fms', 'fuel_logs'].includes(mod)
+                                  )) ||
+                                ['fms_driver', 'fms_machinery'].includes(m.landing_module || '') ||
+                                Boolean(m.permissions?.fms_driver || m.permissions?.fms_machinery);
+
+                              const isNonStandardRole =
+                                !m.role?.toLowerCase().includes('driver') &&
+                                !m.role?.toLowerCase().includes('operator');
+
+                              return (
+                                <option key={m.id} value={String(m.id)}>
+                                  {m.name} • {m.role || 'Driver'}{isP2P && isNonStandardRole ? ' (Person-to-Person Access)' : ''}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+
+                        {/* 3. Role Type */}
+                        <div className="sm:col-span-2">
+                          <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">
+                            Role Type
+                          </label>
+                          <input
+                            type="text"
+                            readOnly
+                            value={row.assignedToType || ''}
+                            placeholder="Auto-filled"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 cursor-default"
+                          />
+                        </div>
+
+                        {/* 4. Contact Phone */}
+                        <div className="sm:col-span-3">
+                          <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">
+                            Contact Phone
+                          </label>
+                          <input
+                            type="text"
+                            readOnly
+                            value={row.assignedToPhone || ''}
+                            placeholder="Auto-filled"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-700 cursor-default"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Add Another Row Button */}
