@@ -25,7 +25,8 @@ import {
   Compass,
   Sparkles,
   ArrowRightCircle,
-  Users
+  Users,
+  Shield
 } from 'lucide-react';
 
 interface WorkSite {
