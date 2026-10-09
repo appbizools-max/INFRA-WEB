@@ -4750,28 +4750,13 @@ app.get(['/api/tenant/vehicle-assignments/:firebaseUid', '/api/tenant/vehicle-as
 
 // POST Create Vehicle Assignment
 app.post('/api/tenant/vehicle-assignments', async (req, res) => {
-  const {
-    firebaseUid,
-    assetType,
-    assetId,
-    assetNumber,
-    assetTitle,
-    projectId,
-    projectName,
-    worksiteId,
-    worksiteName,
-    assignedToType,
-    assignedToName,
-    assignedToPhone,
-    startDate,
-    expectedEndDate,
-    meterReadingAtAssign,
-    notes,
-    status
-  } = req.body;
+  const items = Array.isArray(req.body.items)
+    ? req.body.items
+    : (Array.isArray(req.body) ? req.body : [req.body]);
 
   try {
     let tenantId = null;
+    const firebaseUid = req.body.firebaseUid || (items[0] && items[0].firebaseUid);
     if (firebaseUid) {
       const tenantRes = await pool.query(
         `SELECT tenant_id FROM tenant_admins WHERE firebase_uid = $1
@@ -4787,106 +4772,136 @@ app.post('/api/tenant/vehicle-assignments', async (req, res) => {
     }
     if (!tenantId) tenantId = '1';
 
-    const insertRes = await pool.query(
-      `INSERT INTO tenant_vehicle_assignments (
-        tenant_id,
-        asset_type,
-        asset_id,
-        asset_number,
-        asset_title,
-        project_id,
-        project_name,
-        worksite_id,
-        worksite_name,
-        assigned_to_type,
-        assigned_to_name,
-        assigned_to_phone,
-        start_date,
-        expected_end_date,
-        meter_reading_at_assign,
+    const createdAssignments = [];
+
+    for (const item of items) {
+      const {
+        assetType,
+        assetId,
+        assetNumber,
+        assetTitle,
+        projectId,
+        projectName,
+        worksiteId,
+        worksiteName,
+        assignedToType,
+        assignedToName,
+        assignedToPhone,
+        startDate,
+        expectedEndDate,
+        meterReadingAtAssign,
         status,
         notes
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-      RETURNING 
-        id,
-        tenant_id as "tenantId",
-        asset_type as "assetType",
-        asset_id as "assetId",
-        asset_number as "assetNumber",
-        asset_title as "assetTitle",
-        project_id as "projectId",
-        project_name as "projectName",
-        worksite_id as "worksiteId",
-        worksite_name as "worksiteName",
-        assigned_to_type as "assignedToType",
-        assigned_to_name as "assignedToName",
-        assigned_to_phone as "assignedToPhone",
-        start_date as "startDate",
-        expected_end_date as "expectedEndDate",
-        actual_end_date as "actualEndDate",
-        meter_reading_at_assign as "meterReadingAtAssign",
-        meter_reading_at_release as "meterReadingAtRelease",
-        status,
-        notes,
-        created_at as "createdAt",
-        updated_at as "updatedAt"`,
-      [
-        tenantId,
-        assetType || 'vehicle',
-        String(assetId),
-        assetNumber?.trim() || '',
-        assetTitle?.trim() || null,
-        projectId || null,
-        projectName?.trim() || null,
-        worksiteId || null,
-        worksiteName?.trim() || null,
-        assignedToType || 'driver',
-        assignedToName?.trim() || null,
-        assignedToPhone?.trim() || null,
-        startDate || new Date().toISOString().split('T')[0],
-        expectedEndDate || null,
-        meterReadingAtAssign !== undefined ? parseFloat(meterReadingAtAssign) : 0,
-        status || 'Active',
-        notes?.trim() || null
-      ]
-    );
+      } = item;
 
-    // Sync status & driver/operator to vehicle / equipment
-    if (assetType === 'vehicle') {
-      await pool.query(
-        `UPDATE tenant_vehicles 
-         SET status = 'In Operation',
-             assigned_project_id = $1,
-             assigned_project_name = $2,
-             assigned_driver_name = $3,
-             assigned_driver_phone = $4,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE id = $5`,
-        [projectId || null, projectName || null, assignedToName || null, assignedToPhone || null, assetId]
+      if (!assetId || !assetNumber) continue;
+
+      const insertRes = await pool.query(
+        `INSERT INTO tenant_vehicle_assignments (
+          tenant_id,
+          asset_type,
+          asset_id,
+          asset_number,
+          asset_title,
+          project_id,
+          project_name,
+          worksite_id,
+          worksite_name,
+          assigned_to_type,
+          assigned_to_name,
+          assigned_to_phone,
+          start_date,
+          expected_end_date,
+          meter_reading_at_assign,
+          status,
+          notes
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+        RETURNING 
+          id,
+          tenant_id as "tenantId",
+          asset_type as "assetType",
+          asset_id as "assetId",
+          asset_number as "assetNumber",
+          asset_title as "assetTitle",
+          project_id as "projectId",
+          project_name as "projectName",
+          worksite_id as "worksiteId",
+          worksite_name as "worksiteName",
+          assigned_to_type as "assignedToType",
+          assigned_to_name as "assignedToName",
+          assigned_to_phone as "assignedToPhone",
+          start_date as "startDate",
+          expected_end_date as "expectedEndDate",
+          actual_end_date as "actualEndDate",
+          meter_reading_at_assign as "meterReadingAtAssign",
+          meter_reading_at_release as "meterReadingAtRelease",
+          status,
+          notes,
+          created_at as "createdAt",
+          updated_at as "updatedAt"`,
+        [
+          tenantId,
+          assetType || 'vehicle',
+          String(assetId),
+          assetNumber?.trim() || '',
+          assetTitle?.trim() || null,
+          projectId || null,
+          projectName?.trim() || null,
+          worksiteId || null,
+          worksiteName?.trim() || null,
+          assignedToType || 'driver',
+          assignedToName?.trim() || null,
+          assignedToPhone?.trim() || null,
+          startDate || new Date().toISOString().split('T')[0],
+          expectedEndDate || null,
+          meterReadingAtAssign !== undefined ? parseFloat(meterReadingAtAssign) : 0,
+          status || 'Active',
+          notes?.trim() || null
+        ]
       );
-    } else {
-      await pool.query(
-        `UPDATE tenant_heavy_equipment 
-         SET status = 'In Operation',
-             assigned_project_id = $1,
-             assigned_project_name = $2,
-             assigned_worksite_name = $3,
-             assigned_operator_name = $4,
-             assigned_operator_phone = $5,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE id = $6`,
-        [projectId || null, projectName || null, worksiteName || null, assignedToName || null, assignedToPhone || null, assetId]
-      );
+
+      // Sync vehicle / equipment status
+      if (assetType === 'vehicle') {
+        await pool.query(
+          `UPDATE tenant_vehicles 
+           SET status = 'In Operation',
+               assigned_project_id = $1,
+               assigned_project_name = $2,
+               assigned_driver_name = $3,
+               assigned_driver_phone = $4,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id::text = $5 OR vehicle_number = $6`,
+          [projectId || null, projectName || null, assignedToName || null, assignedToPhone || null, String(assetId), assetNumber]
+        );
+      } else {
+        await pool.query(
+          `UPDATE tenant_heavy_equipment 
+           SET status = 'In Operation',
+               assigned_project_id = $1,
+               assigned_project_name = $2,
+               assigned_worksite_name = $3,
+               assigned_operator_name = $4,
+               assigned_operator_phone = $5,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id::text = $6`,
+          [projectId || null, projectName || null, worksiteName || null, assignedToName || null, assignedToPhone || null, String(assetId)]
+        );
+      }
+
+      createdAssignments.push(insertRes.rows[0]);
     }
 
-    res.status(201).json(insertRes.rows[0]);
+    if (Array.isArray(req.body.items) || Array.isArray(req.body)) {
+      res.status(201).json(createdAssignments);
+    } else {
+      res.status(201).json(createdAssignments[0] || { message: 'Created' });
+    }
   } catch (err: any) {
     console.error('[POST /api/tenant/vehicle-assignments] Error:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// PUT Update Assignment
 app.put('/api/tenant/vehicle-assignments/:id', async (req, res) => {
   const { id } = req.params;
   const {
