@@ -103,7 +103,7 @@ const createNewRow = (): AssignmentRow => ({
   assetTitle: '',
   assetType: 'vehicle',
   memberId: '',
-  assignedToType: 'driver',
+  assignedToType: '',
   assignedToName: '',
   assignedToPhone: ''
 });
@@ -427,37 +427,36 @@ export default function VehicleAssignmentPage() {
         memberId: '',
         assignedToName: '',
         assignedToPhone: '',
-        assignedToType: 'driver'
+        assignedToType: ''
       });
       return;
     }
 
     const member = teamMembers.find(m => String(m.id) === String(memberId));
     if (member) {
-      const isOperator =
-        member.role?.toLowerCase().includes('operator') ||
-        member.role?.toLowerCase().includes('crane') ||
-        member.role?.toLowerCase().includes('dozer') ||
-        member.role?.toLowerCase().includes('machinery');
+      // Use the exact role defined when adding to the team
+      const teamRole = member.role || 'Driver';
 
       handleUpdateRow(rowId, {
         memberId: String(member.id),
         assignedToName: member.name,
         assignedToPhone: member.mobile || '',
-        assignedToType: isOperator ? 'operator' : 'driver'
+        assignedToType: teamRole
       });
     }
   };
 
   const handleSelectAssetForRow = (rowId: string, assetId: string) => {
     const asset = fleetOptions.find(f => String(f.id) === String(assetId));
+    const currentRow = assignmentRows.find(r => r.rowId === rowId);
     if (asset) {
       handleUpdateRow(rowId, {
         assetId: String(asset.id),
         assetNumber: asset.number,
         assetTitle: asset.title,
         assetType: asset.type,
-        assignedToType: asset.type === 'equipment' ? 'operator' : 'driver'
+        // Keep the role from the selected team member if already selected; otherwise set placeholder
+        assignedToType: currentRow?.assignedToType || (asset.type === 'equipment' ? 'Heavy Operator' : 'Driver')
       });
     } else {
       handleUpdateRow(rowId, {
@@ -1245,20 +1244,17 @@ export default function VehicleAssignmentPage() {
                           )}
                         </div>
 
-                        {/* 3. Role Type */}
+                        {/* 3. Role Type (Exact role from Team member) */}
                         <div className="sm:col-span-3">
                           <label className="text-[10.5px] font-semibold text-slate-600 block mb-1">
                             Role Type
                           </label>
-                          <select
-                            value={row.assignedToType}
-                            onChange={e => handleUpdateRow(row.rowId, { assignedToType: e.target.value as any })}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#46B351]"
-                          >
-                            <option value="driver">Driver</option>
-                            <option value="operator">Heavy Operator</option>
-                            <option value="subcontractor">Subcontractor</option>
-                          </select>
+                          <div className="w-full bg-slate-100/90 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 flex items-center gap-1.5 min-h-[34px]">
+                            <Shield size={12} className={row.assignedToType ? "text-[#46B351] shrink-0" : "text-slate-400 shrink-0"} />
+                            <span className="truncate">
+                              {row.assignedToType || 'Select Driver First'}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
